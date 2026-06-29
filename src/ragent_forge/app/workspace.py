@@ -4,16 +4,25 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ragent_forge.app.models import DocumentChunk, IngestResult
+from ragent_forge.app.models import DocumentChunk, IngestResult, WorkspaceStatus
 
 
 class LocalWorkspace:
     def __init__(self, root_path: str | Path = ".ragent") -> None:
-        self.root_path = Path(root_path)
+        self.root_path = Path(root_path).expanduser()
         self.chunks_dir = self.root_path / "chunks"
         self.ingest_dir = self.root_path / "ingest"
         self.chunks_path = self.chunks_dir / "chunks.jsonl"
         self.latest_summary_path = self.ingest_dir / "latest_summary.json"
+
+    def exists(self) -> bool:
+        return self.root_path.exists()
+
+    def has_chunks(self) -> bool:
+        return self.chunks_path.is_file()
+
+    def has_summary(self) -> bool:
+        return self.latest_summary_path.is_file()
 
     def ensure_exists(self) -> None:
         self.chunks_dir.mkdir(parents=True, exist_ok=True)
@@ -45,6 +54,78 @@ class LocalWorkspace:
         )
         return self.latest_summary_path
 
+    def read_chunks(self) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+        for line_number, line in enumerate(
+            self.chunks_path.read_text(encoding="utf-8").splitlines(),
+            start=1,
+        ):
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Invalid JSON in chunks file {self.chunks_path} "
+                    f"at line {line_number}: {exc.msg}"
+                ) from exc
+            if not isinstance(record, dict):
+                raise ValueError(
+                    f"Invalid JSON in chunks file {self.chunks_path} "
+                    f"at line {line_number}: expected object"
+                )
+            records.append(record)
+        return records
+
+    def read_ingest_summary(self) -> dict[str, Any]:
+        try:
+            summary = json.loads(
+                self.latest_summary_path.read_text(encoding="utf-8")
+            )
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Invalid JSON in ingest summary {self.latest_summary_path}: "
+                f"{exc.msg}"
+            ) from exc
+        if not isinstance(summary, dict):
+            raise ValueError(
+                f"Invalid JSON in ingest summary {self.latest_summary_path}: "
+                "expected object"
+            )
+        return summary
+
+    def status(self) -> WorkspaceStatus:
+        workspace_exists = self.exists()
+        chunks_exist = self.has_chunks()
+        summary_exists = self.has_summary()
+        missing_files = self._missing_files(chunks_exist, summary_exists)
+
+        if not workspace_exists:
+            status_name = "not_initialized"
+        elif missing_files:
+            status_name = "incomplete"
+        else:
+            status_name = "ready"
+
+        summary: dict[str, Any] = {}
+        chunk_count_from_file: int | None = None
+        if status_name == "ready":
+            summary = self.read_ingest_summary()
+            chunk_count_from_file = len(self.read_chunks())
+
+        return WorkspaceStatus(
+            root_path=str(self.root_path),
+            exists=workspace_exists,
+            has_chunks=chunks_exist,
+            has_summary=summary_exists,
+            status=status_name,
+            chunks_path=str(self.chunks_path),
+            latest_summary_path=str(self.latest_summary_path),
+            summary=summary,
+            chunk_count_from_file=chunk_count_from_file,
+            missing_files=missing_files,
+        )
+
     def _chunk_record(self, chunk: DocumentChunk) -> dict[str, Any]:
         start_char = chunk.metadata.get("start_char")
         end_char = chunk.metadata.get("end_char")
@@ -67,3 +148,11 @@ class LocalWorkspace:
             "skipped_files": result.skipped_files,
             "metadata": result.metadata,
         }
+
+    def _missing_files(self, chunks_exist: bool, summary_exists: bool) -> list[str]:
+        missing_files: list[str] = []
+        if not chunks_exist:
+            missing_files.append(str(self.chunks_path))
+        if not summary_exists:
+            missing_files.append(str(self.latest_summary_path))
+        return missing_files

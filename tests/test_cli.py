@@ -57,3 +57,73 @@ def test_ingest_command_reports_errors(tmp_path: Path, capsys) -> None:
     assert exit_code == 1
     assert "Ingest failed" in captured.out
     assert "Ingest path not found" in captured.out
+
+
+def test_status_command_prints_not_initialized_for_missing_workspace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+
+    exit_code = main(["status", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Workspace:" in captured.out
+    assert "Status: not initialized" in captured.out
+    assert "Run `ragent ingest <path>`" in captured.out
+
+
+def test_status_command_prints_ready_after_ingest(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("abcdefghij", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+
+    ingest_exit_code = main(
+        [
+            "ingest",
+            str(knowledge_dir),
+            "--chunk-size",
+            "5",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+    assert ingest_exit_code == 0
+    capsys.readouterr()
+
+    status_exit_code = main(["status", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert status_exit_code == 0
+    assert "Status: ready" in captured.out
+    assert "Last ingest source:" in captured.out
+    assert "Documents: 1" in captured.out
+    assert "Chunks: 2" in captured.out
+    assert "Skipped files: 0" in captured.out
+    assert "Chunks file:" in captured.out
+    assert "Summary file:" in captured.out
+
+
+def test_status_command_reports_corrupt_workspace_json(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    chunks_dir = workspace_dir / "chunks"
+    ingest_dir = workspace_dir / "ingest"
+    chunks_dir.mkdir(parents=True)
+    ingest_dir.mkdir(parents=True)
+    (chunks_dir / "chunks.jsonl").write_text("not-json\n", encoding="utf-8")
+    (ingest_dir / "latest_summary.json").write_text("{}", encoding="utf-8")
+
+    exit_code = main(["status", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Status failed" in captured.out
+    assert "Invalid JSON in chunks file" in captured.out

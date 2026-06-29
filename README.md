@@ -60,6 +60,8 @@ Implemented so far:
 - Loaded documents are chunked with the deterministic `SimpleChunker`.
 - `IngestResult` returns document, chunk, skipped-file, and chunking statistics.
 - The CLI writes chunks and the latest ingestion summary under `.ragent/`.
+- `ragent status` reads `.ragent/` and reports whether the local workspace is
+  ready, incomplete, or not initialized.
 
 Real embeddings, vector database integration, answer generation, persistent
 retrieval indexes, and agent workflows are intentionally not implemented yet.
@@ -74,6 +76,13 @@ summaries, traces, memory, and future indexes.
 
 The source documents are the source of truth; `.ragent/` is derived and can be
 regenerated.
+
+`ragent status` reads workspace state from:
+
+```text
+.ragent/chunks/chunks.jsonl
+.ragent/ingest/latest_summary.json
+```
 
 ## Development Setup
 
@@ -106,6 +115,8 @@ ragent --help
 ragent tui
 ragent ingest examples/knowledge
 ragent ingest examples/knowledge --workspace .ragent
+ragent status
+ragent status --workspace .ragent
 ragent ask "What is Agentic RAG?"
 ```
 
@@ -113,4 +124,5 @@ ragent ask "What is Agentic RAG?"
 chunks local Markdown/TXT files without creating embeddings or a vector index.
 It writes `.ragent/chunks/chunks.jsonl` and
 `.ragent/ingest/latest_summary.json` by default.
+`ragent status` reports whether those workspace files are present and readable.
 `ragent ask` prints a clear stub message and does not fake RAG results.

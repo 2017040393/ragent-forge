@@ -35,6 +35,8 @@ their results.
 
 Services coordinate use cases such as ingesting files, asking questions, and
 creating traces. They provide stable entry points for both the CLI and TUI.
+`LocalWorkspace` handles reading and writing workspace state so presentation
+layers do not parse `.ragent/` files directly.
 
 ## Core Modules
 
@@ -52,6 +54,9 @@ The current ingestion flow writes:
 
 - `.ragent/chunks/chunks.jsonl` for generated `DocumentChunk` records.
 - `.ragent/ingest/latest_summary.json` for the latest ingestion summary.
+
+The status flow reads those same files to report whether the local workspace is
+ready, incomplete, or not initialized.
 
 Future versions may add local indexes, traces, memory, and evaluation artifacts
 under the same workspace directory.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -76,3 +76,16 @@ class IngestResult(BaseModel):
     @property
     def skipped_count(self) -> int:
         return len(self.skipped_files)
+
+
+class WorkspaceStatus(BaseModel):
+    root_path: str
+    exists: bool
+    has_chunks: bool
+    has_summary: bool
+    status: Literal["not_initialized", "incomplete", "ready"]
+    chunks_path: str
+    latest_summary_path: str
+    summary: dict[str, Any] = Field(default_factory=dict)
+    chunk_count_from_file: int | None = None
+    missing_files: list[str] = Field(default_factory=list)
