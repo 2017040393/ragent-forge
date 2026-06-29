@@ -5,6 +5,7 @@ from collections.abc import Sequence
 
 from rich.console import Console
 
+from ragent_forge.app.services.ingest_service import IngestService
 from ragent_forge.tui.main import RagentForgeApp
 
 
@@ -25,6 +26,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Stub for ingesting local Markdown/TXT knowledge folders.",
     )
     ingest_parser.add_argument("path", help="Path to a local knowledge folder or file.")
+    ingest_parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=1000,
+        help="Maximum characters per chunk.",
+    )
+    ingest_parser.add_argument(
+        "--chunk-overlap",
+        type=int,
+        default=0,
+        help="Characters to overlap between adjacent chunks.",
+    )
 
     ask_parser = subparsers.add_parser(
         "ask",
@@ -45,10 +58,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.command == "ingest":
-        console.print(
-            "[bold]Ingestion stub:[/bold] local Markdown/TXT ingestion for "
-            f"[cyan]{args.path}[/cyan] will be implemented in v0.1."
-        )
+        try:
+            result = IngestService(
+                chunk_size=args.chunk_size,
+                chunk_overlap=args.chunk_overlap,
+            ).ingest(args.path)
+        except (FileNotFoundError, ValueError) as exc:
+            console.print(f"[bold red]Ingest failed:[/bold red] {exc}")
+            return 1
+
+        console.print("[bold green]Ingest complete[/bold green]")
+        console.print(f"Source: [cyan]{result.source_path}[/cyan]")
+        console.print(f"Documents: {result.document_count}")
+        console.print(f"Chunks: {result.chunk_count}")
+        console.print(f"Skipped files: {result.skipped_count}")
+        console.print(f"Chunk size: {result.metadata['chunk_size']}")
+        console.print(f"Chunk overlap: {result.metadata['chunk_overlap']}")
         return 0
 
     if args.command == "ask":

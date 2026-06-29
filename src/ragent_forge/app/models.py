@@ -56,3 +56,23 @@ class AskResult(BaseModel):
     answer: str
     sources: list[SourceRef] = Field(default_factory=list)
     trace: RagTrace
+
+
+class IngestResult(BaseModel):
+    source_path: str
+    documents: list[Document] = Field(default_factory=list)
+    chunks: list[DocumentChunk] = Field(default_factory=list)
+    skipped_files: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def document_count(self) -> int:
+        return len(self.documents)
+
+    @property
+    def chunk_count(self) -> int:
+        return len(self.chunks)
+
+    @property
+    def skipped_count(self) -> int:
+        return len(self.skipped_files)

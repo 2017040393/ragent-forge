@@ -49,9 +49,20 @@ local, inspectable RAG workflows rather than full autonomous agents.
 
 ## Current Status
 
-This repository currently contains the project skeleton, documentation, typed data models, Markdown/TXT loader, simple chunker, trace model, CLI stubs, and a minimal Textual TUI skeleton.
+This repository currently contains the project skeleton, documentation, typed
+data models, Markdown/TXT loader, simple chunker, trace model, and a minimal
+Textual TUI skeleton.
 
-Real embeddings, vector database integration, answer generation, and agent workflows are intentionally not implemented yet.
+Implemented so far:
+
+- `ragent ingest` scans local files or folders for Markdown/TXT documents.
+- Ingestion loads supported documents and skips unsupported files.
+- Loaded documents are chunked with the deterministic `SimpleChunker`.
+- `IngestResult` returns document, chunk, skipped-file, and chunking statistics.
+- The CLI prints ingestion statistics without writing an index.
+
+Real embeddings, vector database integration, answer generation, persistent
+index storage, and agent workflows are intentionally not implemented yet.
 
 ## Development Setup
 
@@ -75,8 +86,9 @@ python -m ruff check .
 
 ## Basic Usage
 
-These commands are available now, with ingestion and asking intentionally stubbed
-until the v0.1 RAG workflow is implemented:
+These commands are available now. Ingestion scans local Markdown/TXT files and
+prints loading/chunking statistics; asking remains intentionally stubbed until
+the RAG workflow is implemented:
 
 ```bash
 ragent --help
@@ -85,5 +97,6 @@ ragent ingest examples/knowledge
 ragent ask "What is Agentic RAG?"
 ```
 
-`ragent tui` launches the minimal Textual application. `ragent ingest` and
-`ragent ask` print clear stub messages and do not fake RAG results.
+`ragent tui` launches the minimal Textual application. `ragent ingest` loads and
+chunks local Markdown/TXT files without creating embeddings or a vector index.
+`ragent ask` prints a clear stub message and does not fake RAG results.
