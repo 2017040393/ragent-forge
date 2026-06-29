@@ -18,6 +18,8 @@ Core Modules
   |
 Local Workspace
   |-- knowledge/
+  |-- .ragent/chunks/
+  |-- .ragent/ingest/
   |-- .ragent/index/
   |-- .ragent/traces/
   |-- .ragent/memory/
@@ -42,5 +44,14 @@ Markdown/TXT loader, simple chunker, and trace models are real.
 
 ## Local Storage Layer
 
-Future versions will store local indexes, traces, and project memory under a
-workspace-local `.ragent/` directory. No persistent storage is implemented yet.
+RAGentForge stores generated local state under a workspace-local `.ragent/`
+directory. Source documents remain the source of truth; `.ragent/` contains
+derived system data and can be regenerated.
+
+The current ingestion flow writes:
+
+- `.ragent/chunks/chunks.jsonl` for generated `DocumentChunk` records.
+- `.ragent/ingest/latest_summary.json` for the latest ingestion summary.
+
+Future versions may add local indexes, traces, memory, and evaluation artifacts
+under the same workspace directory.

@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from rich.console import Console
 
 from ragent_forge.app.services.ingest_service import IngestService
+from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
 
 
@@ -38,6 +39,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=0,
         help="Characters to overlap between adjacent chunks.",
     )
+    ingest_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory for generated ingestion data.",
+    )
 
     ask_parser = subparsers.add_parser(
         "ask",
@@ -67,6 +73,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             console.print(f"[bold red]Ingest failed:[/bold red] {exc}")
             return 1
 
+        workspace = LocalWorkspace(args.workspace)
+        chunks_path = workspace.write_chunks(result.chunks)
+        summary_path = workspace.write_ingest_summary(result)
+
         console.print("[bold green]Ingest complete[/bold green]")
         console.print(f"Source: [cyan]{result.source_path}[/cyan]")
         console.print(f"Documents: {result.document_count}")
@@ -74,6 +84,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         console.print(f"Skipped files: {result.skipped_count}")
         console.print(f"Chunk size: {result.metadata['chunk_size']}")
         console.print(f"Chunk overlap: {result.metadata['chunk_overlap']}")
+        console.print(f"Saved chunks to: {chunks_path}")
+        console.print(f"Saved summary to: {summary_path}")
         return 0
 
     if args.command == "ask":

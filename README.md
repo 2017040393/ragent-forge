@@ -59,10 +59,21 @@ Implemented so far:
 - Ingestion loads supported documents and skips unsupported files.
 - Loaded documents are chunked with the deterministic `SimpleChunker`.
 - `IngestResult` returns document, chunk, skipped-file, and chunking statistics.
-- The CLI prints ingestion statistics without writing an index.
+- The CLI writes chunks and the latest ingestion summary under `.ragent/`.
 
 Real embeddings, vector database integration, answer generation, persistent
-index storage, and agent workflows are intentionally not implemented yet.
+retrieval indexes, and agent workflows are intentionally not implemented yet.
+
+## Local Workspace
+
+RAGentForge stores generated local state under `.ragent/`.
+
+The knowledge base directory contains human-readable source documents. The
+`.ragent/` directory contains derived system data such as chunks, ingestion
+summaries, traces, memory, and future indexes.
+
+The source documents are the source of truth; `.ragent/` is derived and can be
+regenerated.
 
 ## Development Setup
 
@@ -94,9 +105,12 @@ the RAG workflow is implemented:
 ragent --help
 ragent tui
 ragent ingest examples/knowledge
+ragent ingest examples/knowledge --workspace .ragent
 ragent ask "What is Agentic RAG?"
 ```
 
 `ragent tui` launches the minimal Textual application. `ragent ingest` loads and
 chunks local Markdown/TXT files without creating embeddings or a vector index.
+It writes `.ragent/chunks/chunks.jsonl` and
+`.ragent/ingest/latest_summary.json` by default.
 `ragent ask` prints a clear stub message and does not fake RAG results.

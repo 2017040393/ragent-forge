@@ -33,7 +33,11 @@ class SimpleChunker:
                     document_id=document.id,
                     text=document.text[start:end],
                     index=chunk_index,
-                    metadata={"source_path": source_path},
+                    metadata={
+                        "source_path": source_path,
+                        "start_char": start,
+                        "end_char": min(end, len(document.text)),
+                    },
                 )
             )
             start += step
