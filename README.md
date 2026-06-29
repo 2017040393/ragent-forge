@@ -47,6 +47,12 @@ local, inspectable RAG workflows rather than full autonomous agents.
 - `v0.5`: Evaluation dashboard for retrieval and answer quality.
 - `v0.6`: Open-source polish, examples, and contributor ergonomics.
 
+## Current Status
+
+This repository currently contains the project skeleton, documentation, typed data models, Markdown/TXT loader, simple chunker, trace model, CLI stubs, and a minimal Textual TUI skeleton.
+
+Real embeddings, vector database integration, answer generation, and agent workflows are intentionally not implemented yet.
+
 ## Development Setup
 
 With `uv`:
