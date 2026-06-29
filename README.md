@@ -1,0 +1,83 @@
+# RAGentForge
+
+A local-first TUI workbench for inspectable Agentic RAG workflows over personal knowledge bases.
+
+RAGentForge is an early-stage Python project for developers who want to query,
+organize, and reason over their own Markdown/TXT notes, project documents,
+learning materials, and interview preparation files. Early versions focus on
+local, inspectable RAG workflows rather than full autonomous agents.
+
+## Project Goals
+
+- Provide a TUI-first workspace for local knowledge exploration.
+- Keep ingestion, chunking, retrieval, generation, and traces inspectable.
+- Start with Markdown and TXT files before expanding to richer formats.
+- Use Python to iterate quickly on AI system design.
+- Leave room for future Rust modules only after real bottlenecks appear.
+
+## Early Non-Goals
+
+- No cloud service, hosted backend, or enterprise knowledge base.
+- No Web UI, desktop UI, authentication, or multi-user workflow.
+- No complete RAG pipeline, real LLM calls, embeddings, or vector database yet.
+- No no-code platform, complex agent autonomy, plugin system, or distributed jobs.
+- No Rust, PyO3, native extensions, or mixed-language build system in this step.
+
+## Core Principles
+
+1. Local-first before cloud.
+2. TUI-first before Web/Desktop UI.
+3. Inspectable before autonomous.
+4. Python-first for fast AI system iteration.
+5. Rust-ready only as a future option for performance-critical modules.
+
+## Target Environment
+
+- Python 3.11+
+- Local developer machines
+- Markdown/TXT personal knowledge bases
+- Terminal-first workflows
+
+## Planned Roadmap
+
+- `v0.1`: Local TUI + inspectable RAG foundations.
+- `v0.2`: Hybrid retrieval and better trace views.
+- `v0.3`: Project memory over local workspaces.
+- `v0.4`: Minimal agent runtime with explicit controls.
+- `v0.5`: Evaluation dashboard for retrieval and answer quality.
+- `v0.6`: Open-source polish, examples, and contributor ergonomics.
+
+## Development Setup
+
+With `uv`:
+
+```bash
+uv sync --extra dev
+uv run pytest
+uv run ruff check .
+```
+
+With standard Python tooling:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install -e ".[dev]"
+python -m pytest
+python -m ruff check .
+```
+
+## Basic Usage
+
+These commands are available now, with ingestion and asking intentionally stubbed
+until the v0.1 RAG workflow is implemented:
+
+```bash
+ragent --help
+ragent tui
+ragent ingest examples/knowledge
+ragent ask "What is Agentic RAG?"
+```
+
+`ragent tui` launches the minimal Textual application. `ragent ingest` and
+`ragent ask` print clear stub messages and do not fake RAG results.

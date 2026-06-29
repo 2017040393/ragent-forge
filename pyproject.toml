@@ -1,0 +1,43 @@
+[project]
+name = "ragent-forge"
+version = "0.1.0"
+description = "A local-first TUI workbench for inspectable Agentic RAG workflows over personal knowledge bases."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+    { name = "RAGentForge contributors" }
+]
+dependencies = [
+    "pydantic>=2.7,<3",
+    "rich>=13.7,<15",
+    "textual>=0.80,<6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2,<9",
+    "ruff>=0.5,<1",
+]
+
+[project.scripts]
+ragent = "ragent_forge.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ragent_forge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
