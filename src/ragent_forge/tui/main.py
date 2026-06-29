@@ -4,6 +4,8 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header, Label, Static
 
+from ragent_forge.tui.screens.documents import DocumentsScreen
+
 
 class RagentForgeApp(App[None]):
     CSS = """
@@ -56,12 +58,8 @@ class RagentForgeApp(App[None]):
                 yield Static("Trace", classes="nav-item")
                 yield Static("Settings", classes="nav-item")
             with Vertical(id="main-panel"):
-                yield Label("RAGentForge")
-                yield Static(
-                    "v0.1 focuses on local, inspectable RAG over Markdown and TXT "
-                    "knowledge bases. Full ingestion, retrieval, and generation "
-                    "workflows are intentionally stubbed for this initialization."
-                )
+                yield Label("Documents")
+                yield DocumentsScreen()
             with Vertical(id="inspector"):
                 yield Label("Inspector")
                 yield Static("Sources")

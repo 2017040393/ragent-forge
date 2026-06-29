@@ -109,6 +109,26 @@ def test_status_command_prints_ready_after_ingest(
     assert "Summary file:" in captured.out
 
 
+def test_status_command_prints_incomplete_workspace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    (workspace_dir / "chunks").mkdir(parents=True)
+    (workspace_dir / "ingest").mkdir(parents=True)
+
+    exit_code = main(["status", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Status: incomplete" in captured.out
+    assert "Missing chunks file:" in captured.out
+    assert "chunks.jsonl" in captured.out
+    assert "Missing summary file:" in captured.out
+    assert "latest_summary.json" in captured.out
+    assert "Run `ragent ingest <path>`" in captured.out
+
+
 def test_status_command_reports_corrupt_workspace_json(
     tmp_path: Path,
     capsys,

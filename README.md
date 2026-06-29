@@ -62,6 +62,7 @@ Implemented so far:
 - The CLI writes chunks and the latest ingestion summary under `.ragent/`.
 - `ragent status` reads `.ragent/` and reports whether the local workspace is
   ready, incomplete, or not initialized.
+- `ragent tui` shows the same local workspace status in the Documents view.
 
 Real embeddings, vector database integration, answer generation, persistent
 retrieval indexes, and agent workflows are intentionally not implemented yet.
@@ -84,6 +85,9 @@ regenerated.
 .ragent/ingest/latest_summary.json
 ```
 
+The TUI Documents view reads the same workspace files. TUI ingestion
+interactions are not implemented yet.
+
 ## Development Setup
 
 With `uv`:
@@ -94,11 +98,21 @@ uv run pytest
 uv run ruff check .
 ```
 
-With standard Python tooling:
+With standard Python tooling on macOS/Linux:
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+python -m pytest
+python -m ruff check .
+```
+
+With standard Python tooling on Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 python -m pytest
 python -m ruff check .
@@ -125,4 +139,5 @@ chunks local Markdown/TXT files without creating embeddings or a vector index.
 It writes `.ragent/chunks/chunks.jsonl` and
 `.ragent/ingest/latest_summary.json` by default.
 `ragent status` reports whether those workspace files are present and readable.
+The TUI Documents view displays that same local workspace status.
 `ragent ask` prints a clear stub message and does not fake RAG results.

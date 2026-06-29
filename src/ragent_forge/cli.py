@@ -151,9 +151,10 @@ def _print_workspace_status(
     console.print()
     console.print(f"Last ingest source: {summary.get('source_path', '')}")
     console.print(f"Documents: {summary.get('document_count', 0)}")
-    chunk_count = workspace_status.chunk_count_from_file or summary.get(
-        "chunk_count",
-        0,
+    chunk_count = (
+        workspace_status.chunk_count_from_file
+        if workspace_status.chunk_count_from_file is not None
+        else summary.get("chunk_count", 0)
     )
     console.print(f"Chunks: {chunk_count}")
     console.print(f"Skipped files: {summary.get('skipped_count', 0)}")

@@ -117,6 +117,27 @@ def test_workspace_status_not_initialized_when_missing(tmp_path: Path) -> None:
     assert status.exists is False
     assert status.has_chunks is False
     assert status.has_summary is False
+    assert status.missing_files == []
+
+
+def test_workspace_status_ready_with_zero_chunks_reports_zero_count(
+    tmp_path: Path,
+) -> None:
+    result = IngestResult(
+        source_path="/knowledge",
+        documents=[],
+        chunks=[],
+        skipped_files=[],
+        metadata={"chunk_size": 5, "chunk_overlap": 0},
+    )
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.write_chunks(result.chunks)
+    workspace.write_ingest_summary(result)
+
+    status = workspace.status()
+
+    assert status.status == "ready"
+    assert status.chunk_count_from_file == 0
 
 
 def test_workspace_status_incomplete_when_files_are_missing(tmp_path: Path) -> None:

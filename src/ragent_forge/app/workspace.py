@@ -98,14 +98,13 @@ class LocalWorkspace:
         workspace_exists = self.exists()
         chunks_exist = self.has_chunks()
         summary_exists = self.has_summary()
-        missing_files = self._missing_files(chunks_exist, summary_exists)
 
         if not workspace_exists:
             status_name = "not_initialized"
-        elif missing_files:
-            status_name = "incomplete"
+            missing_files: list[str] = []
         else:
-            status_name = "ready"
+            missing_files = self._missing_files(chunks_exist, summary_exists)
+            status_name = "incomplete" if missing_files else "ready"
 
         summary: dict[str, Any] = {}
         chunk_count_from_file: int | None = None
