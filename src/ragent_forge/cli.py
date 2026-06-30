@@ -10,6 +10,7 @@ from rich.console import Console
 from ragent_forge.app.models import WorkspaceStatus
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.ingest_service import IngestService
+from ragent_forge.app.services.search_service import LexicalSearchService
 from ragent_forge.app.services.trace_service import build_ingest_trace
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
@@ -108,6 +109,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Local RAGentForge workspace directory to inspect.",
     )
 
+    search_parser = subparsers.add_parser(
+        "search",
+        help="Search generated chunks with simple lexical matching.",
+    )
+    search_parser.add_argument("query", help="Lexical query to search for.")
+    search_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to search.",
+    )
+    search_parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Maximum number of results to show.",
+    )
+
     ask_parser = subparsers.add_parser(
         "ask",
         help="Stub for asking a question against the local knowledge base.",
@@ -186,6 +204,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _handle_traces_latest(console, args.workspace)
         parser.print_help()
         return 0
+
+    if args.command == "search":
+        return _handle_search(console, args.workspace, args.query, args.limit)
 
     if args.command == "ask":
         console.print(
@@ -354,3 +375,44 @@ def _handle_traces_latest(console: Console, workspace_path: str) -> int:
         for key, value in metadata.items():
             console.print(f"- {key}: {value}", soft_wrap=True)
     return 0
+
+
+def _handle_search(
+    console: Console,
+    workspace_path: str,
+    query: str,
+    limit: int,
+) -> int:
+    workspace = LocalWorkspace(workspace_path)
+    if not workspace.has_chunks():
+        _print_no_chunks(console)
+        return 0
+
+    try:
+        results = LexicalSearchService(workspace).search(query, limit)
+    except (OSError, ValueError) as exc:
+        console.print(f"[bold red]Search failed:[/bold red] {exc}")
+        return 1
+
+    console.print(f"Search query: {query}")
+    if not results:
+        console.print("No matches found.")
+        return 0
+
+    console.print(f"Results: {len(results)}")
+    console.print()
+    for index, result in enumerate(results, start=1):
+        range_text = _format_search_range(result.start_char, result.end_char)
+        console.print(
+            f"{index}. score={result.score:g} | {result.chunk_id}",
+            soft_wrap=True,
+        )
+        console.print(f"Source: {result.source_path}", soft_wrap=True)
+        console.print(f"Range: {range_text}")
+        console.print(f"Preview: {make_preview(result.text)}")
+        console.print()
+    return 0
+
+
+def _format_search_range(start_char: int | None, end_char: int | None) -> str:
+    return f"{start_char}-{end_char}"

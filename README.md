@@ -64,6 +64,8 @@ Implemented so far:
   ready, incomplete, or not initialized.
 - `ragent chunks list` and `ragent chunks show <chunk_id>` inspect generated
   chunks from the local workspace.
+- `ragent search <query>` performs deterministic lexical search over generated
+  chunks.
 - Successful `ragent ingest` writes a local JSON trace for the ingest workflow.
 - `ragent traces latest` reads the latest local trace from `.ragent/traces/`.
 - `ragent tui` shows Documents workspace status, recent chunk previews, and
@@ -147,6 +149,8 @@ ragent status --workspace .ragent
 ragent chunks list
 ragent chunks list --limit 20
 ragent chunks show "<chunk_id>"
+ragent search "agent memory"
+ragent search "agent memory" --limit 5
 ragent traces latest
 ragent traces latest --workspace .ragent
 ragent ask "What is Agentic RAG?"
@@ -159,12 +163,16 @@ It writes `.ragent/chunks/chunks.jsonl` and
 `ragent status` reports whether those workspace files are present and readable.
 `ragent chunks list` and `ragent chunks show <chunk_id>` read
 `.ragent/chunks/chunks.jsonl` so you can inspect chunking output before
-retrieval is implemented. They do not perform semantic search, vector
-retrieval, BM25, or answer generation. Successful ingest commands also write
-local JSON trace artifacts under `.ragent/traces/`; current traces cover only
-the ingest workflow and are inspectable with `ragent traces latest`. No external
-observability service is used, and this does not implement retrieval,
-embeddings, LLM tracing, or agent execution. The TUI displays the same local
-workspace status, a small recent-chunks preview when chunks exist, and a
-read-only latest trace summary from `.ragent/traces/latest_trace.json`.
+broader retrieval work is implemented. `ragent search` also reads
+`.ragent/chunks/chunks.jsonl` and uses simple lexical token overlap to rank
+chunks. It is not semantic search and does not use embeddings, vector
+databases, BM25, reranking, LLMs, or answer generation. Use
+`ragent chunks show <chunk_id>` to inspect full chunk content. Successful
+ingest commands also write local JSON trace artifacts under `.ragent/traces/`;
+current traces cover only the ingest workflow and are inspectable with
+`ragent traces latest`. No external observability service is used, and this does
+not implement retrieval tracing, embeddings, LLM tracing, or agent execution.
+The TUI displays the same local workspace status, a small recent-chunks preview
+when chunks exist, and a read-only latest trace summary from
+`.ragent/traces/latest_trace.json`.
 `ragent ask` prints a clear stub message and does not fake RAG results.

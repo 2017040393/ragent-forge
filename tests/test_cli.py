@@ -393,3 +393,119 @@ def test_traces_latest_command_reports_corrupt_latest_trace_json(
     assert exit_code == 1
     assert "Traces failed:" in captured.out
     assert "Invalid JSON in latest trace" in captured.out
+
+
+def test_search_command_prints_matching_chunk_results_after_ingest(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    exit_code = main(["search", "agent memory", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Search query: agent memory" in captured.out
+    assert "Results: 1" in captured.out
+    assert "1. score=3" in captured.out
+    assert "rag.md::chunk-0000" in captured.out
+    assert "Source:" in captured.out
+    assert "Range:" in captured.out
+    assert "Preview:" in captured.out
+
+
+def test_search_command_respects_limit(tmp_path: Path, capsys) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics\nagent planning",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "18",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    exit_code = main(
+        ["search", "agent", "--workspace", str(workspace_dir), "--limit", "1"]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Results: 1" in captured.out
+    assert "rag.md::chunk-0000" in captured.out
+    assert "rag.md::chunk-0002" not in captured.out
+
+
+def test_search_command_prints_no_matches(tmp_path: Path, capsys) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(["search", "no-match", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Search query: no-match" in captured.out
+    assert "No matches found." in captured.out
+
+
+def test_search_command_prints_friendly_message_when_chunks_are_missing(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+
+    exit_code = main(["search", "agent", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "No chunks found. Run ragent ingest <path> first." in captured.out
+
+
+def test_search_command_reports_corrupt_chunks_json(tmp_path: Path, capsys) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    chunks_dir = workspace_dir / "chunks"
+    chunks_dir.mkdir(parents=True)
+    (chunks_dir / "chunks.jsonl").write_text("not-json\n", encoding="utf-8")
+
+    exit_code = main(["search", "agent", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Search failed:" in captured.out
+    assert "Invalid JSON in chunks file" in captured.out
