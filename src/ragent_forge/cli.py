@@ -3,12 +3,14 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from rich.console import Console
 
 from ragent_forge.app.models import WorkspaceStatus
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.ingest_service import IngestService
+from ragent_forge.app.services.trace_service import build_ingest_trace
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
 
@@ -91,6 +93,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Local RAGentForge workspace directory to inspect.",
     )
 
+    traces_parser = subparsers.add_parser(
+        "traces",
+        help="Inspect local operation traces.",
+    )
+    traces_subparsers = traces_parser.add_subparsers(dest="traces_command")
+    traces_latest_parser = traces_subparsers.add_parser(
+        "latest",
+        help="Show the latest local operation trace.",
+    )
+    traces_latest_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to inspect.",
+    )
+
     ask_parser = subparsers.add_parser(
         "ask",
         help="Stub for asking a question against the local knowledge base.",
@@ -110,6 +127,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.command == "ingest":
+        started_at = datetime.now(UTC)
         try:
             result = IngestService(
                 chunk_size=args.chunk_size,
@@ -122,6 +140,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         workspace = LocalWorkspace(args.workspace)
         chunks_path = workspace.write_chunks(result.chunks)
         summary_path = workspace.write_ingest_summary(result)
+        finished_at = datetime.now(UTC)
+        trace = build_ingest_trace(
+            result=result,
+            chunks_path=chunks_path,
+            summary_path=summary_path,
+            started_at=started_at,
+            finished_at=finished_at,
+        )
+        trace_path = workspace.write_trace(trace)
 
         console.print("[bold green]Ingest complete[/bold green]")
         console.print(f"Source: [cyan]{result.source_path}[/cyan]")
@@ -132,6 +159,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         console.print(f"Chunk overlap: {result.metadata['chunk_overlap']}")
         console.print(f"Saved chunks to: {chunks_path}")
         console.print(f"Saved summary to: {summary_path}")
+        console.print(f"Saved trace to: {trace_path}")
         return 0
 
     if args.command == "status":
@@ -150,6 +178,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _handle_chunks_list(console, args.workspace, args.limit)
         if args.chunks_command == "show":
             return _handle_chunks_show(console, args.workspace, args.chunk_id)
+        parser.print_help()
+        return 0
+
+    if args.command == "traces":
+        if args.traces_command == "latest":
+            return _handle_traces_latest(console, args.workspace)
         parser.print_help()
         return 0
 
@@ -288,3 +322,35 @@ def _format_char_range(chunk: dict[str, object]) -> str:
 
 def _print_no_chunks(console: Console) -> None:
     console.print("No chunks found. Run ragent ingest <path> first.")
+
+
+def _handle_traces_latest(console: Console, workspace_path: str) -> int:
+    workspace = LocalWorkspace(workspace_path)
+    if not workspace.has_latest_trace():
+        console.print("No trace found. Run ragent ingest <path> first.")
+        return 0
+
+    try:
+        trace = workspace.read_latest_trace()
+    except (OSError, ValueError) as exc:
+        console.print(f"[bold red]Traces failed:[/bold red] {exc}")
+        return 1
+
+    console.print(f"Trace ID: {trace.get('trace_id', '')}", soft_wrap=True)
+    console.print(f"Operation: {trace.get('operation', '')}")
+    console.print(f"Status: {trace.get('status', '')}")
+    console.print(f"Started at: {trace.get('started_at', '')}")
+    console.print(f"Finished at: {trace.get('finished_at', '')}")
+    console.print()
+    console.print("Steps:")
+    for index, step in enumerate(trace.get("steps", []), start=1):
+        step_name = step.get("name", "") if isinstance(step, dict) else ""
+        console.print(f"{index}. {step_name}")
+
+    console.print()
+    console.print("Metadata:")
+    metadata = trace.get("metadata", {})
+    if isinstance(metadata, dict):
+        for key, value in metadata.items():
+            console.print(f"- {key}: {value}", soft_wrap=True)
+    return 0

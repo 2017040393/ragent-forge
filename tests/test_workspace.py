@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ragent_forge.app.models import Document, IngestResult
+from ragent_forge.app.models import Document, IngestResult, OperationTrace, TraceStep
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 
@@ -44,6 +44,7 @@ def test_workspace_ensure_exists_creates_required_directories(
     assert workspace.root_path.is_dir()
     assert workspace.chunks_dir.is_dir()
     assert workspace.ingest_dir.is_dir()
+    assert workspace.traces_dir.is_dir()
 
 
 def test_write_chunks_writes_valid_jsonl(tmp_path: Path) -> None:
@@ -193,3 +194,81 @@ def test_read_ingest_summary_raises_clear_error_for_invalid_json(
 
     with pytest.raises(ValueError, match="Invalid JSON in ingest summary"):
         workspace.read_ingest_summary()
+
+
+def test_write_trace_writes_trace_and_latest_trace_json(tmp_path: Path) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    trace = OperationTrace(
+        trace_id="ingest-20260630T000000Z",
+        operation="ingest",
+        status="success",
+        started_at="2026-06-30T00:00:00Z",
+        finished_at="2026-06-30T00:00:01Z",
+        steps=[
+            TraceStep(
+                name="load_documents",
+                description="Load supported source documents.",
+            )
+        ],
+        metadata={"document_count": 1},
+    )
+
+    latest_trace_path = workspace.write_trace(trace)
+
+    trace_path = workspace.traces_dir / "ingest-20260630T000000Z.json"
+    assert trace_path.is_file()
+    assert latest_trace_path == workspace.latest_trace_path
+    assert workspace.latest_trace_path.is_file()
+
+    trace_record = json.loads(trace_path.read_text(encoding="utf-8"))
+    latest_record = json.loads(workspace.latest_trace_path.read_text(encoding="utf-8"))
+    assert trace_record["trace_id"] == "ingest-20260630T000000Z"
+    assert latest_record == trace_record
+
+
+def test_read_latest_trace_reads_valid_trace_json(tmp_path: Path) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    trace = OperationTrace(
+        trace_id="ingest-20260630T000000Z",
+        operation="ingest",
+        status="success",
+        started_at="2026-06-30T00:00:00Z",
+        finished_at="2026-06-30T00:00:01Z",
+        metadata={"chunk_count": 2},
+    )
+    workspace.write_trace(trace)
+
+    record = workspace.read_latest_trace()
+
+    assert record["trace_id"] == "ingest-20260630T000000Z"
+    assert record["metadata"]["chunk_count"] == 2
+
+
+def test_has_latest_trace_reports_missing_and_existing_trace(
+    tmp_path: Path,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+
+    assert workspace.has_latest_trace() is False
+
+    workspace.write_trace(
+        OperationTrace(
+            trace_id="ingest-20260630T000000Z",
+            operation="ingest",
+            status="success",
+            started_at="2026-06-30T00:00:00Z",
+        )
+    )
+
+    assert workspace.has_latest_trace() is True
+
+
+def test_read_latest_trace_raises_clear_error_for_invalid_json(
+    tmp_path: Path,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.ensure_exists()
+    workspace.latest_trace_path.write_text("{not-json", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Invalid JSON in latest trace"):
+        workspace.read_latest_trace()

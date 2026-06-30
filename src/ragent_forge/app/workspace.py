@@ -4,7 +4,12 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ragent_forge.app.models import DocumentChunk, IngestResult, WorkspaceStatus
+from ragent_forge.app.models import (
+    DocumentChunk,
+    IngestResult,
+    OperationTrace,
+    WorkspaceStatus,
+)
 
 
 class LocalWorkspace:
@@ -12,8 +17,10 @@ class LocalWorkspace:
         self.root_path = Path(root_path).expanduser()
         self.chunks_dir = self.root_path / "chunks"
         self.ingest_dir = self.root_path / "ingest"
+        self.traces_dir = self.root_path / "traces"
         self.chunks_path = self.chunks_dir / "chunks.jsonl"
         self.latest_summary_path = self.ingest_dir / "latest_summary.json"
+        self.latest_trace_path = self.traces_dir / "latest_trace.json"
 
     def exists(self) -> bool:
         return self.root_path.exists()
@@ -24,9 +31,13 @@ class LocalWorkspace:
     def has_summary(self) -> bool:
         return self.latest_summary_path.is_file()
 
+    def has_latest_trace(self) -> bool:
+        return self.latest_trace_path.is_file()
+
     def ensure_exists(self) -> None:
         self.chunks_dir.mkdir(parents=True, exist_ok=True)
         self.ingest_dir.mkdir(parents=True, exist_ok=True)
+        self.traces_dir.mkdir(parents=True, exist_ok=True)
 
     def write_chunks(self, chunks: list[DocumentChunk]) -> Path:
         self.ensure_exists()
@@ -53,6 +64,17 @@ class LocalWorkspace:
             encoding="utf-8",
         )
         return self.latest_summary_path
+
+    def write_trace(self, trace: OperationTrace) -> Path:
+        self.ensure_exists()
+        content = (
+            trace.model_dump_json(indent=2, exclude_none=True)
+            + "\n"
+        )
+        trace_path = self.traces_dir / f"{trace.trace_id}.json"
+        trace_path.write_text(content, encoding="utf-8")
+        self.latest_trace_path.write_text(content, encoding="utf-8")
+        return self.latest_trace_path
 
     def read_chunks(self) -> list[dict[str, Any]]:
         records: list[dict[str, Any]] = []
@@ -93,6 +115,20 @@ class LocalWorkspace:
                 "expected object"
             )
         return summary
+
+    def read_latest_trace(self) -> dict[str, Any]:
+        try:
+            trace = json.loads(self.latest_trace_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Invalid JSON in latest trace {self.latest_trace_path}: {exc.msg}"
+            ) from exc
+        if not isinstance(trace, dict):
+            raise ValueError(
+                f"Invalid JSON in latest trace {self.latest_trace_path}: "
+                "expected object"
+            )
+        return trace
 
     def status(self) -> WorkspaceStatus:
         workspace_exists = self.exists()

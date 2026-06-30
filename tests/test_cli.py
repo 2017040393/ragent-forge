@@ -37,8 +37,11 @@ def test_ingest_command_prints_statistics(
     assert "chunks.jsonl" in captured.out
     assert "Saved summary to:" in captured.out
     assert "latest_summary.json" in captured.out
+    assert "Saved trace to:" in captured.out
+    assert "latest_trace.json" in captured.out
     assert (workspace_dir / "chunks" / "chunks.jsonl").is_file()
     assert (workspace_dir / "ingest" / "latest_summary.json").is_file()
+    assert (workspace_dir / "traces" / "latest_trace.json").is_file()
 
     summary = json.loads(
         (workspace_dir / "ingest" / "latest_summary.json").read_text(
@@ -48,6 +51,13 @@ def test_ingest_command_prints_statistics(
     assert summary["document_count"] == 2
     assert summary["chunk_count"] == 4
     assert summary["skipped_count"] == 1
+
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert latest_trace["operation"] == "ingest"
+    assert latest_trace["status"] == "success"
+    assert latest_trace["metadata"]["chunk_count"] == 4
 
 
 def test_ingest_command_reports_errors(tmp_path: Path, capsys) -> None:
@@ -312,3 +322,74 @@ def test_chunks_command_reports_corrupt_chunks_json(
     assert exit_code == 1
     assert "Chunks failed:" in captured.out
     assert "Invalid JSON in chunks file" in captured.out
+
+
+def test_traces_latest_command_prints_latest_trace_after_ingest(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("abcdefghij", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "5",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    exit_code = main(["traces", "latest", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Trace ID: ingest-" in captured.out
+    assert "Operation: ingest" in captured.out
+    assert "Status: success" in captured.out
+    assert "Steps:" in captured.out
+    assert "1. load_documents" in captured.out
+    assert "2. chunk_documents" in captured.out
+    assert "3. write_chunks" in captured.out
+    assert "4. write_ingest_summary" in captured.out
+    assert "Metadata:" in captured.out
+    assert "- source_path:" in captured.out
+    assert "- document_count: 1" in captured.out
+    assert "- chunk_count: 2" in captured.out
+
+
+def test_traces_latest_command_prints_friendly_message_when_missing(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+
+    exit_code = main(["traces", "latest", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "No trace found. Run ragent ingest <path> first." in captured.out
+
+
+def test_traces_latest_command_reports_corrupt_latest_trace_json(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    traces_dir = workspace_dir / "traces"
+    traces_dir.mkdir(parents=True)
+    (traces_dir / "latest_trace.json").write_text("{not-json", encoding="utf-8")
+
+    exit_code = main(["traces", "latest", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Traces failed:" in captured.out
+    assert "Invalid JSON in latest trace" in captured.out
