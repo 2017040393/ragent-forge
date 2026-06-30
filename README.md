@@ -62,6 +62,8 @@ Implemented so far:
 - The CLI writes chunks and the latest ingestion summary under `.ragent/`.
 - `ragent status` reads `.ragent/` and reports whether the local workspace is
   ready, incomplete, or not initialized.
+- `ragent chunks list` and `ragent chunks show <chunk_id>` inspect generated
+  chunks from the local workspace.
 - `ragent tui` shows the same local workspace status in the Documents view.
 
 Real embeddings, vector database integration, answer generation, persistent
@@ -131,6 +133,9 @@ ragent ingest examples/knowledge
 ragent ingest examples/knowledge --workspace .ragent
 ragent status
 ragent status --workspace .ragent
+ragent chunks list
+ragent chunks list --limit 20
+ragent chunks show "<chunk_id>"
 ragent ask "What is Agentic RAG?"
 ```
 
@@ -139,5 +144,9 @@ chunks local Markdown/TXT files without creating embeddings or a vector index.
 It writes `.ragent/chunks/chunks.jsonl` and
 `.ragent/ingest/latest_summary.json` by default.
 `ragent status` reports whether those workspace files are present and readable.
-The TUI Documents view displays that same local workspace status.
+`ragent chunks list` and `ragent chunks show <chunk_id>` read
+`.ragent/chunks/chunks.jsonl` so you can inspect chunking output before
+retrieval is implemented. They do not perform semantic search, vector
+retrieval, BM25, or answer generation. The TUI Documents view displays the same
+local workspace status and a small recent-chunks preview when chunks exist.
 `ragent ask` prints a clear stub message and does not fake RAG results.
