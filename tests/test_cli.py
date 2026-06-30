@@ -598,6 +598,8 @@ def test_ask_command_prints_retrieval_only_context_after_ingest(
     assert "Ask pipeline: retrieval-only mode" in captured.out
     assert "Question: agent memory" in captured.out
     assert "Generation: not implemented yet." in captured.out
+    assert "Answer:" not in captured.out
+    assert "Generated answer:" not in captured.out
     assert "Retrieved context:" in captured.out
     assert "1. score=3" in captured.out
     assert "rag.md::chunk-0000" in captured.out
@@ -621,6 +623,9 @@ def test_ask_command_prints_retrieval_only_context_after_ingest(
         "rag.md::chunk-0000"
     )
     assert latest_trace["metadata"]["generation_status"] == "not_implemented"
+    assert latest_trace["metadata"]["generation_provider"] == "null"
+    assert latest_trace["metadata"]["generation_result_status"] == "not_configured"
+    assert latest_trace["metadata"]["answer_generated"] is False
 
 
 def test_ask_command_show_prompt_prints_context_pack_and_prompt_preview(
@@ -679,6 +684,9 @@ def test_ask_command_show_prompt_prints_context_pack_and_prompt_preview(
     assert latest_trace["metadata"]["total_context_chars"] > 0
     assert latest_trace["metadata"]["prompt_preview_shown"] is True
     assert latest_trace["metadata"]["max_context_chars"] == 4000
+    assert latest_trace["metadata"]["generation_provider"] == "null"
+    assert latest_trace["metadata"]["generation_result_status"] == "not_configured"
+    assert latest_trace["metadata"]["answer_generated"] is False
 
 
 def test_ask_command_show_prompt_respects_max_context_chars(
@@ -836,6 +844,8 @@ def test_ask_command_prints_no_retrieved_context_and_writes_trace(
     assert "Ask pipeline: retrieval-only mode" in captured.out
     assert "Question: no-match" in captured.out
     assert "Generation: not implemented yet." in captured.out
+    assert "Answer:" not in captured.out
+    assert "Generated answer:" not in captured.out
     assert "No retrieved context found." in captured.out
     assert "Saved trace to:" in captured.out
 
@@ -847,6 +857,9 @@ def test_ask_command_prints_no_retrieved_context_and_writes_trace(
     assert latest_trace["metadata"]["retrieved_count"] == 0
     assert latest_trace["metadata"]["retrieved_chunk_ids"] == []
     assert latest_trace["metadata"]["generation_status"] == "not_implemented"
+    assert latest_trace["metadata"]["generation_provider"] == "null"
+    assert latest_trace["metadata"]["generation_result_status"] == "not_configured"
+    assert latest_trace["metadata"]["answer_generated"] is False
 
 
 def test_ask_command_prints_friendly_message_when_chunks_are_missing(

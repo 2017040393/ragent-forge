@@ -69,6 +69,7 @@ Implemented so far:
 - Successful `ragent ingest` writes a local JSON trace for the ingest workflow.
 - Successful `ragent search` writes a local JSON trace for the search workflow.
 - `ragent ask <question>` previews retrieved context without generating answers.
+- A null generation provider interface records that generation is not configured.
 - `ragent traces latest` reads the latest local trace from `.ragent/traces/`.
 - `ragent tui` shows Documents workspace status, recent chunk previews, and
   the latest trace summary.
@@ -177,13 +178,17 @@ runs in retrieval-only mode using the same lexical search, displays retrieved
 context, and clearly skips answer generation. `ragent ask --show-prompt` also
 shows a deterministic local prompt preview assembled from the question,
 retrieved chunks, and source references; the preview is not sent to any LLM.
-Context packs are generated in memory and are not persisted. Successful ingest,
-search, and ask retrieval commands write local JSON trace artifacts under
-`.ragent/traces/`; current traces cover ingest, lexical search, and ask
-retrieval workflows and are inspectable with `ragent traces latest`. No
-external observability service is used, and this does not implement semantic,
-vector, LLM, or agent retrieval tracing. The TUI displays the same local
-workspace status, a small recent-chunks preview when chunks exist, and a
-read-only latest trace summary from `.ragent/traces/latest_trace.json`,
-including the latest search or ask retrieval trace after those commands.
-`ragent ask` does not generate or fake an answer yet.
+Context packs are generated in memory and are not persisted. Prompt previews
+are local and are not sent anywhere. `ragent ask` builds a generation request
+and sends it to the current null generation provider, which returns
+`not_configured` with no answer. No real LLM provider is implemented yet, no API
+keys are read, and future providers such as OpenAI or Ollama can be added later
+behind the generation provider interface. Successful ingest, search, and ask
+retrieval commands write local JSON trace artifacts under `.ragent/traces/`;
+current traces cover ingest, lexical search, and ask retrieval workflows and
+are inspectable with `ragent traces latest`. No external observability service
+is used, and this does not implement semantic, vector, LLM, or agent retrieval
+tracing. The TUI displays the same local workspace status, a small recent-chunks
+preview when chunks exist, and a read-only latest trace summary from
+`.ragent/traces/latest_trace.json`, including the latest search or ask retrieval
+trace after those commands. `ragent ask` does not generate or fake an answer yet.

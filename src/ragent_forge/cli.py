@@ -493,6 +493,7 @@ def _handle_ask(
         chunks_path=workspace.chunks_path,
         total_chunks=total_chunks,
         retrieved_chunk_ids=retrieved_chunk_ids,
+        generation_result=result.generation_result,
         context_chunk_count=len(result.context_pack.context_chunks),
         total_context_chars=result.context_pack.total_context_chars,
         prompt_preview_shown=show_prompt,

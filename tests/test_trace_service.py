@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ragent_forge.app.models import Document, IngestResult
+from ragent_forge.app.models import Document, GenerationResult, IngestResult
 from ragent_forge.app.services.trace_service import (
     build_ask_retrieval_trace,
     build_ingest_trace,
@@ -105,6 +105,11 @@ def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None
         chunks_path=Path(".ragent/chunks/chunks.jsonl"),
         total_chunks=7,
         retrieved_chunk_ids=["/knowledge/rag.md::chunk-0002"],
+        generation_result=GenerationResult(
+            provider_name="null",
+            status="not_configured",
+            answer=None,
+        ),
         context_chunk_count=1,
         total_context_chars=128,
         prompt_preview_shown=True,
@@ -122,9 +127,16 @@ def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None
         "read_chunks",
         "retrieve_context",
         "assemble_context_preview",
-        "skip_generation",
+        "generate_answer",
         "render_retrieval_preview",
     ]
+    generation_step = trace.steps[3]
+    assert generation_step.inputs == {"provider": "null"}
+    assert generation_step.outputs == {
+        "generation_status": "not_implemented",
+        "generation_result_status": "not_configured",
+        "answer_generated": False,
+    }
     assert trace.metadata == {
         "question": "what is agent memory?",
         "limit": 3,
@@ -134,6 +146,9 @@ def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None
         "retrieved_count": 1,
         "retrieved_chunk_ids": ["/knowledge/rag.md::chunk-0002"],
         "generation_status": "not_implemented",
+        "generation_provider": "null",
+        "generation_result_status": "not_configured",
+        "answer_generated": False,
         "context_chunk_count": 1,
         "total_context_chars": 128,
         "prompt_preview_shown": True,

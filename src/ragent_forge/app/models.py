@@ -55,6 +55,21 @@ class ContextPack(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class GenerationRequest(BaseModel):
+    question: str
+    prompt: str
+    context_pack: ContextPack
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class GenerationResult(BaseModel):
+    provider_name: str
+    status: Literal["not_configured", "success", "failed"]
+    answer: str | None = None
+    error: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class TraceStep(BaseModel):
     name: str
     description: str

@@ -3,7 +3,13 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ragent_forge.app.models import IngestResult, OperationTrace, RagTrace, TraceStep
+from ragent_forge.app.models import (
+    GenerationResult,
+    IngestResult,
+    OperationTrace,
+    RagTrace,
+    TraceStep,
+)
 
 
 class TraceService:
@@ -145,6 +151,7 @@ def build_ask_retrieval_trace(
     chunks_path: Path,
     total_chunks: int,
     retrieved_chunk_ids: list[str],
+    generation_result: GenerationResult,
     context_chunk_count: int,
     total_context_chars: int,
     prompt_preview_shown: bool,
@@ -163,6 +170,9 @@ def build_ask_retrieval_trace(
         "retrieved_count": len(retrieved_chunk_ids),
         "retrieved_chunk_ids": retrieved_chunk_ids,
         "generation_status": "not_implemented",
+        "generation_provider": generation_result.provider_name,
+        "generation_result_status": generation_result.status,
+        "answer_generated": generation_result.answer is not None,
         "context_chunk_count": context_chunk_count,
         "total_context_chars": total_context_chars,
         "prompt_preview_shown": prompt_preview_shown,
@@ -194,10 +204,17 @@ def build_ask_retrieval_trace(
                 outputs={"preview_count": len(retrieved_chunk_ids)},
             ),
             TraceStep(
-                name="skip_generation",
-                description="Skip answer generation because it is not implemented.",
-                inputs={},
-                outputs={"generation_status": "not_implemented"},
+                name="generate_answer",
+                description=(
+                    "Run the configured generation provider; the null provider "
+                    "returns no answer."
+                ),
+                inputs={"provider": generation_result.provider_name},
+                outputs={
+                    "generation_status": "not_implemented",
+                    "generation_result_status": generation_result.status,
+                    "answer_generated": generation_result.answer is not None,
+                },
             ),
             TraceStep(
                 name="render_retrieval_preview",
