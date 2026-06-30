@@ -77,6 +77,68 @@ def build_ingest_trace(
     )
 
 
+def build_search_trace(
+    query: str,
+    limit: int,
+    chunks_path: Path,
+    total_chunks: int,
+    result_chunk_ids: list[str],
+    started_at: datetime,
+    finished_at: datetime,
+) -> OperationTrace:
+    started_at_utc = _as_utc(started_at)
+    finished_at_utc = _as_utc(finished_at)
+    metadata = {
+        "query": query,
+        "limit": limit,
+        "scoring_method": "lexical_token_overlap",
+        "chunks_path": str(chunks_path),
+        "total_chunks": total_chunks,
+        "result_count": len(result_chunk_ids),
+        "result_chunk_ids": result_chunk_ids,
+    }
+    return OperationTrace(
+        trace_id=f"search-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        operation="search",
+        status="success",
+        started_at=_format_timestamp(started_at_utc),
+        finished_at=_format_timestamp(finished_at_utc),
+        steps=[
+            TraceStep(
+                name="read_chunks",
+                description="Read chunk records from the local workspace.",
+                inputs={"chunks_path": str(chunks_path)},
+                outputs={"total_chunks": total_chunks},
+            ),
+            TraceStep(
+                name="tokenize_query",
+                description="Normalize and tokenize the lexical search query.",
+                inputs={"query": query},
+                outputs={"scoring_method": "lexical_token_overlap"},
+            ),
+            TraceStep(
+                name="score_chunks",
+                description="Score chunks by lexical token overlap.",
+                inputs={"total_chunks": total_chunks},
+                outputs={"matched_chunks": len(result_chunk_ids)},
+            ),
+            TraceStep(
+                name="rank_results",
+                description="Sort results by score and deterministic chunk id.",
+                inputs={"matched_chunks": len(result_chunk_ids), "limit": limit},
+                outputs={"result_chunk_ids": result_chunk_ids},
+            ),
+            TraceStep(
+                name="render_results",
+                description="Render search results in the CLI.",
+                inputs={"result_count": len(result_chunk_ids)},
+                outputs={"status": "success"},
+            ),
+        ],
+        metadata=metadata,
+    )
+
+
 def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)

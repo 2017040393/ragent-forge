@@ -23,6 +23,9 @@ class LexicalSearchService:
     def __init__(self, workspace: LocalWorkspace) -> None:
         self.workspace = workspace
 
+    def count_chunks(self) -> int:
+        return len(self.workspace.read_chunks())
+
     def search(self, query: str, limit: int = 10) -> list[SearchResult]:
         if limit < 0:
             raise ValueError("limit must be greater than or equal to 0")

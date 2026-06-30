@@ -432,6 +432,23 @@ def test_search_command_prints_matching_chunk_results_after_ingest(
     assert "Source:" in captured.out
     assert "Range:" in captured.out
     assert "Preview:" in captured.out
+    assert "Saved trace to:" in captured.out
+    assert "latest_trace.json" in captured.out
+
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert latest_trace["operation"] == "search"
+    assert latest_trace["status"] == "success"
+    assert latest_trace["metadata"]["query"] == "agent memory"
+    assert latest_trace["metadata"]["limit"] == 10
+    assert latest_trace["metadata"]["scoring_method"] == "lexical_token_overlap"
+    assert latest_trace["metadata"]["total_chunks"] == 2
+    assert latest_trace["metadata"]["result_count"] == 1
+    assert len(latest_trace["metadata"]["result_chunk_ids"]) == 1
+    assert latest_trace["metadata"]["result_chunk_ids"][0].endswith(
+        "rag.md::chunk-0000"
+    )
 
 
 def test_search_command_respects_limit(tmp_path: Path, capsys) -> None:
@@ -482,6 +499,16 @@ def test_search_command_prints_no_matches(tmp_path: Path, capsys) -> None:
     assert exit_code == 0
     assert "Search query: no-match" in captured.out
     assert "No matches found." in captured.out
+    assert "Saved trace to:" in captured.out
+
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert latest_trace["operation"] == "search"
+    assert latest_trace["status"] == "success"
+    assert latest_trace["metadata"]["query"] == "no-match"
+    assert latest_trace["metadata"]["result_count"] == 0
+    assert latest_trace["metadata"]["result_chunk_ids"] == []
 
 
 def test_search_command_prints_friendly_message_when_chunks_are_missing(
@@ -495,6 +522,7 @@ def test_search_command_prints_friendly_message_when_chunks_are_missing(
     captured = capsys.readouterr()
     assert exit_code == 0
     assert "No chunks found. Run ragent ingest <path> first." in captured.out
+    assert not (workspace_dir / "traces" / "latest_trace.json").exists()
 
 
 def test_search_command_reports_corrupt_chunks_json(tmp_path: Path, capsys) -> None:
@@ -509,3 +537,29 @@ def test_search_command_reports_corrupt_chunks_json(tmp_path: Path, capsys) -> N
     assert exit_code == 1
     assert "Search failed:" in captured.out
     assert "Invalid JSON in chunks file" in captured.out
+    assert not (workspace_dir / "traces" / "latest_trace.json").exists()
+
+
+def test_traces_latest_command_prints_latest_trace_after_search(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    assert main(["search", "agent", "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(["traces", "latest", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Trace ID: search-" in captured.out
+    assert "Operation: search" in captured.out
+    assert "Status: success" in captured.out
+    assert "1. read_chunks" in captured.out
+    assert "2. tokenize_query" in captured.out
+    assert "- query: agent" in captured.out

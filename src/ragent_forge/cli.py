@@ -11,7 +11,10 @@ from ragent_forge.app.models import WorkspaceStatus
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.ingest_service import IngestService
 from ragent_forge.app.services.search_service import LexicalSearchService
-from ragent_forge.app.services.trace_service import build_ingest_trace
+from ragent_forge.app.services.trace_service import (
+    build_ingest_trace,
+    build_search_trace,
+)
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
 
@@ -388,15 +391,30 @@ def _handle_search(
         _print_no_chunks(console)
         return 0
 
+    started_at = datetime.now(UTC)
+    search_service = LexicalSearchService(workspace)
     try:
-        results = LexicalSearchService(workspace).search(query, limit)
+        results = search_service.search(query, limit)
+        total_chunks = search_service.count_chunks()
     except (OSError, ValueError) as exc:
         console.print(f"[bold red]Search failed:[/bold red] {exc}")
         return 1
+    finished_at = datetime.now(UTC)
+    trace = build_search_trace(
+        query=query,
+        limit=limit,
+        chunks_path=workspace.chunks_path,
+        total_chunks=total_chunks,
+        result_chunk_ids=[result.chunk_id for result in results],
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+    trace_path = workspace.write_trace(trace)
 
     console.print(f"Search query: {query}")
     if not results:
         console.print("No matches found.")
+        console.print(f"Saved trace to: {trace_path}")
         return 0
 
     console.print(f"Results: {len(results)}")
@@ -411,6 +429,7 @@ def _handle_search(
         console.print(f"Range: {range_text}")
         console.print(f"Preview: {make_preview(result.text)}")
         console.print()
+    console.print(f"Saved trace to: {trace_path}")
     return 0
 
 

@@ -88,6 +88,12 @@ def test_lexical_search_respects_limit(tmp_path: Path) -> None:
     assert results[0].chunk_id == "/knowledge/rag.md::chunk-0000"
 
 
+def test_lexical_search_counts_chunks(tmp_path: Path) -> None:
+    workspace = make_search_workspace(tmp_path)
+
+    assert LexicalSearchService(workspace).count_chunks() == 3
+
+
 def test_lexical_search_empty_query_returns_empty_list(tmp_path: Path) -> None:
     workspace = make_search_workspace(tmp_path)
 

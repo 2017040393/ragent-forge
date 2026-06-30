@@ -2,7 +2,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ragent_forge.app.models import Document, IngestResult
-from ragent_forge.app.services.trace_service import build_ingest_trace
+from ragent_forge.app.services.trace_service import (
+    build_ingest_trace,
+    build_search_trace,
+)
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 
 
@@ -51,4 +54,41 @@ def test_build_ingest_trace_creates_success_trace_with_metadata() -> None:
         "chunk_overlap": 0,
         "chunks_path": str(Path(".ragent/chunks/chunks.jsonl")),
         "summary_path": str(Path(".ragent/ingest/latest_summary.json")),
+    }
+
+
+def test_build_search_trace_creates_success_trace_with_metadata() -> None:
+    started_at = datetime(2026, 6, 30, 0, 0, 0, tzinfo=UTC)
+    finished_at = datetime(2026, 6, 30, 0, 0, 1, tzinfo=UTC)
+
+    trace = build_search_trace(
+        query="agent memory",
+        limit=5,
+        chunks_path=Path(".ragent/chunks/chunks.jsonl"),
+        total_chunks=7,
+        result_chunk_ids=["/knowledge/rag.md::chunk-0002"],
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+
+    assert trace.trace_id == "search-20260630T000000Z"
+    assert trace.operation == "search"
+    assert trace.status == "success"
+    assert trace.started_at == "2026-06-30T00:00:00Z"
+    assert trace.finished_at == "2026-06-30T00:00:01Z"
+    assert [step.name for step in trace.steps] == [
+        "read_chunks",
+        "tokenize_query",
+        "score_chunks",
+        "rank_results",
+        "render_results",
+    ]
+    assert trace.metadata == {
+        "query": "agent memory",
+        "limit": 5,
+        "scoring_method": "lexical_token_overlap",
+        "chunks_path": str(Path(".ragent/chunks/chunks.jsonl")),
+        "total_chunks": 7,
+        "result_count": 1,
+        "result_chunk_ids": ["/knowledge/rag.md::chunk-0002"],
     }
