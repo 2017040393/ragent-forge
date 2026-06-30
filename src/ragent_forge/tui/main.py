@@ -5,6 +5,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header, Label, Static
 
 from ragent_forge.tui.screens.documents import DocumentsScreen
+from ragent_forge.tui.screens.trace import TraceScreen
 
 
 class RagentForgeApp(App[None]):
@@ -60,6 +61,8 @@ class RagentForgeApp(App[None]):
             with Vertical(id="main-panel"):
                 yield Label("Documents")
                 yield DocumentsScreen()
+                yield Label("Trace")
+                yield TraceScreen()
             with Vertical(id="inspector"):
                 yield Label("Inspector")
                 yield Static("Sources")
