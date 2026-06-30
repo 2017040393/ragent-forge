@@ -3,6 +3,7 @@ from pathlib import Path
 
 from ragent_forge.app.models import Document, IngestResult
 from ragent_forge.app.services.trace_service import (
+    build_ask_retrieval_trace,
     build_ingest_trace,
     build_search_trace,
 )
@@ -91,4 +92,42 @@ def test_build_search_trace_creates_success_trace_with_metadata() -> None:
         "total_chunks": 7,
         "result_count": 1,
         "result_chunk_ids": ["/knowledge/rag.md::chunk-0002"],
+    }
+
+
+def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None:
+    started_at = datetime(2026, 6, 30, 0, 0, 0, tzinfo=UTC)
+    finished_at = datetime(2026, 6, 30, 0, 0, 1, tzinfo=UTC)
+
+    trace = build_ask_retrieval_trace(
+        question="what is agent memory?",
+        limit=3,
+        chunks_path=Path(".ragent/chunks/chunks.jsonl"),
+        total_chunks=7,
+        retrieved_chunk_ids=["/knowledge/rag.md::chunk-0002"],
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+
+    assert trace.trace_id == "ask-retrieval-20260630T000000Z"
+    assert trace.operation == "ask_retrieval"
+    assert trace.status == "success"
+    assert trace.started_at == "2026-06-30T00:00:00Z"
+    assert trace.finished_at == "2026-06-30T00:00:01Z"
+    assert [step.name for step in trace.steps] == [
+        "read_chunks",
+        "retrieve_context",
+        "assemble_context_preview",
+        "skip_generation",
+        "render_retrieval_preview",
+    ]
+    assert trace.metadata == {
+        "question": "what is agent memory?",
+        "limit": 3,
+        "retrieval_method": "lexical_token_overlap",
+        "chunks_path": str(Path(".ragent/chunks/chunks.jsonl")),
+        "total_chunks": 7,
+        "retrieved_count": 1,
+        "retrieved_chunk_ids": ["/knowledge/rag.md::chunk-0002"],
+        "generation_status": "not_implemented",
     }

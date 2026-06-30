@@ -8,10 +8,12 @@ from datetime import UTC, datetime
 from rich.console import Console
 
 from ragent_forge.app.models import WorkspaceStatus
+from ragent_forge.app.services.ask_service import AskService
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.ingest_service import IngestService
 from ragent_forge.app.services.search_service import LexicalSearchService
 from ragent_forge.app.services.trace_service import (
+    build_ask_retrieval_trace,
     build_ingest_trace,
     build_search_trace,
 )
@@ -131,9 +133,20 @@ def build_parser() -> argparse.ArgumentParser:
 
     ask_parser = subparsers.add_parser(
         "ask",
-        help="Stub for asking a question against the local knowledge base.",
+        help="Preview retrieved context for a question without answer generation.",
     )
     ask_parser.add_argument("question", help="Question to ask.")
+    ask_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to search.",
+    )
+    ask_parser.add_argument(
+        "--limit",
+        type=int,
+        default=5,
+        help="Maximum number of context chunks to show.",
+    )
 
     return parser
 
@@ -212,11 +225,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _handle_search(console, args.workspace, args.query, args.limit)
 
     if args.command == "ask":
-        console.print(
-            "[bold]Ask stub:[/bold] the inspectable RAG pipeline is not implemented "
-            f"yet. Received question: [cyan]{args.question}[/cyan]"
-        )
-        return 0
+        return _handle_ask(console, args.workspace, args.question, args.limit)
 
     parser.print_help()
     return 0
@@ -435,3 +444,65 @@ def _handle_search(
 
 def _format_search_range(start_char: int | None, end_char: int | None) -> str:
     return f"{start_char}-{end_char}"
+
+
+def _handle_ask(
+    console: Console,
+    workspace_path: str,
+    question: str,
+    limit: int,
+) -> int:
+    workspace = LocalWorkspace(workspace_path)
+    if not workspace.has_chunks():
+        _print_no_chunks(console)
+        return 0
+
+    started_at = datetime.now(UTC)
+    ask_service = AskService(workspace)
+    try:
+        result = ask_service.retrieve_context(question, limit)
+        total_chunks = ask_service.count_chunks()
+    except (OSError, ValueError) as exc:
+        console.print(f"[bold red]Ask failed:[/bold red] {exc}")
+        return 1
+    finished_at = datetime.now(UTC)
+    retrieved_chunk_ids = [search_result.chunk_id for search_result in result.results]
+    trace = build_ask_retrieval_trace(
+        question=question,
+        limit=limit,
+        chunks_path=workspace.chunks_path,
+        total_chunks=total_chunks,
+        retrieved_chunk_ids=retrieved_chunk_ids,
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+    trace_path = workspace.write_trace(trace)
+
+    console.print("Ask pipeline: retrieval-only mode")
+    console.print()
+    console.print(f"Question: {question}")
+    console.print("Generation: not implemented yet.")
+    console.print()
+
+    if not result.results:
+        console.print("No retrieved context found.")
+        console.print()
+        console.print(f"Saved trace to: {trace_path}")
+        return 0
+
+    console.print("Retrieved context:")
+    for index, search_result in enumerate(result.results, start=1):
+        range_text = _format_search_range(
+            search_result.start_char,
+            search_result.end_char,
+        )
+        console.print(
+            f"{index}. score={search_result.score:g} | {search_result.chunk_id}",
+            soft_wrap=True,
+        )
+        console.print(f"Source: {search_result.source_path}", soft_wrap=True)
+        console.print(f"Range: {range_text}")
+        console.print(f"Preview: {make_preview(search_result.text)}")
+        console.print()
+    console.print(f"Saved trace to: {trace_path}")
+    return 0

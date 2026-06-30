@@ -563,3 +563,185 @@ def test_traces_latest_command_prints_latest_trace_after_search(
     assert "1. read_chunks" in captured.out
     assert "2. tokenize_query" in captured.out
     assert "- query: agent" in captured.out
+
+
+def test_ask_command_prints_retrieval_only_context_after_ingest(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    exit_code = main(["ask", "agent memory", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Ask pipeline: retrieval-only mode" in captured.out
+    assert "Question: agent memory" in captured.out
+    assert "Generation: not implemented yet." in captured.out
+    assert "Retrieved context:" in captured.out
+    assert "1. score=3" in captured.out
+    assert "rag.md::chunk-0000" in captured.out
+    assert "Source:" in captured.out
+    assert "Range:" in captured.out
+    assert "Preview:" in captured.out
+    assert "Saved trace to:" in captured.out
+
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert latest_trace["operation"] == "ask_retrieval"
+    assert latest_trace["status"] == "success"
+    assert latest_trace["metadata"]["question"] == "agent memory"
+    assert latest_trace["metadata"]["limit"] == 5
+    assert latest_trace["metadata"]["retrieval_method"] == "lexical_token_overlap"
+    assert latest_trace["metadata"]["total_chunks"] == 2
+    assert latest_trace["metadata"]["retrieved_count"] == 1
+    assert len(latest_trace["metadata"]["retrieved_chunk_ids"]) == 1
+    assert latest_trace["metadata"]["retrieved_chunk_ids"][0].endswith(
+        "rag.md::chunk-0000"
+    )
+    assert latest_trace["metadata"]["generation_status"] == "not_implemented"
+
+
+def test_ask_command_respects_limit(tmp_path: Path, capsys) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics\nagent planning",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "18",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    exit_code = main(
+        ["ask", "agent", "--workspace", str(workspace_dir), "--limit", "1"]
+    )
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert exit_code == 0
+    assert "Retrieved context:" in captured.out
+    assert "rag.md::chunk-0000" in captured.out
+    assert "rag.md::chunk-0002" not in captured.out
+    assert latest_trace["metadata"]["limit"] == 1
+    assert latest_trace["metadata"]["retrieved_count"] == 1
+
+
+def test_ask_command_prints_no_retrieved_context_and_writes_trace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(["ask", "no-match", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Ask pipeline: retrieval-only mode" in captured.out
+    assert "Question: no-match" in captured.out
+    assert "Generation: not implemented yet." in captured.out
+    assert "No retrieved context found." in captured.out
+    assert "Saved trace to:" in captured.out
+
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert latest_trace["operation"] == "ask_retrieval"
+    assert latest_trace["metadata"]["question"] == "no-match"
+    assert latest_trace["metadata"]["retrieved_count"] == 0
+    assert latest_trace["metadata"]["retrieved_chunk_ids"] == []
+    assert latest_trace["metadata"]["generation_status"] == "not_implemented"
+
+
+def test_ask_command_prints_friendly_message_when_chunks_are_missing(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+
+    exit_code = main(["ask", "agent", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "No chunks found. Run ragent ingest <path> first." in captured.out
+    assert not (workspace_dir / "traces" / "latest_trace.json").exists()
+
+
+def test_ask_command_reports_corrupt_chunks_json(tmp_path: Path, capsys) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    chunks_dir = workspace_dir / "chunks"
+    chunks_dir.mkdir(parents=True)
+    (chunks_dir / "chunks.jsonl").write_text("not-json\n", encoding="utf-8")
+
+    exit_code = main(["ask", "agent", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Ask failed:" in captured.out
+    assert "Invalid JSON in chunks file" in captured.out
+    assert not (workspace_dir / "traces" / "latest_trace.json").exists()
+
+
+def test_traces_latest_command_prints_latest_trace_after_ask(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    assert main(["ask", "agent", "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(["traces", "latest", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Trace ID: ask-retrieval-" in captured.out
+    assert "Operation: ask_retrieval" in captured.out
+    assert "Status: success" in captured.out
+    assert "1. read_chunks" in captured.out
+    assert "2. retrieve_context" in captured.out
+    assert "- question: agent" in captured.out

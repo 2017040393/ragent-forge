@@ -139,6 +139,69 @@ def build_search_trace(
     )
 
 
+def build_ask_retrieval_trace(
+    question: str,
+    limit: int,
+    chunks_path: Path,
+    total_chunks: int,
+    retrieved_chunk_ids: list[str],
+    started_at: datetime,
+    finished_at: datetime,
+) -> OperationTrace:
+    started_at_utc = _as_utc(started_at)
+    finished_at_utc = _as_utc(finished_at)
+    metadata = {
+        "question": question,
+        "limit": limit,
+        "retrieval_method": "lexical_token_overlap",
+        "chunks_path": str(chunks_path),
+        "total_chunks": total_chunks,
+        "retrieved_count": len(retrieved_chunk_ids),
+        "retrieved_chunk_ids": retrieved_chunk_ids,
+        "generation_status": "not_implemented",
+    }
+    return OperationTrace(
+        trace_id=f"ask-retrieval-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        operation="ask_retrieval",
+        status="success",
+        started_at=_format_timestamp(started_at_utc),
+        finished_at=_format_timestamp(finished_at_utc),
+        steps=[
+            TraceStep(
+                name="read_chunks",
+                description="Read chunk records from the local workspace.",
+                inputs={"chunks_path": str(chunks_path)},
+                outputs={"total_chunks": total_chunks},
+            ),
+            TraceStep(
+                name="retrieve_context",
+                description="Retrieve context chunks with lexical search.",
+                inputs={"question": question, "limit": limit},
+                outputs={"retrieved_count": len(retrieved_chunk_ids)},
+            ),
+            TraceStep(
+                name="assemble_context_preview",
+                description="Prepare retrieved chunks for inspectable preview.",
+                inputs={"retrieved_chunk_ids": retrieved_chunk_ids},
+                outputs={"preview_count": len(retrieved_chunk_ids)},
+            ),
+            TraceStep(
+                name="skip_generation",
+                description="Skip answer generation because it is not implemented.",
+                inputs={},
+                outputs={"generation_status": "not_implemented"},
+            ),
+            TraceStep(
+                name="render_retrieval_preview",
+                description="Render the retrieval-only ask preview in the CLI.",
+                inputs={"retrieved_count": len(retrieved_chunk_ids)},
+                outputs={"status": "success"},
+            ),
+        ],
+        metadata=metadata,
+    )
+
+
 def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
