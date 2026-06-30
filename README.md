@@ -72,7 +72,8 @@ Implemented so far:
 - Successful `ragent search` writes a local JSON trace for the search workflow.
 - `ragent ask <question>` previews retrieved context without generating answers.
 - A null generation provider interface records that generation is not configured.
-- `ragent traces latest` reads the latest local trace from `.ragent/traces/`.
+- `ragent traces latest`, `ragent traces list`, and
+  `ragent traces show <trace_id>` inspect local operation traces.
 - `ragent tui` shows Documents workspace status, recent chunk previews, and
   the latest trace summary.
 
@@ -97,7 +98,13 @@ regenerated.
 .ragent/ingest/latest_summary.json
 ```
 
-`ragent traces latest` reads the latest local trace from:
+Each successful traced operation writes a trace file under:
+
+```text
+.ragent/traces/<trace_id>.json
+```
+
+`ragent traces latest` reads the latest local trace pointer from:
 
 ```text
 .ragent/traces/latest_trace.json
@@ -116,10 +123,10 @@ If the config file is missing, RAGentForge uses the default:
 provider = "null"
 ```
 
-The TUI Documents view reads the same workspace files. The TUI Trace view reads
-`.ragent/traces/latest_trace.json`. TUI trace inspection is read-only for now;
-trace history browsing, interactive trace selection, and TUI ingestion
-interactions are not implemented yet.
+The TUI Documents view reads the same workspace files. The TUI Trace view still
+reads only `.ragent/traces/latest_trace.json`. TUI trace history browsing,
+interactive trace selection, and TUI ingestion interactions are not implemented
+yet.
 
 ## Development Setup
 
@@ -174,6 +181,9 @@ ragent search "agent memory"
 ragent search "agent memory" --limit 5
 ragent traces latest
 ragent traces latest --workspace .ragent
+ragent traces list
+ragent traces list --limit 20
+ragent traces show "<trace_id>"
 ragent ask "What is Agentic RAG?"
 ragent ask "What is Agentic RAG?" --limit 5
 ragent ask "What is Agentic RAG?" --show-prompt
@@ -207,11 +217,15 @@ and sends it to the current null generation provider, which returns
 `not_configured` with no answer. No real LLM provider is implemented yet, no API
 keys are read, and future providers such as OpenAI or Ollama can be added later
 behind the generation provider interface. Successful ingest, search, and ask
-retrieval commands write local JSON trace artifacts under `.ragent/traces/`;
-current traces cover ingest, lexical search, and ask retrieval workflows and
-are inspectable with `ragent traces latest`. No external observability service
-is used, and this does not implement semantic, vector, LLM, or agent retrieval
-tracing. The TUI displays the same local workspace status, a small recent-chunks
-preview when chunks exist, and a read-only latest trace summary from
-`.ragent/traces/latest_trace.json`, including the latest search or ask retrieval
-trace after those commands. `ragent ask` does not generate or fake an answer yet.
+retrieval commands write local JSON trace artifacts under
+`.ragent/traces/<trace_id>.json`; `.ragent/traces/latest_trace.json` points to
+the latest operation trace. Current traces cover ingest, lexical search, and ask
+retrieval workflows. Use `ragent traces latest` for the latest trace,
+`ragent traces list` for historical trace files, and
+`ragent traces show <trace_id>` for one specific trace. No external observability
+service is used, and this does not implement semantic, vector, LLM, or agent
+retrieval tracing. The TUI displays the same local workspace status, a small
+recent-chunks preview when chunks exist, and a read-only latest trace summary
+from `.ragent/traces/latest_trace.json`, including the latest search or ask
+retrieval trace after those commands. TUI trace history browsing is not
+implemented yet. `ragent ask` does not generate or fake an answer yet.

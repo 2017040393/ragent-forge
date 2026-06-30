@@ -106,6 +106,20 @@ class OperationTrace(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class TraceListItem(BaseModel):
+    trace_id: str
+    operation: str
+    status: str
+    started_at: str
+    finished_at: str | None = None
+    path: str
+
+
+class TraceListResult(BaseModel):
+    traces: list[TraceListItem] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class AskResult(BaseModel):
     answer: str
     sources: list[SourceRef] = Field(default_factory=list)

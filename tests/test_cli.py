@@ -489,6 +489,193 @@ def test_traces_latest_command_prints_friendly_message_when_missing(
     assert "No trace found. Run ragent ingest <path> first." in captured.out
 
 
+def test_traces_list_command_prints_friendly_message_when_missing(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+
+    exit_code = main(["traces", "list", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "No traces found. Run ragent ingest <path> first." in captured.out
+
+
+def test_traces_list_command_prints_trace_rows_for_operations(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    assert main(["search", "agent", "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    assert main(["ask", "agent", "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(["traces", "list", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Traces" in captured.out
+    assert "Trace ID | Operation | Status | Started at | Finished at" in captured.out
+    assert "ingest-" in captured.out
+    assert "ingest | success" in captured.out
+    assert "search-" in captured.out
+    assert "search | success" in captured.out
+    assert "ask-retrieval-" in captured.out
+    assert "ask_retrieval | success" in captured.out
+
+
+def test_traces_list_command_does_not_print_latest_trace_json_as_trace_id(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(["traces", "list", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "latest_trace" not in captured.out
+
+
+def test_traces_list_command_respects_limit(tmp_path: Path, capsys) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    traces_dir = workspace_dir / "traces"
+    traces_dir.mkdir(parents=True)
+    for trace_id, started_at in [
+        ("ingest-20260630T115800Z", "2026-06-30T11:58:00Z"),
+        ("search-20260630T115900Z", "2026-06-30T11:59:00Z"),
+    ]:
+        (traces_dir / f"{trace_id}.json").write_text(
+            json.dumps(
+                {
+                    "trace_id": trace_id,
+                    "operation": trace_id.split("-", maxsplit=1)[0],
+                    "status": "success",
+                    "started_at": started_at,
+                    "finished_at": started_at,
+                    "steps": [],
+                    "metadata": {},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    exit_code = main(
+        ["traces", "list", "--workspace", str(workspace_dir), "--limit", "1"]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "search-20260630T115900Z" in captured.out
+    assert "ingest-20260630T115800Z" not in captured.out
+
+
+def test_traces_list_command_prints_warnings_for_corrupt_trace_files(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    traces_dir = workspace_dir / "traces"
+    traces_dir.mkdir(parents=True)
+    (traces_dir / "search-20260630T115900Z.json").write_text(
+        json.dumps(
+            {
+                "trace_id": "search-20260630T115900Z",
+                "operation": "search",
+                "status": "success",
+                "started_at": "2026-06-30T11:59:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (traces_dir / "bad.json").write_text("{not-json", encoding="utf-8")
+
+    exit_code = main(["traces", "list", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "search-20260630T115900Z" in captured.out
+    assert "Warnings:" in captured.out
+    assert "Skipped invalid trace file:" in captured.out
+    assert "bad.json" in captured.out
+
+
+def test_traces_show_command_prints_detailed_trace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    trace_files = [
+        path
+        for path in (workspace_dir / "traces").glob("*.json")
+        if path.name != "latest_trace.json"
+    ]
+    trace_id = json.loads(trace_files[0].read_text(encoding="utf-8"))["trace_id"]
+
+    exit_code = main(
+        ["traces", "show", trace_id, "--workspace", str(workspace_dir)]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert f"Trace ID: {trace_id}" in captured.out
+    assert "Operation: ingest" in captured.out
+    assert "Status: success" in captured.out
+    assert "Started at:" in captured.out
+    assert "Finished at:" in captured.out
+    assert "Steps:" in captured.out
+    assert "1. load_documents" in captured.out
+    assert "Metadata:" in captured.out
+    assert "- chunk_count:" in captured.out
+
+
+def test_traces_show_command_prints_not_found_for_missing_trace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+
+    exit_code = main(["traces", "show", "missing", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Trace not found: missing" in captured.out
+
+
+def test_traces_show_command_reports_corrupt_trace_json(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    traces_dir = workspace_dir / "traces"
+    traces_dir.mkdir(parents=True)
+    (traces_dir / "bad.json").write_text("{not-json", encoding="utf-8")
+
+    exit_code = main(["traces", "show", "bad", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Traces failed:" in captured.out
+    assert "Invalid JSON in trace file" in captured.out
+
+
 def test_traces_latest_command_reports_corrupt_latest_trace_json(
     tmp_path: Path,
     capsys,
