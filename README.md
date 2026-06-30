@@ -157,6 +157,8 @@ ragent traces latest
 ragent traces latest --workspace .ragent
 ragent ask "What is Agentic RAG?"
 ragent ask "What is Agentic RAG?" --limit 5
+ragent ask "What is Agentic RAG?" --show-prompt
+ragent ask "What is Agentic RAG?" --show-prompt --limit 5
 ```
 
 `ragent tui` launches the minimal Textual application. `ragent ingest` loads and
@@ -172,13 +174,16 @@ chunks. It is not semantic search and does not use embeddings, vector
 databases, BM25, reranking, LLMs, or answer generation. Use
 `ragent chunks show <chunk_id>` to inspect full chunk content. `ragent ask`
 runs in retrieval-only mode using the same lexical search, displays retrieved
-context, and clearly skips answer generation. Successful ingest, search, and
-ask retrieval commands write local JSON trace artifacts under `.ragent/traces/`;
-current traces cover ingest, lexical search, and ask retrieval workflows and are
-inspectable with `ragent traces latest`. No external observability service is
-used, and this does not implement semantic, vector, LLM, or agent retrieval
-tracing. The TUI displays the same local workspace status, a small
-recent-chunks preview when chunks exist, and a read-only latest trace summary
-from `.ragent/traces/latest_trace.json`, including the latest search or ask
-retrieval trace after those commands. `ragent ask` does not generate or fake an
-answer yet.
+context, and clearly skips answer generation. `ragent ask --show-prompt` also
+shows a deterministic local prompt preview assembled from the question,
+retrieved chunks, and source references; the preview is not sent to any LLM.
+Context packs are generated in memory and are not persisted. Successful ingest,
+search, and ask retrieval commands write local JSON trace artifacts under
+`.ragent/traces/`; current traces cover ingest, lexical search, and ask
+retrieval workflows and are inspectable with `ragent traces latest`. No
+external observability service is used, and this does not implement semantic,
+vector, LLM, or agent retrieval tracing. The TUI displays the same local
+workspace status, a small recent-chunks preview when chunks exist, and a
+read-only latest trace summary from `.ragent/traces/latest_trace.json`,
+including the latest search or ask retrieval trace after those commands.
+`ragent ask` does not generate or fake an answer yet.

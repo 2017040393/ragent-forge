@@ -623,6 +623,162 @@ def test_ask_command_prints_retrieval_only_context_after_ingest(
     assert latest_trace["metadata"]["generation_status"] == "not_implemented"
 
 
+def test_ask_command_show_prompt_prints_context_pack_and_prompt_preview(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    exit_code = main(
+        ["ask", "agent memory", "--show-prompt", "--workspace", str(workspace_dir)]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Ask pipeline: retrieval-only mode" in captured.out
+    assert "Retrieved context:" in captured.out
+    assert "Context pack:" in captured.out
+    assert "Context chunks: 1" in captured.out
+    assert "Total context chars:" in captured.out
+    assert "Retrieval method: lexical_token_overlap" in captured.out
+    assert "Prompt preview:" in captured.out
+    assert "You are a local retrieval-augmented assistant." in captured.out
+    assert "Question:\nagent memory" in captured.out
+    assert "[1] Source:" in captured.out
+    assert "Chunk ID:" in captured.out
+    assert "Content:" in captured.out
+    assert "agent memory agent" in captured.out
+    assert "Generation is not implemented yet." in captured.out
+    assert "Saved trace to:" in captured.out
+
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert latest_trace["operation"] == "ask_retrieval"
+    assert latest_trace["metadata"]["context_chunk_count"] == 1
+    assert latest_trace["metadata"]["total_context_chars"] > 0
+    assert latest_trace["metadata"]["prompt_preview_shown"] is True
+    assert latest_trace["metadata"]["max_context_chars"] == 4000
+
+
+def test_ask_command_show_prompt_respects_max_context_chars(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent abcdefghijklmnopqrstuvwxyz",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "ask",
+            "agent",
+            "--show-prompt",
+            "--max-context-chars",
+            "20",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert exit_code == 0
+    assert "Total context chars: 20" in captured.out
+    prompt_preview = captured.out.split("Prompt preview:", maxsplit=1)[1]
+    prompt_preview = prompt_preview.split("Saved trace to:", maxsplit=1)[0]
+    assert "Content:\nagent abcdefghijklmn" in prompt_preview
+    assert "Content:\nagent abcdefghijklmno" not in prompt_preview
+    assert latest_trace["metadata"]["total_context_chars"] == 20
+    assert latest_trace["metadata"]["max_context_chars"] == 20
+
+
+def test_ask_command_without_show_prompt_stays_compact(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(["ask", "agent", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert exit_code == 0
+    assert "Retrieved context:" in captured.out
+    assert "Context pack:" not in captured.out
+    assert "Prompt preview:" not in captured.out
+    assert "You are a local retrieval-augmented assistant." not in captured.out
+    assert latest_trace["metadata"]["prompt_preview_shown"] is False
+    assert latest_trace["metadata"]["max_context_chars"] == 4000
+
+
+def test_ask_command_no_match_show_prompt_prints_empty_context_pack(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(
+        ["ask", "no-match", "--show-prompt", "--workspace", str(workspace_dir)]
+    )
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert exit_code == 0
+    assert "No retrieved context found." in captured.out
+    assert "Context pack:" in captured.out
+    assert "Context chunks: 0" in captured.out
+    assert "Total context chars: 0" in captured.out
+    assert "Prompt preview:" in captured.out
+    assert "Retrieved context:\nNo retrieved context." in captured.out
+    assert latest_trace["metadata"]["retrieved_count"] == 0
+    assert latest_trace["metadata"]["context_chunk_count"] == 0
+    assert latest_trace["metadata"]["total_context_chars"] == 0
+    assert latest_trace["metadata"]["prompt_preview_shown"] is True
+
+
 def test_ask_command_respects_limit(tmp_path: Path, capsys) -> None:
     knowledge_dir = tmp_path / "knowledge"
     knowledge_dir.mkdir()

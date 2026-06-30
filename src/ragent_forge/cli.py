@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 from rich.console import Console
 
-from ragent_forge.app.models import WorkspaceStatus
+from ragent_forge.app.models import ContextPack, WorkspaceStatus
 from ragent_forge.app.services.ask_service import AskService
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.ingest_service import IngestService
@@ -147,6 +147,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=5,
         help="Maximum number of context chunks to show.",
     )
+    ask_parser.add_argument(
+        "--show-prompt",
+        action="store_true",
+        help="Show the deterministic local prompt preview.",
+    )
+    ask_parser.add_argument(
+        "--max-context-chars",
+        type=int,
+        default=4000,
+        help="Maximum retrieved context characters in the prompt preview.",
+    )
 
     return parser
 
@@ -225,7 +236,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _handle_search(console, args.workspace, args.query, args.limit)
 
     if args.command == "ask":
-        return _handle_ask(console, args.workspace, args.question, args.limit)
+        return _handle_ask(
+            console,
+            args.workspace,
+            args.question,
+            args.limit,
+            args.show_prompt,
+            args.max_context_chars,
+        )
 
     parser.print_help()
     return 0
@@ -451,6 +469,8 @@ def _handle_ask(
     workspace_path: str,
     question: str,
     limit: int,
+    show_prompt: bool,
+    max_context_chars: int,
 ) -> int:
     workspace = LocalWorkspace(workspace_path)
     if not workspace.has_chunks():
@@ -460,7 +480,7 @@ def _handle_ask(
     started_at = datetime.now(UTC)
     ask_service = AskService(workspace)
     try:
-        result = ask_service.retrieve_context(question, limit)
+        result = ask_service.retrieve_context(question, limit, max_context_chars)
         total_chunks = ask_service.count_chunks()
     except (OSError, ValueError) as exc:
         console.print(f"[bold red]Ask failed:[/bold red] {exc}")
@@ -473,6 +493,10 @@ def _handle_ask(
         chunks_path=workspace.chunks_path,
         total_chunks=total_chunks,
         retrieved_chunk_ids=retrieved_chunk_ids,
+        context_chunk_count=len(result.context_pack.context_chunks),
+        total_context_chars=result.context_pack.total_context_chars,
+        prompt_preview_shown=show_prompt,
+        max_context_chars=max_context_chars,
         started_at=started_at,
         finished_at=finished_at,
     )
@@ -487,6 +511,8 @@ def _handle_ask(
     if not result.results:
         console.print("No retrieved context found.")
         console.print()
+        if show_prompt:
+            _print_context_pack(console, result.context_pack)
         console.print(f"Saved trace to: {trace_path}")
         return 0
 
@@ -504,5 +530,18 @@ def _handle_ask(
         console.print(f"Range: {range_text}")
         console.print(f"Preview: {make_preview(search_result.text)}")
         console.print()
+    if show_prompt:
+        _print_context_pack(console, result.context_pack)
     console.print(f"Saved trace to: {trace_path}")
     return 0
+
+
+def _print_context_pack(console: Console, context_pack: ContextPack) -> None:
+    console.print("Context pack:")
+    console.print(f"Context chunks: {len(context_pack.context_chunks)}")
+    console.print(f"Total context chars: {context_pack.total_context_chars}")
+    console.print(f"Retrieval method: {context_pack.retrieval_method}")
+    console.print()
+    console.print("Prompt preview:")
+    console.print(context_pack.prompt_preview, soft_wrap=True)
+    console.print()

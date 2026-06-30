@@ -145,6 +145,10 @@ def build_ask_retrieval_trace(
     chunks_path: Path,
     total_chunks: int,
     retrieved_chunk_ids: list[str],
+    context_chunk_count: int,
+    total_context_chars: int,
+    prompt_preview_shown: bool,
+    max_context_chars: int,
     started_at: datetime,
     finished_at: datetime,
 ) -> OperationTrace:
@@ -159,6 +163,10 @@ def build_ask_retrieval_trace(
         "retrieved_count": len(retrieved_chunk_ids),
         "retrieved_chunk_ids": retrieved_chunk_ids,
         "generation_status": "not_implemented",
+        "context_chunk_count": context_chunk_count,
+        "total_context_chars": total_context_chars,
+        "prompt_preview_shown": prompt_preview_shown,
+        "max_context_chars": max_context_chars,
     }
     return OperationTrace(
         trace_id=f"ask-retrieval-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",

@@ -105,6 +105,10 @@ def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None
         chunks_path=Path(".ragent/chunks/chunks.jsonl"),
         total_chunks=7,
         retrieved_chunk_ids=["/knowledge/rag.md::chunk-0002"],
+        context_chunk_count=1,
+        total_context_chars=128,
+        prompt_preview_shown=True,
+        max_context_chars=4000,
         started_at=started_at,
         finished_at=finished_at,
     )
@@ -130,4 +134,8 @@ def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None
         "retrieved_count": 1,
         "retrieved_chunk_ids": ["/knowledge/rag.md::chunk-0002"],
         "generation_status": "not_implemented",
+        "context_chunk_count": 1,
+        "total_context_chars": 128,
+        "prompt_preview_shown": True,
+        "max_context_chars": 4000,
     }

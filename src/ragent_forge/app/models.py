@@ -34,6 +34,27 @@ class RetrievedChunk(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class ContextChunk(BaseModel):
+    chunk_id: str
+    document_id: str
+    source_path: str
+    start_char: int | None = None
+    end_char: int | None = None
+    score: float
+    text: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ContextPack(BaseModel):
+    question: str
+    retrieval_method: str = "lexical_token_overlap"
+    context_chunks: list[ContextChunk] = Field(default_factory=list)
+    total_context_chars: int
+    generation_status: Literal["not_implemented"] = "not_implemented"
+    prompt_preview: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class TraceStep(BaseModel):
     name: str
     description: str
