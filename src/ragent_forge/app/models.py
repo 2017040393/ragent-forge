@@ -52,6 +52,16 @@ class RagTrace(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class OperationTrace(BaseModel):
+    trace_id: str
+    operation: str
+    status: Literal["success", "failed"]
+    started_at: str
+    finished_at: str | None = None
+    steps: list[TraceStep] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class AskResult(BaseModel):
     answer: str
     sources: list[SourceRef] = Field(default_factory=list)

@@ -64,6 +64,8 @@ Implemented so far:
   ready, incomplete, or not initialized.
 - `ragent chunks list` and `ragent chunks show <chunk_id>` inspect generated
   chunks from the local workspace.
+- Successful `ragent ingest` writes a local JSON trace for the ingest workflow.
+- `ragent traces latest` reads the latest local trace from `.ragent/traces/`.
 - `ragent tui` shows the same local workspace status in the Documents view.
 
 Real embeddings, vector database integration, answer generation, persistent
@@ -85,6 +87,7 @@ regenerated.
 ```text
 .ragent/chunks/chunks.jsonl
 .ragent/ingest/latest_summary.json
+.ragent/traces/latest_trace.json
 ```
 
 The TUI Documents view reads the same workspace files. TUI ingestion
@@ -136,6 +139,8 @@ ragent status --workspace .ragent
 ragent chunks list
 ragent chunks list --limit 20
 ragent chunks show "<chunk_id>"
+ragent traces latest
+ragent traces latest --workspace .ragent
 ragent ask "What is Agentic RAG?"
 ```
 
@@ -147,6 +152,10 @@ It writes `.ragent/chunks/chunks.jsonl` and
 `ragent chunks list` and `ragent chunks show <chunk_id>` read
 `.ragent/chunks/chunks.jsonl` so you can inspect chunking output before
 retrieval is implemented. They do not perform semantic search, vector
-retrieval, BM25, or answer generation. The TUI Documents view displays the same
-local workspace status and a small recent-chunks preview when chunks exist.
+retrieval, BM25, or answer generation. Successful ingest commands also write
+local JSON trace artifacts under `.ragent/traces/`; current traces cover only
+the ingest workflow and are inspectable with `ragent traces latest`. No external
+observability service is used, and this does not implement retrieval,
+embeddings, LLM tracing, or agent execution. The TUI Documents view displays the
+same local workspace status and a small recent-chunks preview when chunks exist.
 `ragent ask` prints a clear stub message and does not fake RAG results.
