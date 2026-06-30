@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 from collections.abc import Sequence
 
 from rich.console import Console
 
 from ragent_forge.app.models import WorkspaceStatus
+from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.ingest_service import IngestService
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
@@ -51,6 +53,39 @@ def build_parser() -> argparse.ArgumentParser:
         help="Show local RAGentForge workspace status.",
     )
     status_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to inspect.",
+    )
+
+    chunks_parser = subparsers.add_parser(
+        "chunks",
+        help="Inspect generated chunks in a local workspace.",
+    )
+    chunks_subparsers = chunks_parser.add_subparsers(dest="chunks_command")
+
+    chunks_list_parser = chunks_subparsers.add_parser(
+        "list",
+        help="List generated chunks.",
+    )
+    chunks_list_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to inspect.",
+    )
+    chunks_list_parser.add_argument(
+        "--limit",
+        type=int,
+        default=20,
+        help="Maximum number of chunks to show.",
+    )
+
+    chunks_show_parser = chunks_subparsers.add_parser(
+        "show",
+        help="Show a generated chunk by exact chunk id.",
+    )
+    chunks_show_parser.add_argument("chunk_id", help="Exact chunk id to inspect.")
+    chunks_show_parser.add_argument(
         "--workspace",
         default=".ragent",
         help="Local RAGentForge workspace directory to inspect.",
@@ -110,6 +145,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         _print_workspace_status(console, workspace_status)
         return 0
 
+    if args.command == "chunks":
+        if args.chunks_command == "list":
+            return _handle_chunks_list(console, args.workspace, args.limit)
+        if args.chunks_command == "show":
+            return _handle_chunks_show(console, args.workspace, args.chunk_id)
+        parser.print_help()
+        return 0
+
     if args.command == "ask":
         console.print(
             "[bold]Ask stub:[/bold] the inspectable RAG pipeline is not implemented "
@@ -161,3 +204,87 @@ def _print_workspace_status(
     console.print()
     console.print(f"Chunks file: {workspace_status.chunks_path}")
     console.print(f"Summary file: {workspace_status.latest_summary_path}")
+
+
+def _handle_chunks_list(console: Console, workspace_path: str, limit: int) -> int:
+    workspace = LocalWorkspace(workspace_path)
+    if not workspace.has_chunks():
+        _print_no_chunks(console)
+        return 0
+
+    service = ChunkService(workspace)
+    try:
+        chunks = service.list_chunks(limit)
+        total_count = service.count_chunks()
+    except (OSError, ValueError) as exc:
+        console.print(f"[bold red]Chunks failed:[/bold red] {exc}")
+        return 1
+
+    console.print("Chunks")
+    console.print("Chunk ID | Source | Range | Preview")
+
+    for chunk in chunks:
+        console.print(
+            f"{chunk.get('chunk_id', '')} | "
+            f"{chunk.get('source_path', '')} | "
+            f"{_format_char_range(chunk)} | "
+            f"{make_preview(str(chunk.get('text', '')))}",
+            soft_wrap=True,
+        )
+
+    if total_count > limit:
+        console.print(
+            f"Showing {len(chunks)} of {total_count} chunks. "
+            "Use --limit to show more."
+        )
+    return 0
+
+
+def _handle_chunks_show(
+    console: Console,
+    workspace_path: str,
+    chunk_id: str,
+) -> int:
+    workspace = LocalWorkspace(workspace_path)
+    if not workspace.has_chunks():
+        _print_no_chunks(console)
+        return 0
+
+    try:
+        chunk = ChunkService(workspace).get_chunk(chunk_id)
+    except (OSError, ValueError) as exc:
+        console.print(f"[bold red]Chunks failed:[/bold red] {exc}")
+        return 1
+
+    if chunk is None:
+        console.print(f"Chunk not found: {chunk_id}")
+        return 0
+
+    console.print(f"[bold]Chunk ID:[/bold] {chunk.get('chunk_id', '')}", soft_wrap=True)
+    console.print(
+        f"[bold]Document ID:[/bold] {chunk.get('document_id', '')}",
+        soft_wrap=True,
+    )
+    console.print(
+        f"[bold]Source path:[/bold] {chunk.get('source_path', '')}",
+        soft_wrap=True,
+    )
+    console.print(f"[bold]Start char:[/bold] {chunk.get('start_char', '')}")
+    console.print(f"[bold]End char:[/bold] {chunk.get('end_char', '')}")
+    console.print()
+    console.print("[bold]Metadata:[/bold]")
+    console.print(json.dumps(chunk.get("metadata", {}), ensure_ascii=False, indent=2))
+    console.print()
+    console.print("[bold]Text:[/bold]")
+    console.print(str(chunk.get("text", "")))
+    return 0
+
+
+def _format_char_range(chunk: dict[str, object]) -> str:
+    start_char = chunk.get("start_char")
+    end_char = chunk.get("end_char")
+    return f"{start_char}-{end_char}"
+
+
+def _print_no_chunks(console: Console) -> None:
+    console.print("No chunks found. Run ragent ingest <path> first.")

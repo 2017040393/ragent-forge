@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from ragent_forge.app.models import WorkspaceStatus
+from ragent_forge.app.models import Document, IngestResult, WorkspaceStatus
+from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 from ragent_forge.tui.screens.documents import (
     format_workspace_status,
     load_workspace_status_text,
@@ -94,3 +96,29 @@ def test_load_workspace_status_text_handles_corrupt_workspace(
 
     assert "Workspace status error:" in text
     assert "Invalid JSON in chunks file" in text
+
+
+def test_load_workspace_status_text_shows_recent_chunks_when_ready(
+    tmp_path: Path,
+) -> None:
+    document = Document(
+        id="/knowledge/rag.md",
+        text="abcdefghij",
+        metadata={"source_path": "/knowledge/rag.md"},
+    )
+    chunks = SimpleChunker(chunk_size=5, chunk_overlap=0).chunk(document)
+    result = IngestResult(
+        source_path="/knowledge",
+        documents=[document],
+        chunks=chunks,
+        skipped_files=[],
+        metadata={"chunk_size": 5, "chunk_overlap": 0},
+    )
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.write_chunks(result.chunks)
+    workspace.write_ingest_summary(result)
+
+    text = load_workspace_status_text(workspace.root_path)
+
+    assert "Recent chunks:" in text
+    assert "- /knowledge/rag.md::chunk-0000 | /knowledge/rag.md | 0-5 | abcde" in text

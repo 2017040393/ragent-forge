@@ -3,18 +3,23 @@ from pathlib import Path
 from textual.widgets import Static
 
 from ragent_forge.app.models import WorkspaceStatus
+from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.workspace import LocalWorkspace
 
 
 def load_workspace_status_text(workspace_path: str | Path = ".ragent") -> str:
+    workspace = LocalWorkspace(workspace_path)
     try:
-        status = LocalWorkspace(workspace_path).status()
+        status = workspace.status()
     except ValueError as exc:
         return f"Workspace status error:\n{exc}"
-    return format_workspace_status(status)
+    return format_workspace_status(status, workspace)
 
 
-def format_workspace_status(status: WorkspaceStatus) -> str:
+def format_workspace_status(
+    status: WorkspaceStatus,
+    workspace: LocalWorkspace | None = None,
+) -> str:
     lines = [f"Workspace: {status.root_path}"]
 
     if status.status == "not_initialized":
@@ -57,7 +62,30 @@ def format_workspace_status(status: WorkspaceStatus) -> str:
             f"Summary file: {status.latest_summary_path}",
         ]
     )
+    if workspace is not None:
+        lines.extend(format_recent_chunks(workspace))
     return "\n".join(lines)
+
+
+def format_recent_chunks(workspace: LocalWorkspace, limit: int = 5) -> list[str]:
+    try:
+        chunks = ChunkService(workspace).list_chunks(limit)
+    except (OSError, ValueError):
+        return []
+
+    if not chunks:
+        return []
+
+    lines = ["", "Recent chunks:"]
+    for chunk in chunks:
+        lines.append(
+            "- "
+            f"{chunk.get('chunk_id', '')} | "
+            f"{chunk.get('source_path', '')} | "
+            f"{chunk.get('start_char', '')}-{chunk.get('end_char', '')} | "
+            f"{make_preview(str(chunk.get('text', '')))}"
+        )
+    return lines
 
 
 class DocumentsScreen(Static):
