@@ -21,6 +21,7 @@ class LocalWorkspace:
         self.chunks_path = self.chunks_dir / "chunks.jsonl"
         self.latest_summary_path = self.ingest_dir / "latest_summary.json"
         self.latest_trace_path = self.traces_dir / "latest_trace.json"
+        self.config_path = self.root_path / "config.toml"
 
     def exists(self) -> bool:
         return self.root_path.exists()

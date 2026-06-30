@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from ragent_forge.app.models import (
+    AppConfig,
     ContextPack,
     GenerationRequest,
     GenerationResult,
@@ -33,6 +34,13 @@ class NullGenerationProvider:
 class GenerationService:
     def __init__(self, provider: GenerationProvider | None = None) -> None:
         self.provider = provider or NullGenerationProvider()
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> GenerationService:
+        provider_name = config.generation.provider
+        if provider_name == "null":
+            return cls(NullGenerationProvider())
+        raise ValueError(f"Unsupported generation provider: {provider_name}")
 
     def build_request(self, context_pack: ContextPack) -> GenerationRequest:
         return GenerationRequest(

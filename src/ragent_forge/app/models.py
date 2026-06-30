@@ -70,6 +70,14 @@ class GenerationResult(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class GenerationConfig(BaseModel):
+    provider: Literal["null"] = "null"
+
+
+class AppConfig(BaseModel):
+    generation: GenerationConfig = Field(default_factory=GenerationConfig)
+
+
 class TraceStep(BaseModel):
     name: str
     description: str

@@ -62,6 +62,8 @@ Implemented so far:
 - The CLI writes chunks and the latest ingestion summary under `.ragent/`.
 - `ragent status` reads `.ragent/` and reports whether the local workspace is
   ready, incomplete, or not initialized.
+- `ragent config show` and `ragent config init` inspect or write optional local
+  generation config.
 - `ragent chunks list` and `ragent chunks show <chunk_id>` inspect generated
   chunks from the local workspace.
 - `ragent search <query>` performs deterministic lexical search over generated
@@ -99,6 +101,19 @@ regenerated.
 
 ```text
 .ragent/traces/latest_trace.json
+```
+
+Optional generation config lives at:
+
+```text
+.ragent/config.toml
+```
+
+If the config file is missing, RAGentForge uses the default:
+
+```toml
+[generation]
+provider = "null"
 ```
 
 The TUI Documents view reads the same workspace files. The TUI Trace view reads
@@ -149,6 +164,9 @@ ragent ingest examples/knowledge
 ragent ingest examples/knowledge --workspace .ragent
 ragent status
 ragent status --workspace .ragent
+ragent config show
+ragent config init
+ragent config init --overwrite
 ragent chunks list
 ragent chunks list --limit 20
 ragent chunks show "<chunk_id>"
@@ -167,6 +185,11 @@ chunks local Markdown/TXT files without creating embeddings or a vector index.
 It writes `.ragent/chunks/chunks.jsonl` and
 `.ragent/ingest/latest_summary.json` by default.
 `ragent status` reports whether those workspace files are present and readable.
+`.ragent/config.toml` is optional; when it is missing, `ragent config show`
+prints the effective default `generation.provider = "null"`. `ragent config init`
+writes that default file, and `ragent config init --overwrite` replaces an
+existing config with the default. Only the `null` generation provider is supported
+right now. Unsupported provider values fail clearly, and no API keys are read.
 `ragent chunks list` and `ragent chunks show <chunk_id>` read
 `.ragent/chunks/chunks.jsonl` so you can inspect chunking output before
 broader retrieval work is implemented. `ragent search` also reads

@@ -10,6 +10,8 @@ from rich.console import Console
 from ragent_forge.app.models import ContextPack, WorkspaceStatus
 from ragent_forge.app.services.ask_service import AskService
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
+from ragent_forge.app.services.config_service import ConfigService
+from ragent_forge.app.services.generation_service import GenerationService
 from ragent_forge.app.services.ingest_service import IngestService
 from ragent_forge.app.services.search_service import LexicalSearchService
 from ragent_forge.app.services.trace_service import (
@@ -64,6 +66,37 @@ def build_parser() -> argparse.ArgumentParser:
         "--workspace",
         default=".ragent",
         help="Local RAGentForge workspace directory to inspect.",
+    )
+
+    config_parser = subparsers.add_parser(
+        "config",
+        help="Inspect or initialize local RAGentForge configuration.",
+    )
+    config_subparsers = config_parser.add_subparsers(dest="config_command")
+
+    config_show_parser = config_subparsers.add_parser(
+        "show",
+        help="Show the effective local configuration.",
+    )
+    config_show_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to inspect.",
+    )
+
+    config_init_parser = config_subparsers.add_parser(
+        "init",
+        help="Write the default local configuration.",
+    )
+    config_init_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to initialize.",
+    )
+    config_init_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite an existing local configuration.",
     )
 
     chunks_parser = subparsers.add_parser(
@@ -226,6 +259,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.print_help()
         return 0
 
+    if args.command == "config":
+        if args.config_command == "show":
+            return _handle_config_show(console, args.workspace)
+        if args.config_command == "init":
+            return _handle_config_init(console, args.workspace, args.overwrite)
+        parser.print_help()
+        return 0
+
     if args.command == "traces":
         if args.traces_command == "latest":
             return _handle_traces_latest(console, args.workspace)
@@ -375,6 +416,42 @@ def _print_no_chunks(console: Console) -> None:
     console.print("No chunks found. Run ragent ingest <path> first.")
 
 
+def _handle_config_show(console: Console, workspace_path: str) -> int:
+    workspace = LocalWorkspace(workspace_path)
+    config_service = ConfigService(workspace)
+    try:
+        config = config_service.load()
+    except ValueError as exc:
+        console.print(f"[bold red]Config failed:[/bold red] {exc}")
+        return 1
+
+    if workspace.config_path.is_file():
+        console.print(f"Config: {workspace.config_path}", soft_wrap=True)
+    else:
+        console.print("Config: default")
+    console.print()
+    console.print(f"generation.provider: {config.generation.provider}")
+    return 0
+
+
+def _handle_config_init(
+    console: Console,
+    workspace_path: str,
+    overwrite: bool,
+) -> int:
+    workspace = LocalWorkspace(workspace_path)
+    config_service = ConfigService(workspace)
+    config_exists = workspace.config_path.exists()
+    config_path = config_service.write_default(overwrite=overwrite)
+
+    if config_exists and not overwrite:
+        console.print(f"Config already exists: {config_path}", soft_wrap=True)
+        return 0
+
+    console.print(f"Wrote default config to: {config_path}", soft_wrap=True)
+    return 0
+
+
 def _handle_traces_latest(console: Console, workspace_path: str) -> int:
     workspace = LocalWorkspace(workspace_path)
     if not workspace.has_latest_trace():
@@ -478,8 +555,10 @@ def _handle_ask(
         return 0
 
     started_at = datetime.now(UTC)
-    ask_service = AskService(workspace)
     try:
+        config = ConfigService(workspace).load()
+        generation_service = GenerationService.from_config(config)
+        ask_service = AskService(workspace, generation_service=generation_service)
         result = ask_service.retrieve_context(question, limit, max_context_chars)
         total_chunks = ask_service.count_chunks()
     except (OSError, ValueError) as exc:
@@ -494,6 +573,7 @@ def _handle_ask(
         total_chunks=total_chunks,
         retrieved_chunk_ids=retrieved_chunk_ids,
         generation_result=result.generation_result,
+        config_generation_provider=config.generation.provider,
         context_chunk_count=len(result.context_pack.context_chunks),
         total_context_chars=result.context_pack.total_context_chars,
         prompt_preview_shown=show_prompt,

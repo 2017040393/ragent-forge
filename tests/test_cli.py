@@ -159,6 +159,117 @@ def test_status_command_reports_corrupt_workspace_json(
     assert "Invalid JSON in chunks file" in captured.out
 
 
+def test_config_show_prints_default_when_config_is_missing(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+
+    exit_code = main(["config", "show", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Config: default" in captured.out
+    assert "generation.provider: null" in captured.out
+
+
+def test_config_init_writes_default_config(tmp_path: Path, capsys) -> None:
+    workspace_dir = tmp_path / ".ragent"
+
+    exit_code = main(["config", "init", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Wrote default config to:" in captured.out
+    assert "config.toml" in captured.out
+    assert (workspace_dir / "config.toml").read_text(encoding="utf-8") == (
+        '[generation]\nprovider = "null"\n'
+    )
+
+
+def test_config_init_does_not_overwrite_existing_config(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    workspace_dir.mkdir()
+    config_path = workspace_dir / "config.toml"
+    config_path.write_text('[generation]\nprovider = "custom"\n', encoding="utf-8")
+
+    exit_code = main(["config", "init", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Config already exists:" in captured.out
+    assert config_path.read_text(encoding="utf-8") == (
+        '[generation]\nprovider = "custom"\n'
+    )
+
+
+def test_config_init_overwrite_replaces_existing_config(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    workspace_dir.mkdir()
+    config_path = workspace_dir / "config.toml"
+    config_path.write_text('[generation]\nprovider = "custom"\n', encoding="utf-8")
+
+    exit_code = main(
+        ["config", "init", "--overwrite", "--workspace", str(workspace_dir)]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Wrote default config to:" in captured.out
+    assert config_path.read_text(encoding="utf-8") == (
+        '[generation]\nprovider = "null"\n'
+    )
+
+
+def test_config_show_reads_valid_config(tmp_path: Path, capsys) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    workspace_dir.mkdir()
+    config_path = workspace_dir / "config.toml"
+    config_path.write_text('[generation]\nprovider = "null"\n', encoding="utf-8")
+
+    exit_code = main(["config", "show", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert f"Config: {config_path}" in captured.out
+    assert "generation.provider: null" in captured.out
+
+
+def test_config_show_reports_invalid_toml(tmp_path: Path, capsys) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    workspace_dir.mkdir()
+    (workspace_dir / "config.toml").write_text("[generation\n", encoding="utf-8")
+
+    exit_code = main(["config", "show", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Config failed:" in captured.out
+    assert "Invalid TOML in config file" in captured.out
+
+
+def test_config_show_reports_unsupported_provider(tmp_path: Path, capsys) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    workspace_dir.mkdir()
+    (workspace_dir / "config.toml").write_text(
+        '[generation]\nprovider = "openai"\n',
+        encoding="utf-8",
+    )
+
+    exit_code = main(["config", "show", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Config failed:" in captured.out
+    assert "Unsupported generation provider: openai" in captured.out
+
+
 def test_chunks_list_command_prints_chunk_rows_after_ingest(
     tmp_path: Path,
     capsys,
@@ -626,6 +737,7 @@ def test_ask_command_prints_retrieval_only_context_after_ingest(
     assert latest_trace["metadata"]["generation_provider"] == "null"
     assert latest_trace["metadata"]["generation_result_status"] == "not_configured"
     assert latest_trace["metadata"]["answer_generated"] is False
+    assert latest_trace["metadata"]["config_generation_provider"] == "null"
 
 
 def test_ask_command_show_prompt_prints_context_pack_and_prompt_preview(
@@ -687,6 +799,7 @@ def test_ask_command_show_prompt_prints_context_pack_and_prompt_preview(
     assert latest_trace["metadata"]["generation_provider"] == "null"
     assert latest_trace["metadata"]["generation_result_status"] == "not_configured"
     assert latest_trace["metadata"]["answer_generated"] is False
+    assert latest_trace["metadata"]["config_generation_provider"] == "null"
 
 
 def test_ask_command_show_prompt_respects_max_context_chars(
@@ -860,6 +973,63 @@ def test_ask_command_prints_no_retrieved_context_and_writes_trace(
     assert latest_trace["metadata"]["generation_provider"] == "null"
     assert latest_trace["metadata"]["generation_result_status"] == "not_configured"
     assert latest_trace["metadata"]["answer_generated"] is False
+    assert latest_trace["metadata"]["config_generation_provider"] == "null"
+
+
+def test_ask_command_works_with_explicit_null_config(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    (workspace_dir / "config.toml").write_text(
+        '[generation]\nprovider = "null"\n',
+        encoding="utf-8",
+    )
+
+    exit_code = main(["ask", "agent", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert exit_code == 0
+    assert "Ask pipeline: retrieval-only mode" in captured.out
+    assert latest_trace["operation"] == "ask_retrieval"
+    assert latest_trace["metadata"]["generation_provider"] == "null"
+    assert latest_trace["metadata"]["config_generation_provider"] == "null"
+
+
+def test_ask_command_rejects_unsupported_generation_provider_without_ask_trace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    latest_trace_path = workspace_dir / "traces" / "latest_trace.json"
+    ingest_trace = latest_trace_path.read_text(encoding="utf-8")
+    (workspace_dir / "config.toml").write_text(
+        '[generation]\nprovider = "openai"\n',
+        encoding="utf-8",
+    )
+
+    exit_code = main(["ask", "agent", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(latest_trace_path.read_text(encoding="utf-8"))
+    assert exit_code == 1
+    assert "Ask failed:" in captured.out
+    assert "Unsupported generation provider: openai" in captured.out
+    assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
+    assert latest_trace["operation"] == "ingest"
 
 
 def test_ask_command_prints_friendly_message_when_chunks_are_missing(

@@ -20,10 +20,14 @@ class AskRetrievalResult(BaseModel):
 
 
 class AskService:
-    def __init__(self, workspace: LocalWorkspace) -> None:
+    def __init__(
+        self,
+        workspace: LocalWorkspace,
+        generation_service: GenerationService | None = None,
+    ) -> None:
         self.workspace = workspace
         self.search_service = LexicalSearchService(workspace)
-        self.generation_service = GenerationService()
+        self.generation_service = generation_service or GenerationService()
 
     def retrieve_context(
         self,

@@ -1,3 +1,7 @@
+import pytest
+from pydantic import BaseModel
+
+from ragent_forge.app.models import AppConfig, GenerationConfig
 from ragent_forge.app.services.context_service import build_context_pack
 from ragent_forge.app.services.generation_service import (
     GenerationService,
@@ -66,3 +70,26 @@ def test_null_generation_provider_does_not_include_fake_answer_text() -> None:
 
     assert result.answer is None
     assert "Agentic RAG uses planning" not in str(result.metadata)
+
+
+def test_generation_service_from_config_uses_null_provider() -> None:
+    service = GenerationService.from_config(
+        AppConfig(generation=GenerationConfig(provider="null"))
+    )
+
+    assert isinstance(service.provider, NullGenerationProvider)
+
+
+def test_generation_service_from_config_rejects_unsupported_provider() -> None:
+    class UnsupportedGenerationConfig(BaseModel):
+        provider: str
+
+    class UnsupportedAppConfig(BaseModel):
+        generation: UnsupportedGenerationConfig
+
+    config = UnsupportedAppConfig(
+        generation=UnsupportedGenerationConfig(provider="openai")
+    )
+
+    with pytest.raises(ValueError, match="Unsupported generation provider: openai"):
+        GenerationService.from_config(config)
