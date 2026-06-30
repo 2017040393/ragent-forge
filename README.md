@@ -87,6 +87,11 @@ regenerated.
 ```text
 .ragent/chunks/chunks.jsonl
 .ragent/ingest/latest_summary.json
+```
+
+`ragent traces latest` reads the latest local trace from:
+
+```text
 .ragent/traces/latest_trace.json
 ```
 
