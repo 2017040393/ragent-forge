@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from ragent_forge.app.models import (
     GenerationResult,
@@ -162,6 +163,11 @@ def build_ask_retrieval_trace(
 ) -> OperationTrace:
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
+    generation_status = (
+        "generated"
+        if generation_result.status == "success"
+        else "not_implemented"
+    )
     metadata = {
         "question": question,
         "limit": limit,
@@ -170,7 +176,7 @@ def build_ask_retrieval_trace(
         "total_chunks": total_chunks,
         "retrieved_count": len(retrieved_chunk_ids),
         "retrieved_chunk_ids": retrieved_chunk_ids,
-        "generation_status": "not_implemented",
+        "generation_status": generation_status,
         "generation_provider": generation_result.provider_name,
         "generation_result_status": generation_result.status,
         "answer_generated": generation_result.answer is not None,
@@ -180,6 +186,9 @@ def build_ask_retrieval_trace(
         "prompt_preview_shown": prompt_preview_shown,
         "max_context_chars": max_context_chars,
     }
+    metadata.update(_generation_metadata(generation_result.metadata))
+    if generation_result.status == "success":
+        metadata["source_count"] = len(retrieved_chunk_ids)
     return OperationTrace(
         trace_id=f"ask-retrieval-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
         operation="ask_retrieval",
@@ -208,25 +217,30 @@ def build_ask_retrieval_trace(
             TraceStep(
                 name="generate_answer",
                 description=(
-                    "Run the configured generation provider; the null provider "
-                    "returns no answer."
+                    "Run the configured generation provider when retrieved "
+                    "context is available."
                 ),
                 inputs={"provider": generation_result.provider_name},
                 outputs={
-                    "generation_status": "not_implemented",
+                    "generation_status": generation_status,
                     "generation_result_status": generation_result.status,
                     "answer_generated": generation_result.answer is not None,
                 },
             ),
             TraceStep(
                 name="render_retrieval_preview",
-                description="Render the retrieval-only ask preview in the CLI.",
+                description="Render the ask result preview in the CLI.",
                 inputs={"retrieved_count": len(retrieved_chunk_ids)},
                 outputs={"status": "success"},
             ),
         ],
         metadata=metadata,
     )
+
+
+def _generation_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    allowed_keys = {"model", "base_url", "endpoint", "skip_reason"}
+    return {key: value for key, value in metadata.items() if key in allowed_keys}
 
 
 def _as_utc(value: datetime) -> datetime:

@@ -54,6 +54,10 @@ class ContextPack(BaseModel):
     prompt_preview: str
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    @property
+    def generation_prompt(self) -> str:
+        return self.prompt_preview
+
 
 class GenerationRequest(BaseModel):
     question: str
@@ -64,14 +68,19 @@ class GenerationRequest(BaseModel):
 
 class GenerationResult(BaseModel):
     provider_name: str
-    status: Literal["not_configured", "success", "failed"]
+    status: Literal["not_configured", "success", "failed", "skipped"]
     answer: str | None = None
     error: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class GenerationConfig(BaseModel):
-    provider: Literal["null"] = "null"
+    provider: Literal["null", "openai_responses"] = "null"
+    base_url: str | None = None
+    model: str | None = None
+    api_key_env: str | None = None
+    timeout_seconds: int = 60
+    temperature: float = 0.2
 
 
 class AppConfig(BaseModel):

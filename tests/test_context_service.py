@@ -1,92 +1,46 @@
 from ragent_forge.app.services.context_service import (
     build_context_pack,
-    build_prompt_preview,
+    build_generation_prompt,
 )
 from ragent_forge.app.services.search_service import SearchResult
 
 
-def make_search_result(
-    chunk_id: str,
-    text: str,
-    score: float,
-    source_path: str = "/knowledge/rag.md",
-) -> SearchResult:
-    return SearchResult(
-        chunk_id=chunk_id,
-        document_id=source_path,
-        source_path=source_path,
-        start_char=0,
-        end_char=len(text),
-        score=score,
-        text=text,
-    )
-
-
-def test_build_context_pack_preserves_results_and_builds_prompt_preview() -> None:
-    results = [
-        make_search_result("/knowledge/rag.md::chunk-0001", "first context", 3.0),
-        make_search_result("/knowledge/rag.md::chunk-0002", "second context", 1.0),
-    ]
-
-    context_pack = build_context_pack("What is Agentic RAG?", results)
-
-    assert context_pack.question == "What is Agentic RAG?"
-    assert context_pack.retrieval_method == "lexical_token_overlap"
-    assert [chunk.chunk_id for chunk in context_pack.context_chunks] == [
-        "/knowledge/rag.md::chunk-0001",
-        "/knowledge/rag.md::chunk-0002",
-    ]
-    assert context_pack.total_context_chars == len("first context") + len(
-        "second context"
-    )
-    assert context_pack.generation_status == "not_implemented"
-    assert "Question:\nWhat is Agentic RAG?" in context_pack.prompt_preview
-
-
-def test_build_prompt_preview_includes_instruction_sources_chunks_and_content() -> None:
-    context_pack = build_context_pack(
+def make_context_pack():
+    return build_context_pack(
         "What is Agentic RAG?",
         [
-            make_search_result(
-                "/knowledge/rag.md::chunk-0001",
-                "Agentic RAG uses planning.",
-                3.0,
+            SearchResult(
+                chunk_id="/knowledge/rag.md::chunk-0001",
+                document_id="/knowledge/rag.md",
+                source_path="/knowledge/rag.md",
+                start_char=0,
+                end_char=27,
+                score=2.0,
+                text="Agentic RAG uses planning.",
             )
         ],
     )
 
-    prompt_preview = build_prompt_preview(context_pack)
 
-    assert "You are a local retrieval-augmented assistant." in prompt_preview
-    assert "Use only the retrieved context below." in prompt_preview
-    assert "Question:\nWhat is Agentic RAG?" in prompt_preview
-    assert "[1] Source: /knowledge/rag.md" in prompt_preview
-    assert "Chunk ID: /knowledge/rag.md::chunk-0001" in prompt_preview
-    assert "Content:\nAgentic RAG uses planning." in prompt_preview
-    assert "Generation is not implemented yet." in prompt_preview
+def test_build_generation_prompt_includes_retrieved_context_and_instructions() -> None:
+    context_pack = make_context_pack()
 
+    prompt = build_generation_prompt(context_pack)
 
-def test_build_context_pack_truncates_long_context_deterministically() -> None:
-    context_pack = build_context_pack(
-        "What is Agentic RAG?",
-        [
-            make_search_result("/knowledge/rag.md::chunk-0001", "abcdefghij", 3.0),
-            make_search_result("/knowledge/rag.md::chunk-0002", "klmnopqrst", 1.0),
-        ],
-        max_context_chars=12,
-    )
-
-    assert context_pack.total_context_chars == 12
-    assert [chunk.text for chunk in context_pack.context_chunks] == ["abcdefghij", "kl"]
-    assert "Content:\nabcdefghij" in context_pack.prompt_preview
-    assert "Content:\nkl" in context_pack.prompt_preview
-    assert "klm" not in context_pack.prompt_preview
+    assert "Use only the retrieved context below" in prompt
+    assert "Do not use outside knowledge." in prompt
+    assert "I cannot determine the answer from the provided context." in prompt
+    assert "Question:\nWhat is Agentic RAG?" in prompt
+    assert "Source: /knowledge/rag.md" in prompt
+    assert "Chunk ID: /knowledge/rag.md::chunk-0001" in prompt
+    assert "Agentic RAG uses planning." in prompt
+    assert "Generation is not implemented yet." not in prompt
 
 
-def test_build_context_pack_handles_empty_results() -> None:
+def test_build_generation_prompt_handles_empty_context() -> None:
     context_pack = build_context_pack("What is Agentic RAG?", [])
 
-    assert context_pack.context_chunks == []
-    assert context_pack.total_context_chars == 0
-    assert "Retrieved context:\nNo retrieved context." in context_pack.prompt_preview
-    assert "Generation is not implemented yet." in context_pack.prompt_preview
+    prompt = build_generation_prompt(context_pack)
+
+    assert "Question:\nWhat is Agentic RAG?" in prompt
+    assert "Retrieved context:\nNo retrieved context." in prompt

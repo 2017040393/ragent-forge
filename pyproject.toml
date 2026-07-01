@@ -9,6 +9,7 @@ authors = [
     { name = "RAGentForge contributors" }
 ]
 dependencies = [
+    "httpx>=0.27,<1",
     "pydantic>=2.7,<3",
     "rich>=13.7,<15",
     "textual>=0.80,<6",

@@ -70,15 +70,17 @@ Implemented so far:
   chunks.
 - Successful `ragent ingest` writes a local JSON trace for the ingest workflow.
 - Successful `ragent search` writes a local JSON trace for the search workflow.
-- `ragent ask <question>` previews retrieved context without generating answers.
-- A null generation provider interface records that generation is not configured.
+- `ragent ask <question>` retrieves local context and can optionally generate an
+  answer with an OpenAI Responses-compatible provider.
+- The default `null` generation provider keeps ask in retrieval-only mode when
+  real generation is not configured.
 - `ragent traces latest`, `ragent traces list`, and
   `ragent traces show <trace_id>` inspect local operation traces.
 - `ragent tui` shows Documents workspace status, recent chunk previews, and
   the latest trace summary plus a read-only recent trace history summary.
 
-Real embeddings, vector database integration, answer generation, persistent
-retrieval indexes, and agent workflows are intentionally not implemented yet.
+Embeddings, vector database integration, persistent retrieval indexes, and
+agent workflows are intentionally not implemented yet.
 
 ## Local Workspace
 
@@ -123,6 +125,34 @@ If the config file is missing, RAGentForge uses the default:
 provider = "null"
 ```
 
+Official OpenAI Responses API example:
+
+```toml
+[generation]
+provider = "openai_responses"
+base_url = "https://api.openai.com/v1"
+model = "gpt-4o-mini"
+api_key_env = "OPENAI_API_KEY"
+timeout_seconds = 60
+temperature = 0.2
+```
+
+Third-party Responses-compatible API example:
+
+```toml
+[generation]
+provider = "openai_responses"
+base_url = "https://third-party.example.com/v1"
+model = "some-responses-compatible-model"
+api_key_env = "THIRD_PARTY_API_KEY"
+timeout_seconds = 60
+temperature = 0.2
+```
+
+API keys are read from environment variables named by `api_key_env`. Do not
+store real API keys in `.ragent/config.toml`. The provider calls
+`{base_url.rstrip("/")}/responses`.
+
 The TUI Documents view reads the same workspace files. The TUI Trace view reads
 `.ragent/traces/latest_trace.json` and recent trace files under
 `.ragent/traces/<trace_id>.json`. TUI trace history is read-only and not
@@ -162,8 +192,8 @@ python -m ruff check .
 ## Basic Usage
 
 These commands are available now. Ingestion scans local Markdown/TXT files and
-prints loading/chunking statistics; asking previews retrieved context without
-generating an answer:
+prints loading/chunking statistics; asking uses lexical retrieval and can
+optionally generate an answer when `generation.provider = "openai_responses"`:
 
 ```bash
 ragent --help
@@ -199,36 +229,41 @@ It writes `.ragent/chunks/chunks.jsonl` and
 `.ragent/config.toml` is optional; when it is missing, `ragent config show`
 prints the effective default `generation.provider = "null"`. `ragent config init`
 writes that default file, and `ragent config init --overwrite` replaces an
-existing config with the default. Only the `null` generation provider is supported
-right now. Unsupported provider values fail clearly, and no API keys are read.
+existing config with the default. `ragent config show` also prints
+`generation.base_url`, `generation.model`, `generation.api_key_env`,
+`generation.timeout_seconds`, and `generation.temperature` for
+`openai_responses` configs. API keys are read from environment variables and
+are never stored in config or printed by the CLI. Unsupported provider values
+fail clearly.
 `ragent chunks list` and `ragent chunks show <chunk_id>` read
 `.ragent/chunks/chunks.jsonl` so you can inspect chunking output before
 broader retrieval work is implemented. `ragent search` also reads
 `.ragent/chunks/chunks.jsonl` and uses simple lexical token overlap to rank
 chunks. It is not semantic search and does not use embeddings, vector
-databases, BM25, reranking, LLMs, or answer generation. Use
+databases, BM25, reranking, or hybrid retrieval. Use
 `ragent chunks show <chunk_id>` to inspect full chunk content. `ragent ask`
-runs in retrieval-only mode using the same lexical search, displays retrieved
-context, and clearly skips answer generation. `ragent ask --show-prompt` also
-shows a deterministic local prompt preview assembled from the question,
-retrieved chunks, and source references; the preview is not sent to any LLM.
-Context packs are generated in memory and are not persisted. Prompt previews
-are local and are not sent anywhere. `ragent ask` builds a generation request
-and sends it to the current null generation provider, which returns
-`not_configured` with no answer. No real LLM provider is implemented yet, no API
-keys are read, and future providers such as OpenAI or Ollama can be added later
-behind the generation provider interface. Successful ingest, search, and ask
-retrieval commands write local JSON trace artifacts under
+runs the same lexical retrieval, assembles a context pack, and either stays in
+retrieval-only mode with the default `null` provider or generates an answer with
+an OpenAI Responses-compatible provider. `ragent ask --show-prompt` shows the
+actual generation prompt assembled from the question, retrieved chunks, scores,
+and source references; the prompt is only sent when
+`generation.provider = "openai_responses"`. Context packs are generated in
+memory and are not persisted. `openai_responses` sends a request to
+`{base_url}/responses` and supports both the official OpenAI Responses API and
+third-party Responses-compatible base URLs. Chat Completions is not implemented
+in this step. If no retrieved context is found, `ragent ask` skips generation.
+Successful ingest, search, and ask retrieval commands write local JSON trace artifacts under
 `.ragent/traces/<trace_id>.json`; `.ragent/traces/latest_trace.json` points to
 the latest operation trace. Current traces cover ingest, lexical search, and ask
 retrieval workflows. Use `ragent traces latest` for the latest trace,
 `ragent traces list` for historical trace files, and
 `ragent traces show <trace_id>` for one specific trace. No external observability
-service is used, and this does not implement semantic, vector, LLM, or agent
+service is used, and this does not implement semantic, vector, or agent
 retrieval tracing. The TUI displays the same local workspace status, a small
 recent-chunks preview when chunks exist, and a read-only latest trace summary
 from `.ragent/traces/latest_trace.json`, including the latest search or ask
 retrieval trace after those commands. The TUI Trace view also shows a read-only
 recent trace history summary; use `ragent traces show <trace_id>` for full trace
 details. Interactive TUI trace history browsing is not implemented yet.
-`ragent ask` does not generate or fake an answer yet.
+Retrieval remains lexical only; embeddings, vector search, BM25, reranking, and
+agent workflows are still not implemented.

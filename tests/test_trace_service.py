@@ -156,3 +156,48 @@ def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None
         "prompt_preview_shown": True,
         "max_context_chars": 4000,
     }
+
+
+def test_build_ask_retrieval_trace_records_real_generation_metadata() -> None:
+    started_at = datetime(2026, 6, 30, 0, 0, 0, tzinfo=UTC)
+    finished_at = datetime(2026, 6, 30, 0, 0, 1, tzinfo=UTC)
+
+    trace = build_ask_retrieval_trace(
+        question="what is agent memory?",
+        limit=3,
+        chunks_path=Path(".ragent/chunks/chunks.jsonl"),
+        total_chunks=7,
+        retrieved_chunk_ids=["/knowledge/rag.md::chunk-0002"],
+        generation_result=GenerationResult(
+            provider_name="openai_responses",
+            status="success",
+            answer="Generated answer",
+            metadata={
+                "model": "gpt-4o-mini",
+                "base_url": "https://api.openai.com/v1",
+                "endpoint": "/responses",
+            },
+        ),
+        config_generation_provider="openai_responses",
+        context_chunk_count=1,
+        total_context_chars=128,
+        prompt_preview_shown=False,
+        max_context_chars=4000,
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+
+    generation_step = trace.steps[3]
+    assert generation_step.outputs == {
+        "generation_status": "generated",
+        "generation_result_status": "success",
+        "answer_generated": True,
+    }
+    assert trace.metadata["generation_status"] == "generated"
+    assert trace.metadata["generation_provider"] == "openai_responses"
+    assert trace.metadata["generation_result_status"] == "success"
+    assert trace.metadata["answer_generated"] is True
+    assert trace.metadata["model"] == "gpt-4o-mini"
+    assert trace.metadata["base_url"] == "https://api.openai.com/v1"
+    assert trace.metadata["endpoint"] == "/responses"
+    assert trace.metadata["source_count"] == 1

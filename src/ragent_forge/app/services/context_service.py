@@ -47,13 +47,19 @@ def build_context_pack(
 
 
 def build_prompt_preview(context_pack: ContextPack) -> str:
+    return build_generation_prompt(context_pack)
+
+
+def build_generation_prompt(context_pack: ContextPack) -> str:
     lines = [
-        "You are a local retrieval-augmented assistant.",
-        "Use only the retrieved context below.",
-        (
-            "If the context is insufficient, say that the answer cannot be "
-            "determined from the provided context."
-        ),
+        "You are RAGentForge, a local retrieval-augmented assistant.",
+        "Use only the retrieved context below to answer the question.",
+        "Do not use outside knowledge.",
+        "Do not invent details.",
+        "Do not invent sources.",
+        "Answer clearly and concisely.",
+        'If the retrieved context is insufficient, say:',
+        '"I cannot determine the answer from the provided context."',
         "",
         "Question:",
         context_pack.question,
@@ -69,16 +75,10 @@ def build_prompt_preview(context_pack: ContextPack) -> str:
                 [
                     f"[{index}] Source: {chunk.source_path}",
                     f"Chunk ID: {chunk.chunk_id}",
+                    f"Score: {chunk.score:g}",
                     "Content:",
                     chunk.text,
                     "",
                 ]
             )
-
-    lines.extend(
-        [
-            "",
-            "Generation is not implemented yet.",
-        ]
-    )
     return "\n".join(lines)

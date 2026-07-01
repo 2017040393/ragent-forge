@@ -2,10 +2,14 @@ import pytest
 from pydantic import BaseModel
 
 from ragent_forge.app.models import AppConfig, GenerationConfig
-from ragent_forge.app.services.context_service import build_context_pack
+from ragent_forge.app.services.context_service import (
+    build_context_pack,
+    build_generation_prompt,
+)
 from ragent_forge.app.services.generation_service import (
     GenerationService,
     NullGenerationProvider,
+    OpenAIResponsesGenerationProvider,
 )
 from ragent_forge.app.services.search_service import SearchResult
 
@@ -48,8 +52,9 @@ def test_generation_service_build_request_from_context_pack() -> None:
     request = GenerationService().build_request(context_pack)
 
     assert request.question == "What is Agentic RAG?"
-    assert request.prompt == context_pack.prompt_preview
+    assert request.prompt == build_generation_prompt(context_pack)
     assert request.context_pack == context_pack
+    assert "Generation is not implemented yet." not in request.prompt
 
 
 def test_generation_service_uses_null_provider_by_default() -> None:
@@ -78,6 +83,112 @@ def test_generation_service_from_config_uses_null_provider() -> None:
     )
 
     assert isinstance(service.provider, NullGenerationProvider)
+
+
+def test_generation_service_from_config_uses_openai_responses_provider(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "super-secret-key")
+
+    service = GenerationService.from_config(
+        AppConfig(
+            generation=GenerationConfig(
+                provider="openai_responses",
+                base_url="https://api.openai.com/v1/",
+                model="gpt-4o-mini",
+                api_key_env="OPENAI_API_KEY",
+                timeout_seconds=30,
+                temperature=0.4,
+            )
+        )
+    )
+
+    assert isinstance(service.provider, OpenAIResponsesGenerationProvider)
+    assert service.provider.base_url == "https://api.openai.com/v1"
+    assert service.provider.model == "gpt-4o-mini"
+    assert service.provider.timeout_seconds == 30
+    assert service.provider.temperature == 0.4
+
+
+def test_generation_service_from_config_missing_api_key_env_raises_clear_error(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    with pytest.raises(
+        ValueError,
+        match="Missing API key environment variable: OPENAI_API_KEY",
+    ):
+        GenerationService.from_config(
+            AppConfig(
+                generation=GenerationConfig(
+                    provider="openai_responses",
+                    base_url="https://api.openai.com/v1",
+                    model="gpt-4o-mini",
+                    api_key_env="OPENAI_API_KEY",
+                )
+            )
+        )
+
+
+def test_generation_service_from_config_requires_base_url() -> None:
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Invalid config file: generation.base_url is required "
+            "when generation.provider is openai_responses"
+        ),
+    ):
+        GenerationService.from_config(
+            AppConfig(
+                generation=GenerationConfig(
+                    provider="openai_responses",
+                    base_url=None,
+                    model="gpt-4o-mini",
+                    api_key_env="OPENAI_API_KEY",
+                )
+            )
+        )
+
+
+def test_generation_service_from_config_requires_model() -> None:
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Invalid config file: generation.model is required "
+            "when generation.provider is openai_responses"
+        ),
+    ):
+        GenerationService.from_config(
+            AppConfig(
+                generation=GenerationConfig(
+                    provider="openai_responses",
+                    base_url="https://api.openai.com/v1",
+                    model=None,
+                    api_key_env="OPENAI_API_KEY",
+                )
+            )
+        )
+
+
+def test_generation_service_from_config_requires_api_key_env_name() -> None:
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Invalid config file: generation.api_key_env is required "
+            "when generation.provider is openai_responses"
+        ),
+    ):
+        GenerationService.from_config(
+            AppConfig(
+                generation=GenerationConfig(
+                    provider="openai_responses",
+                    base_url="https://api.openai.com/v1",
+                    model="gpt-4o-mini",
+                    api_key_env=None,
+                )
+            )
+        )
 
 
 def test_generation_service_from_config_rejects_unsupported_provider() -> None:

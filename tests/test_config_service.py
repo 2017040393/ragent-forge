@@ -74,6 +74,105 @@ def test_loading_valid_config_returns_generation_provider(tmp_path: Path) -> Non
     assert config.generation.provider == "null"
 
 
+def test_loading_openai_responses_config_returns_generation_provider(
+    tmp_path: Path,
+) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        (
+            "[generation]\n"
+            "provider = \"openai_responses\"\n"
+            "base_url = \"https://api.openai.com/v1\"\n"
+            "model = \"gpt-4o-mini\"\n"
+            "api_key_env = \"OPENAI_API_KEY\"\n"
+            "timeout_seconds = 60\n"
+            "temperature = 0.2\n"
+        ),
+        encoding="utf-8",
+    )
+
+    config = service.load()
+
+    assert config.generation.provider == "openai_responses"
+    assert config.generation.base_url == "https://api.openai.com/v1"
+    assert config.generation.model == "gpt-4o-mini"
+    assert config.generation.api_key_env == "OPENAI_API_KEY"
+    assert config.generation.timeout_seconds == 60
+    assert config.generation.temperature == 0.2
+
+
+def test_loading_openai_responses_config_requires_base_url(tmp_path: Path) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        (
+            "[generation]\n"
+            'provider = "openai_responses"\n'
+            'model = "gpt-4o-mini"\n'
+            'api_key_env = "OPENAI_API_KEY"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Invalid config file: generation.base_url is required "
+            "when generation.provider is openai_responses"
+        ),
+    ):
+        service.load()
+
+
+def test_loading_openai_responses_config_requires_model(tmp_path: Path) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        (
+            "[generation]\n"
+            'provider = "openai_responses"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'api_key_env = "OPENAI_API_KEY"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Invalid config file: generation.model is required "
+            "when generation.provider is openai_responses"
+        ),
+    ):
+        service.load()
+
+
+def test_loading_openai_responses_config_requires_api_key_env(
+    tmp_path: Path,
+) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        (
+            "[generation]\n"
+            'provider = "openai_responses"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'model = "gpt-4o-mini"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Invalid config file: generation.api_key_env is required "
+            "when generation.provider is openai_responses"
+        ),
+    ):
+        service.load()
+
+
 def test_loading_invalid_toml_raises_clear_value_error(tmp_path: Path) -> None:
     service = make_config_service(tmp_path)
     service.workspace.root_path.mkdir(parents=True)

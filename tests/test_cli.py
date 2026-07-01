@@ -241,6 +241,40 @@ def test_config_show_reads_valid_config(tmp_path: Path, capsys) -> None:
     assert "generation.provider: null" in captured.out
 
 
+def test_config_show_reads_openai_responses_config_without_printing_api_key(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    workspace_dir.mkdir()
+    config_path = workspace_dir / "config.toml"
+    config_path.write_text(
+        (
+            "[generation]\n"
+            'provider = "openai_responses"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'model = "gpt-4o-mini"\n'
+            'api_key_env = "OPENAI_API_KEY"\n'
+            "timeout_seconds = 60\n"
+            "temperature = 0.2\n"
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(["config", "show", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert f"Config: {config_path}" in captured.out
+    assert "generation.provider: openai_responses" in captured.out
+    assert "generation.base_url: https://api.openai.com/v1" in captured.out
+    assert "generation.model: gpt-4o-mini" in captured.out
+    assert "generation.api_key_env: OPENAI_API_KEY" in captured.out
+    assert "generation.timeout_seconds: 60" in captured.out
+    assert "generation.temperature: 0.2" in captured.out
+    assert "super-secret-key" not in captured.out
+
+
 def test_config_show_reports_invalid_toml(tmp_path: Path, capsys) -> None:
     workspace_dir = tmp_path / ".ragent"
     workspace_dir.mkdir()
@@ -895,7 +929,7 @@ def test_ask_command_prints_retrieval_only_context_after_ingest(
     assert exit_code == 0
     assert "Ask pipeline: retrieval-only mode" in captured.out
     assert "Question: agent memory" in captured.out
-    assert "Generation: not implemented yet." in captured.out
+    assert "Generation: not configured." in captured.out
     assert "Answer:" not in captured.out
     assert "Generated answer:" not in captured.out
     assert "Retrieved context:" in captured.out
@@ -965,14 +999,20 @@ def test_ask_command_show_prompt_prints_context_pack_and_prompt_preview(
     assert "Context chunks: 1" in captured.out
     assert "Total context chars:" in captured.out
     assert "Retrieval method: lexical_token_overlap" in captured.out
-    assert "Prompt preview:" in captured.out
-    assert "You are a local retrieval-augmented assistant." in captured.out
+    assert "Generation prompt:" in captured.out
+    assert (
+        "You are RAGentForge, a local retrieval-augmented assistant."
+        in captured.out
+    )
     assert "Question:\nagent memory" in captured.out
+    assert (
+        "Use only the retrieved context below to answer the question."
+        in captured.out
+    )
     assert "[1] Source:" in captured.out
     assert "Chunk ID:" in captured.out
     assert "Content:" in captured.out
     assert "agent memory agent" in captured.out
-    assert "Generation is not implemented yet." in captured.out
     assert "Saved trace to:" in captured.out
 
     latest_trace = json.loads(
@@ -1021,7 +1061,7 @@ def test_ask_command_show_prompt_respects_max_context_chars(
     )
     assert exit_code == 0
     assert "Total context chars: 20" in captured.out
-    prompt_preview = captured.out.split("Prompt preview:", maxsplit=1)[1]
+    prompt_preview = captured.out.split("Generation prompt:", maxsplit=1)[1]
     prompt_preview = prompt_preview.split("Saved trace to:", maxsplit=1)[0]
     assert "Content:\nagent abcdefghijklmn" in prompt_preview
     assert "Content:\nagent abcdefghijklmno" not in prompt_preview
@@ -1049,8 +1089,11 @@ def test_ask_command_without_show_prompt_stays_compact(
     assert exit_code == 0
     assert "Retrieved context:" in captured.out
     assert "Context pack:" not in captured.out
-    assert "Prompt preview:" not in captured.out
-    assert "You are a local retrieval-augmented assistant." not in captured.out
+    assert "Generation prompt:" not in captured.out
+    assert (
+        "You are RAGentForge, a local retrieval-augmented assistant."
+        not in captured.out
+    )
     assert latest_trace["metadata"]["prompt_preview_shown"] is False
     assert latest_trace["metadata"]["max_context_chars"] == 4000
 
@@ -1079,7 +1122,7 @@ def test_ask_command_no_match_show_prompt_prints_empty_context_pack(
     assert "Context pack:" in captured.out
     assert "Context chunks: 0" in captured.out
     assert "Total context chars: 0" in captured.out
-    assert "Prompt preview:" in captured.out
+    assert "Generation prompt:" in captured.out
     assert "Retrieved context:\nNo retrieved context." in captured.out
     assert latest_trace["metadata"]["retrieved_count"] == 0
     assert latest_trace["metadata"]["context_chunk_count"] == 0
@@ -1143,7 +1186,7 @@ def test_ask_command_prints_no_retrieved_context_and_writes_trace(
     assert exit_code == 0
     assert "Ask pipeline: retrieval-only mode" in captured.out
     assert "Question: no-match" in captured.out
-    assert "Generation: not implemented yet." in captured.out
+    assert "Generation skipped because there is no retrieved context." in captured.out
     assert "Answer:" not in captured.out
     assert "Generated answer:" not in captured.out
     assert "No retrieved context found." in captured.out
@@ -1158,9 +1201,10 @@ def test_ask_command_prints_no_retrieved_context_and_writes_trace(
     assert latest_trace["metadata"]["retrieved_chunk_ids"] == []
     assert latest_trace["metadata"]["generation_status"] == "not_implemented"
     assert latest_trace["metadata"]["generation_provider"] == "null"
-    assert latest_trace["metadata"]["generation_result_status"] == "not_configured"
+    assert latest_trace["metadata"]["generation_result_status"] == "skipped"
     assert latest_trace["metadata"]["answer_generated"] is False
     assert latest_trace["metadata"]["config_generation_provider"] == "null"
+    assert latest_trace["metadata"]["skip_reason"] == "no_retrieved_context"
 
 
 def test_ask_command_works_with_explicit_null_config(
@@ -1217,6 +1261,171 @@ def test_ask_command_rejects_unsupported_generation_provider_without_ask_trace(
     assert "Unsupported generation provider: openai" in captured.out
     assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
     assert latest_trace["operation"] == "ingest"
+
+
+def test_ask_command_with_openai_responses_prints_answer_sources_and_trace_metadata(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    (workspace_dir / "config.toml").write_text(
+        (
+            "[generation]\n"
+            'provider = "openai_responses"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'model = "gpt-4o-mini"\n'
+            'api_key_env = "OPENAI_API_KEY"\n'
+            "timeout_seconds = 60\n"
+            "temperature = 0.2\n"
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("OPENAI_API_KEY", "super-secret-key")
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"output_text": "Generated answer from provider"}
+
+    def fake_post(url, *, headers, json, timeout):
+        assert url == "https://api.openai.com/v1/responses"
+        assert headers["Authorization"] == "Bearer super-secret-key"
+        assert json["model"] == "gpt-4o-mini"
+        assert json["temperature"] == 0.2
+        return FakeResponse()
+
+    monkeypatch.setattr(
+        "ragent_forge.app.services.generation_service.httpx.post",
+        fake_post,
+    )
+
+    exit_code = main(["ask", "agent memory", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert exit_code == 0
+    assert "Ask pipeline: generated answer mode" in captured.out
+    assert "Generation provider: openai_responses" in captured.out
+    assert "Generation status: success" in captured.out
+    assert "Answer:" in captured.out
+    assert "Generated answer from provider" in captured.out
+    assert "Sources:" in captured.out
+    assert "rag.md::chunk-0000" in captured.out
+    assert "Score: 3" in captured.out
+    assert "super-secret-key" not in captured.out
+    assert "Retrieved context:" not in captured.out
+    assert latest_trace["metadata"]["generation_provider"] == "openai_responses"
+    assert latest_trace["metadata"]["generation_status"] == "generated"
+    assert latest_trace["metadata"]["generation_result_status"] == "success"
+    assert latest_trace["metadata"]["answer_generated"] is True
+    assert latest_trace["metadata"]["model"] == "gpt-4o-mini"
+    assert latest_trace["metadata"]["base_url"] == "https://api.openai.com/v1"
+    assert latest_trace["metadata"]["endpoint"] == "/responses"
+    assert latest_trace["metadata"]["source_count"] == 1
+    assert "super-secret-key" not in json.dumps(latest_trace)
+
+
+def test_ask_command_openai_missing_api_key_keeps_old_trace(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    latest_trace_path = workspace_dir / "traces" / "latest_trace.json"
+    ingest_trace = latest_trace_path.read_text(encoding="utf-8")
+    (workspace_dir / "config.toml").write_text(
+        (
+            "[generation]\n"
+            'provider = "openai_responses"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'model = "gpt-4o-mini"\n'
+            'api_key_env = "OPENAI_API_KEY"\n'
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    exit_code = main(["ask", "agent", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert (
+        "Ask failed: Missing API key environment variable: OPENAI_API_KEY"
+        in captured.out
+    )
+    assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
+
+
+def test_ask_command_openai_provider_failure_keeps_old_trace(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    latest_trace_path = workspace_dir / "traces" / "latest_trace.json"
+    ingest_trace = latest_trace_path.read_text(encoding="utf-8")
+    (workspace_dir / "config.toml").write_text(
+        (
+            "[generation]\n"
+            'provider = "openai_responses"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'model = "gpt-4o-mini"\n'
+            'api_key_env = "OPENAI_API_KEY"\n'
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("OPENAI_API_KEY", "super-secret-key")
+
+    def fake_post(url, *, headers, json, timeout):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        "ragent_forge.app.services.generation_service.httpx.post",
+        fake_post,
+    )
+
+    exit_code = main(["ask", "agent", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Ask failed: Generation provider failed: boom" in captured.out
+    assert "super-secret-key" not in captured.out
+    assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
 
 
 def test_ask_command_prints_friendly_message_when_chunks_are_missing(

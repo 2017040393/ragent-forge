@@ -54,8 +54,27 @@ class ConfigService:
             raise ValueError(
                 "Invalid config file: generation.provider must be a string"
             )
-        if provider != "null":
+        if provider not in {"null", "openai_responses"}:
             raise ValueError(f"Unsupported generation provider: {provider}")
+        if provider == "openai_responses":
+            base_url = generation.get("base_url")
+            model = generation.get("model")
+            api_key_env = generation.get("api_key_env")
+            if not isinstance(base_url, str) or not base_url.strip():
+                raise ValueError(
+                    "Invalid config file: generation.base_url is required "
+                    "when generation.provider is openai_responses"
+                )
+            if not isinstance(model, str) or not model.strip():
+                raise ValueError(
+                    "Invalid config file: generation.model is required "
+                    "when generation.provider is openai_responses"
+                )
+            if not isinstance(api_key_env, str) or not api_key_env.strip():
+                raise ValueError(
+                    "Invalid config file: generation.api_key_env is required "
+                    "when generation.provider is openai_responses"
+                )
 
         try:
             return AppConfig.model_validate(raw_config)
