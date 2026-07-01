@@ -85,6 +85,10 @@ def test_build_search_trace_creates_success_trace_with_metadata() -> None:
         "rank_results",
         "render_results",
     ]
+    assert trace.steps[1].description == (
+        "Normalize and tokenize the lexical search query."
+    )
+    assert trace.steps[2].description == "Score chunks by lexical token overlap."
     assert trace.metadata == {
         "query": "agent memory",
         "limit": 5,
@@ -122,6 +126,36 @@ def test_build_search_trace_records_semantic_metadata() -> None:
     assert trace.metadata["embedding_model"] == "text-embedding-3-small"
     assert trace.metadata["index_path"] == str(Path(".ragent/index/vector_index.jsonl"))
     assert "api_key" not in trace.metadata
+    assert [step.name for step in trace.steps] == [
+        "read_chunks",
+        "embed_query",
+        "load_vector_index",
+        "score_vectors",
+        "rank_results",
+        "render_results",
+    ]
+    descriptions = " ".join(step.description for step in trace.steps)
+    assert "lexical" not in descriptions
+    assert "token overlap" not in descriptions
+    assert trace.steps[1].inputs == {
+        "query": "agent memory",
+        "embedding_provider": "openai_embeddings",
+        "embedding_model": "text-embedding-3-small",
+    }
+    assert trace.steps[1].outputs == {"query_embedding": "computed"}
+    assert trace.steps[2].inputs == {
+        "index_path": str(Path(".ragent/index/vector_index.jsonl"))
+    }
+    assert trace.steps[2].outputs == {"status": "loaded"}
+    assert trace.steps[3].inputs == {
+        "retrieval_method": "semantic_cosine_similarity"
+    }
+    assert trace.steps[3].outputs == {"matched_chunks": 1}
+    trace_json = trace.model_dump_json()
+    assert "embedding-secret-key" not in trace_json
+    assert "[0.1" not in trace_json
+    assert "full chunk text" not in trace_json
+    assert "Generated answer" not in trace_json
 
 
 def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None:
@@ -160,6 +194,7 @@ def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None
         "generate_answer",
         "render_retrieval_preview",
     ]
+    assert trace.steps[1].description == "Retrieve context chunks with lexical search."
     generation_step = trace.steps[3]
     assert generation_step.inputs == {"provider": "null"}
     assert generation_step.outputs == {
@@ -268,6 +303,24 @@ def test_build_ask_retrieval_trace_records_semantic_metadata() -> None:
     assert trace.metadata["embedding_model"] == "text-embedding-3-small"
     assert trace.metadata["index_path"] == str(Path(".ragent/index/vector_index.jsonl"))
     assert "api_key" not in trace.metadata
+    retrieval_step = trace.steps[1]
+    assert retrieval_step.name == "retrieve_context"
+    assert retrieval_step.description == (
+        "Retrieve context chunks with semantic vector search."
+    )
+    assert retrieval_step.inputs == {
+        "question": "what is agent memory?",
+        "limit": 3,
+        "retrieval_method": "semantic_cosine_similarity",
+        "embedding_provider": "openai_embeddings",
+        "embedding_model": "text-embedding-3-small",
+        "index_path": str(Path(".ragent/index/vector_index.jsonl")),
+    }
+    assert "Retrieve context chunks with lexical search." not in trace.model_dump_json()
+    assert "embedding-secret-key" not in trace.model_dump_json()
+    assert "[0.1" not in trace.model_dump_json()
+    assert "full chunk text" not in trace.model_dump_json()
+    assert "Generated answer" not in trace.model_dump_json()
 
 
 def test_build_index_build_trace_records_safe_metadata() -> None:

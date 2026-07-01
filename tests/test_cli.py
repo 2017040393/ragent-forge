@@ -1149,6 +1149,14 @@ def test_search_command_semantic_mode_works_after_index_build(
     assert latest_trace["metadata"]["retrieval_method"] == "semantic_cosine_similarity"
     assert latest_trace["metadata"]["embedding_provider"] == "openai_embeddings"
     assert latest_trace["metadata"]["embedding_model"] == "text-embedding-3-small"
+    assert [step["name"] for step in latest_trace["steps"]] == [
+        "read_chunks",
+        "embed_query",
+        "load_vector_index",
+        "score_vectors",
+        "rank_results",
+        "render_results",
+    ]
     assert "embedding-secret-key" not in json.dumps(latest_trace)
 
 
@@ -1393,6 +1401,10 @@ def test_ask_command_semantic_mode_uses_semantic_results_after_index_build(
     assert latest_trace["metadata"]["retrieved_chunk_ids"][0].endswith(
         "rag.md::chunk-0001"
     )
+    retrieve_step = latest_trace["steps"][1]
+    assert retrieve_step["name"] == "retrieve_context"
+    assert "semantic vector search" in retrieve_step["description"]
+    assert "lexical search" not in retrieve_step["description"]
     assert "embedding-secret-key" not in json.dumps(latest_trace)
 
 

@@ -115,44 +115,25 @@ def build_search_trace(
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
+    steps = _build_search_steps(
+        query=query,
+        limit=limit,
+        chunks_path=chunks_path,
+        total_chunks=total_chunks,
+        result_chunk_ids=result_chunk_ids,
+        retrieval_mode=retrieval_mode,
+        retrieval_method=retrieval_method,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        index_path=index_path,
+    )
     return OperationTrace(
         trace_id=f"search-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
         operation="search",
         status="success",
         started_at=_format_timestamp(started_at_utc),
         finished_at=_format_timestamp(finished_at_utc),
-        steps=[
-            TraceStep(
-                name="read_chunks",
-                description="Read chunk records from the local workspace.",
-                inputs={"chunks_path": str(chunks_path)},
-                outputs={"total_chunks": total_chunks},
-            ),
-            TraceStep(
-                name="tokenize_query",
-                description="Normalize and tokenize the lexical search query.",
-                inputs={"query": query},
-                outputs={"scoring_method": "lexical_token_overlap"},
-            ),
-            TraceStep(
-                name="score_chunks",
-                description="Score chunks by lexical token overlap.",
-                inputs={"total_chunks": total_chunks},
-                outputs={"matched_chunks": len(result_chunk_ids)},
-            ),
-            TraceStep(
-                name="rank_results",
-                description="Sort results by score and deterministic chunk id.",
-                inputs={"matched_chunks": len(result_chunk_ids), "limit": limit},
-                outputs={"result_chunk_ids": result_chunk_ids},
-            ),
-            TraceStep(
-                name="render_results",
-                description="Render search results in the CLI.",
-                inputs={"result_count": len(result_chunk_ids)},
-                outputs={"status": "success"},
-            ),
-        ],
+        steps=steps,
         metadata=metadata,
     )
 
@@ -210,51 +191,27 @@ def build_ask_retrieval_trace(
     metadata.update(_generation_metadata(generation_result.metadata))
     if generation_result.status == "success":
         metadata["source_count"] = len(retrieved_chunk_ids)
+    steps = _build_ask_retrieval_steps(
+        question=question,
+        limit=limit,
+        chunks_path=chunks_path,
+        total_chunks=total_chunks,
+        retrieved_chunk_ids=retrieved_chunk_ids,
+        generation_result=generation_result,
+        generation_status=generation_status,
+        retrieval_mode=retrieval_mode,
+        retrieval_method=retrieval_method,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        index_path=index_path,
+    )
     return OperationTrace(
         trace_id=f"ask-retrieval-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
         operation="ask_retrieval",
         status="success",
         started_at=_format_timestamp(started_at_utc),
         finished_at=_format_timestamp(finished_at_utc),
-        steps=[
-            TraceStep(
-                name="read_chunks",
-                description="Read chunk records from the local workspace.",
-                inputs={"chunks_path": str(chunks_path)},
-                outputs={"total_chunks": total_chunks},
-            ),
-            TraceStep(
-                name="retrieve_context",
-                description="Retrieve context chunks with lexical search.",
-                inputs={"question": question, "limit": limit},
-                outputs={"retrieved_count": len(retrieved_chunk_ids)},
-            ),
-            TraceStep(
-                name="assemble_context_preview",
-                description="Prepare retrieved chunks for inspectable preview.",
-                inputs={"retrieved_chunk_ids": retrieved_chunk_ids},
-                outputs={"preview_count": len(retrieved_chunk_ids)},
-            ),
-            TraceStep(
-                name="generate_answer",
-                description=(
-                    "Run the configured generation provider when retrieved "
-                    "context is available."
-                ),
-                inputs={"provider": generation_result.provider_name},
-                outputs={
-                    "generation_status": generation_status,
-                    "generation_result_status": generation_result.status,
-                    "answer_generated": generation_result.answer is not None,
-                },
-            ),
-            TraceStep(
-                name="render_retrieval_preview",
-                description="Render the ask result preview in the CLI.",
-                inputs={"retrieved_count": len(retrieved_chunk_ids)},
-                outputs={"status": "success"},
-            ),
-        ],
+        steps=steps,
         metadata=metadata,
     )
 
@@ -316,6 +273,184 @@ def build_index_build_trace(
         ],
         metadata=metadata,
     )
+
+
+def _build_search_steps(
+    query: str,
+    limit: int,
+    chunks_path: Path,
+    total_chunks: int,
+    result_chunk_ids: list[str],
+    retrieval_mode: str,
+    retrieval_method: str,
+    embedding_provider: str | None,
+    embedding_model: str | None,
+    index_path: Path | None,
+) -> list[TraceStep]:
+    read_chunks_step = TraceStep(
+        name="read_chunks",
+        description="Read chunk records from the local workspace.",
+        inputs={"chunks_path": str(chunks_path)},
+        outputs={"total_chunks": total_chunks},
+    )
+    rank_results_step = TraceStep(
+        name="rank_results",
+        description=_search_rank_description(retrieval_mode),
+        inputs={"matched_chunks": len(result_chunk_ids), "limit": limit},
+        outputs={"result_chunk_ids": result_chunk_ids},
+    )
+    render_results_step = TraceStep(
+        name="render_results",
+        description="Render search results in the CLI.",
+        inputs={"result_count": len(result_chunk_ids)},
+        outputs={"status": "success"},
+    )
+
+    if retrieval_mode == "semantic":
+        return [
+            read_chunks_step,
+            TraceStep(
+                name="embed_query",
+                description=(
+                    "Embed the search query with the configured embedding provider."
+                ),
+                inputs={
+                    "query": query,
+                    "embedding_provider": embedding_provider,
+                    "embedding_model": embedding_model,
+                },
+                outputs={"query_embedding": "computed"},
+            ),
+            TraceStep(
+                name="load_vector_index",
+                description="Load local semantic vector index records.",
+                inputs={"index_path": str(index_path) if index_path else ""},
+                outputs={"status": "loaded"},
+            ),
+            TraceStep(
+                name="score_vectors",
+                description="Score indexed chunk vectors by cosine similarity.",
+                inputs={"retrieval_method": retrieval_method},
+                outputs={"matched_chunks": len(result_chunk_ids)},
+            ),
+            rank_results_step,
+            render_results_step,
+        ]
+
+    return [
+        read_chunks_step,
+        TraceStep(
+            name="tokenize_query",
+            description="Normalize and tokenize the lexical search query.",
+            inputs={"query": query},
+            outputs={"scoring_method": "lexical_token_overlap"},
+        ),
+        TraceStep(
+            name="score_chunks",
+            description="Score chunks by lexical token overlap.",
+            inputs={"total_chunks": total_chunks},
+            outputs={"matched_chunks": len(result_chunk_ids)},
+        ),
+        rank_results_step,
+        render_results_step,
+    ]
+
+
+def _build_ask_retrieval_steps(
+    question: str,
+    limit: int,
+    chunks_path: Path,
+    total_chunks: int,
+    retrieved_chunk_ids: list[str],
+    generation_result: GenerationResult,
+    generation_status: str,
+    retrieval_mode: str,
+    retrieval_method: str,
+    embedding_provider: str | None,
+    embedding_model: str | None,
+    index_path: Path | None,
+) -> list[TraceStep]:
+    return [
+        TraceStep(
+            name="read_chunks",
+            description="Read chunk records from the local workspace.",
+            inputs={"chunks_path": str(chunks_path)},
+            outputs={"total_chunks": total_chunks},
+        ),
+        TraceStep(
+            name="retrieve_context",
+            description=_ask_retrieval_description(retrieval_mode),
+            inputs=_ask_retrieval_inputs(
+                question=question,
+                limit=limit,
+                retrieval_mode=retrieval_mode,
+                retrieval_method=retrieval_method,
+                embedding_provider=embedding_provider,
+                embedding_model=embedding_model,
+                index_path=index_path,
+            ),
+            outputs={"retrieved_count": len(retrieved_chunk_ids)},
+        ),
+        TraceStep(
+            name="assemble_context_preview",
+            description="Prepare retrieved chunks for inspectable preview.",
+            inputs={"retrieved_chunk_ids": retrieved_chunk_ids},
+            outputs={"preview_count": len(retrieved_chunk_ids)},
+        ),
+        TraceStep(
+            name="generate_answer",
+            description=(
+                "Run the configured generation provider when retrieved "
+                "context is available."
+            ),
+            inputs={"provider": generation_result.provider_name},
+            outputs={
+                "generation_status": generation_status,
+                "generation_result_status": generation_result.status,
+                "answer_generated": generation_result.answer is not None,
+            },
+        ),
+        TraceStep(
+            name="render_retrieval_preview",
+            description="Render the ask result preview in the CLI.",
+            inputs={"retrieved_count": len(retrieved_chunk_ids)},
+            outputs={"status": "success"},
+        ),
+    ]
+
+
+def _search_rank_description(retrieval_mode: str) -> str:
+    if retrieval_mode == "semantic":
+        return "Sort semantic search results by score and deterministic chunk id."
+    return "Sort results by score and deterministic chunk id."
+
+
+def _ask_retrieval_description(retrieval_mode: str) -> str:
+    if retrieval_mode == "semantic":
+        return "Retrieve context chunks with semantic vector search."
+    return "Retrieve context chunks with lexical search."
+
+
+def _ask_retrieval_inputs(
+    question: str,
+    limit: int,
+    retrieval_mode: str,
+    retrieval_method: str,
+    embedding_provider: str | None,
+    embedding_model: str | None,
+    index_path: Path | None,
+) -> dict[str, Any]:
+    inputs: dict[str, Any] = {"question": question, "limit": limit}
+    if retrieval_mode == "semantic":
+        inputs.update(
+            {
+                "retrieval_method": retrieval_method,
+                "embedding_provider": embedding_provider,
+                "embedding_model": embedding_model,
+                "index_path": str(index_path) if index_path is not None else None,
+            }
+        )
+    return inputs
 
 
 def _generation_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
