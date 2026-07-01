@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import Any, Protocol
 
 import httpx
@@ -35,6 +36,8 @@ class NullGenerationProvider:
 
 class OpenAIResponsesGenerationProvider:
     provider_name = "openai_responses"
+    max_attempts = 3
+    retry_delay_seconds = 0.5
 
     def __init__(
         self,
@@ -89,22 +92,44 @@ class OpenAIResponsesGenerationProvider:
         }
         if self.reasoning_effort is not None:
             body["reasoning"] = {"effort": self.reasoning_effort}
-        try:
-            response = self.http_client.post(
-                f"{self.base_url}/responses",
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
-                json=body,
-                timeout=self.timeout_seconds,
-            )
-            raise_for_status = getattr(response, "raise_for_status", None)
-            if callable(raise_for_status):
-                raise_for_status()
-            return response
-        except Exception as exc:  # pragma: no cover - wrapped consistently
-            raise RuntimeError(f"Generation provider failed: {exc}") from exc
+        last_error: Exception | None = None
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                response = self.http_client.post(
+                    f"{self.base_url}/responses",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=body,
+                    timeout=self.timeout_seconds,
+                )
+                raise_for_status = getattr(response, "raise_for_status", None)
+                if callable(raise_for_status):
+                    raise_for_status()
+                return response
+            except Exception as exc:  # pragma: no cover - wrapped consistently
+                last_error = exc
+                if attempt >= self.max_attempts or not self._should_retry(exc):
+                    raise RuntimeError(f"Generation provider failed: {exc}") from exc
+                time.sleep(self.retry_delay_seconds * attempt)
+
+        assert last_error is not None
+        raise RuntimeError(f"Generation provider failed: {last_error}") from last_error
+
+    def _should_retry(self, exc: Exception) -> bool:
+        if isinstance(exc, httpx.TransportError):
+            return True
+
+        message = str(exc)
+        if "HTTP 429" in message or "HTTP 408" in message:
+            return True
+        for code in ("HTTP 500", "HTTP 502", "HTTP 503", "HTTP 504"):
+            if code in message:
+                return True
+        if "UNEXPECTED_EOF_WHILE_READING" in message:
+            return True
+        return "EOF occurred in violation of protocol" in message
 
     def _read_payload(self, response: object) -> dict[str, object]:
         try:

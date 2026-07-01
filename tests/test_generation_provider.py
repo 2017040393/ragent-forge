@@ -1,3 +1,4 @@
+import httpx
 import pytest
 
 from ragent_forge.app.models import GenerationRequest
@@ -31,6 +32,21 @@ class FakeHttpClient:
             {"url": url, "headers": headers, "json": json, "timeout": timeout}
         )
         return self.response
+
+
+class SequencedFakeHttpClient:
+    def __init__(self, outcomes: list[object]) -> None:
+        self.outcomes = outcomes
+        self.calls: list[dict[str, object]] = []
+
+    def post(self, url: str, *, headers: dict[str, str], json, timeout: int):
+        self.calls.append(
+            {"url": url, "headers": headers, "json": json, "timeout": timeout}
+        )
+        outcome = self.outcomes[len(self.calls) - 1]
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
 
 
 def make_generation_request() -> GenerationRequest:
@@ -207,3 +223,55 @@ def test_openai_responses_generation_provider_wraps_http_errors_without_secret_k
 
     with pytest.raises(RuntimeError, match="Generation provider failed: HTTP 401"):
         provider.generate(make_generation_request())
+
+
+def test_openai_responses_generation_provider_retries_rate_limit_then_succeeds(
+    ) -> None:
+    fake_client = SequencedFakeHttpClient(
+        [
+            FakeResponse(
+                {
+                    "error": {
+                        "message": "Too many pending requests, please retry later",
+                        "type": "rate_limit_error",
+                    }
+                },
+                status_code=429,
+            ),
+            FakeResponse({"output_text": "Generated answer after retry"}),
+        ]
+    )
+    provider = OpenAIResponsesGenerationProvider(
+        base_url="https://third-party.example.com/v1",
+        model="some-responses-compatible-model",
+        api_key="secret-key",
+        http_client=fake_client,
+    )
+
+    result = provider.generate(make_generation_request())
+
+    assert result.answer == "Generated answer after retry"
+    assert len(fake_client.calls) == 2
+
+
+def test_openai_responses_generation_provider_retries_ssl_eof_then_succeeds() -> None:
+    fake_client = SequencedFakeHttpClient(
+        [
+            httpx.ConnectError(
+                "[SSL: UNEXPECTED_EOF_WHILE_READING] "
+                "EOF occurred in violation of protocol"
+            ),
+            FakeResponse({"output_text": "Generated answer after retry"}),
+        ]
+    )
+    provider = OpenAIResponsesGenerationProvider(
+        base_url="https://third-party.example.com/v1",
+        model="some-responses-compatible-model",
+        api_key="secret-key",
+        http_client=fake_client,
+    )
+
+    result = provider.generate(make_generation_request())
+
+    assert result.answer == "Generated answer after retry"
+    assert len(fake_client.calls) == 2
