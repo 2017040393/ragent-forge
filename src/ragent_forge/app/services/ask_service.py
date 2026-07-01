@@ -81,6 +81,17 @@ class AskService:
             ],
         )
 
+    @classmethod
+    def from_config(
+        cls,
+        workspace: LocalWorkspace,
+        generation_service: GenerationService | None = None,
+    ) -> AskService:
+        return cls(
+            workspace=workspace,
+            generation_service=generation_service or GenerationService(),
+        )
+
     def count_chunks(self) -> int:
         return self.search_service.count_chunks()
 

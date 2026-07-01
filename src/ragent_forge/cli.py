@@ -9,11 +9,9 @@ from rich.console import Console
 
 from ragent_forge.app.models import (
     ContextPack,
-    GenerationResult,
-    SourceRef,
     WorkspaceStatus,
 )
-from ragent_forge.app.services.ask_service import AskAnswerResult, AskService
+from ragent_forge.app.services.ask_service import AskService
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.context_service import build_generation_prompt
@@ -663,40 +661,13 @@ def _handle_ask(
     started_at = datetime.now(UTC)
     try:
         config = ConfigService(workspace).load()
-        ask_service = AskService(workspace)
-        retrieval = ask_service.retrieve_context(question, limit, max_context_chars)
-        total_chunks = ask_service.count_chunks()
-
-        generation_result = retrieval.generation_result
-        if retrieval.results and config.generation.provider == "openai_responses":
-            generation_service = GenerationService.from_config(config)
-            generation_result = generation_service.generate(retrieval.context_pack)
-        elif (
-            not retrieval.results
-            and config.generation.provider == "openai_responses"
-        ):
-            generation_result = GenerationResult(
-                provider_name="openai_responses",
-                status="skipped",
-                answer=None,
-                metadata={"skip_reason": "no_retrieved_context"},
-            )
-
-        result = AskAnswerResult(
-            question=retrieval.question,
-            results=retrieval.results,
-            context_pack=retrieval.context_pack,
-            generation_result=generation_result,
-            answer=generation_result.answer,
-            sources=[
-                SourceRef(
-                    document_id=result.document_id,
-                    chunk_id=result.chunk_id,
-                    source_path=result.source_path,
-                )
-                for result in retrieval.results
-            ],
+        generation_service = GenerationService.from_config(config)
+        ask_service = AskService(
+            workspace,
+            generation_service=generation_service,
         )
+        result = ask_service.ask(question, limit, max_context_chars)
+        total_chunks = ask_service.count_chunks()
     except (OSError, RuntimeError, ValueError) as exc:
         console.print(f"[bold red]Ask failed:[/bold red] {exc}")
         return 1

@@ -72,13 +72,24 @@ class OpenAIResponsesGenerationProvider:
             },
         )
 
+    def _sanitize_error_message(self, message: str) -> str:
+        if self.api_key:
+            return message.replace(self.api_key, "<hidden>")
+        return message
+
+    def _wrap_provider_error(self, message: str) -> RuntimeError:
+        return RuntimeError(
+            f"Generation provider failed: {self._sanitize_error_message(message)}"
+        )
+
     def _format_retry_failure(self, attempt: int, exc: Exception) -> RuntimeError:
+        sanitized_message = self._sanitize_error_message(str(exc))
         retries = max(0, attempt - 1)
         if retries == 0:
-            return RuntimeError(f"Generation provider failed: {exc}")
+            return RuntimeError(f"Generation provider failed: {sanitized_message}")
         return RuntimeError(
             "Generation provider failed after "
-            f"{attempt} attempts (retried {retries} times): {exc}"
+            f"{attempt} attempts (retried {retries} times): {sanitized_message}"
         )
 
     def _post(self, request: GenerationRequest) -> object:
@@ -144,11 +155,9 @@ class OpenAIResponsesGenerationProvider:
         try:
             payload = response.json()  # type: ignore[union-attr]
         except Exception as exc:  # pragma: no cover - wrapped consistently
-            raise RuntimeError(f"Generation provider failed: {exc}") from exc
+            raise self._wrap_provider_error(str(exc)) from exc
         if not isinstance(payload, dict):
-            raise RuntimeError(
-                "Generation provider failed: Could not parse response text"
-            )
+            raise self._wrap_provider_error("Could not parse response text")
         return payload
 
     def _parse_response_text(self, payload: dict[str, object]) -> str:
@@ -178,7 +187,7 @@ class OpenAIResponsesGenerationProvider:
         answer = "".join(texts).strip()
         if answer:
             return answer
-        raise RuntimeError("Generation provider failed: Could not parse response text")
+        raise self._wrap_provider_error("Could not parse response text")
 
 
 class GenerationService:

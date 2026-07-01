@@ -97,3 +97,36 @@ def test_ask_service_skips_generation_when_no_context(tmp_path: Path) -> None:
     assert result.answer is None
     assert result.generation_result.status == "skipped"
     assert result.results == []
+
+
+def test_ask_service_calls_generation_provider_once_when_context_exists(
+    tmp_path: Path,
+) -> None:
+    class FakeGenerationService:
+        class Provider:
+            provider_name = "openai_responses"
+
+        provider = Provider()
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def generate(self, context_pack):
+            self.calls += 1
+            return GenerationResult(
+                provider_name="openai_responses",
+                status="success",
+                answer="Generated answer",
+                metadata={},
+            )
+
+    fake_generation_service = FakeGenerationService()
+    workspace = make_ask_workspace(tmp_path)
+
+    result = AskService(
+        workspace,
+        generation_service=fake_generation_service,
+    ).ask("agent memory", limit=1)
+
+    assert result.answer == "Generated answer"
+    assert fake_generation_service.calls == 1

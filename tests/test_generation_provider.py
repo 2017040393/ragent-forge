@@ -22,6 +22,17 @@ class FakeResponse:
         return self.payload
 
 
+class FailingJsonResponse:
+    def __init__(self, message: str) -> None:
+        self.message = message
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict[str, object]:
+        raise RuntimeError(self.message)
+
+
 class FakeHttpClient:
     def __init__(self, response: FakeResponse) -> None:
         self.response = response
@@ -115,6 +126,25 @@ def test_openai_responses_generation_provider_posts_to_sanitized_endpoint() -> N
         "temperature": 0.2,
     }
     assert fake_client.calls[0]["timeout"] == 60
+    assert "secret-key" not in str(result.metadata)
+
+
+def test_openai_responses_generation_provider_posts_to_endpoint_without_double_slash(
+    ) -> None:
+    fake_client = FakeHttpClient(
+        FakeResponse({"output_text": "Generated answer from responses"})
+    )
+    provider = OpenAIResponsesGenerationProvider(
+        base_url="https://api.openai.com/v1",
+        model="gpt-4o-mini",
+        api_key="secret-key",
+        http_client=fake_client,
+    )
+
+    provider.generate(make_generation_request())
+
+    assert fake_client.calls[0]["url"] == "https://api.openai.com/v1/responses"
+    assert "reasoning" not in fake_client.calls[0]["json"]
 
 
 def test_openai_responses_generation_provider_includes_reasoning_effort_when_set(
@@ -223,6 +253,39 @@ def test_openai_responses_generation_provider_wraps_http_errors_without_secret_k
 
     with pytest.raises(RuntimeError, match="Generation provider failed: HTTP 401"):
         provider.generate(make_generation_request())
+
+
+def test_openai_responses_generation_provider_sanitizes_api_key_in_provider_errors(
+    ) -> None:
+    fake_client = SequencedFakeHttpClient([RuntimeError("bad key secret-key")])
+    provider = OpenAIResponsesGenerationProvider(
+        base_url="https://third-party.example.com/v1",
+        model="some-responses-compatible-model",
+        api_key="secret-key",
+        http_client=fake_client,
+    )
+
+    with pytest.raises(RuntimeError, match="Generation provider failed: bad key"):
+        provider.generate(make_generation_request())
+
+
+def test_openai_responses_generation_provider_sanitizes_api_key_in_payload_errors(
+    ) -> None:
+    fake_client = FakeHttpClient(FailingJsonResponse("payload secret-key exploded"))
+    provider = OpenAIResponsesGenerationProvider(
+        base_url="https://third-party.example.com/v1",
+        model="some-responses-compatible-model",
+        api_key="secret-key",
+        http_client=fake_client,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Generation provider failed: payload",
+    ) as exc_info:
+        provider.generate(make_generation_request())
+
+    assert "secret-key" not in str(exc_info.value)
 
 
 def test_openai_responses_generation_provider_retries_rate_limit_then_succeeds(

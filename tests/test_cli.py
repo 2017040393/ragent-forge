@@ -1311,7 +1311,11 @@ def test_ask_command_with_openai_responses_prints_answer_sources_and_trace_metad
         def json(self) -> dict[str, object]:
             return {"output_text": "Generated answer from provider"}
 
+    call_count = 0
+
     def fake_post(url, *, headers, json, timeout):
+        nonlocal call_count
+        call_count += 1
         assert url == "https://api.openai.com/v1/responses"
         assert headers["Authorization"] == "Bearer super-secret-key"
         assert json["model"] == "gpt-4o-mini"
@@ -1340,6 +1344,7 @@ def test_ask_command_with_openai_responses_prints_answer_sources_and_trace_metad
     assert "Score: 3" in captured.out
     assert "super-secret-key" not in captured.out
     assert "Retrieved context:" not in captured.out
+    assert call_count == 1
     assert latest_trace["metadata"]["generation_provider"] == "openai_responses"
     assert latest_trace["metadata"]["generation_status"] == "generated"
     assert latest_trace["metadata"]["generation_result_status"] == "success"
@@ -1348,6 +1353,52 @@ def test_ask_command_with_openai_responses_prints_answer_sources_and_trace_metad
     assert latest_trace["metadata"]["base_url"] == "https://api.openai.com/v1"
     assert latest_trace["metadata"]["endpoint"] == "/responses"
     assert latest_trace["metadata"]["source_count"] == 1
+    assert "super-secret-key" not in json.dumps(latest_trace)
+
+
+def test_ask_command_openai_no_match_skips_provider_and_keeps_trace_safe(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    (workspace_dir / "config.toml").write_text(
+        (
+            "[generation]\n"
+            'provider = "openai_responses"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'model = "gpt-4o-mini"\n'
+            'api_key = "super-secret-key"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    def fake_post(url, *, headers, json, timeout):
+        raise AssertionError("provider should not be called")
+
+    monkeypatch.setattr(
+        "ragent_forge.app.services.generation_service.httpx.post",
+        fake_post,
+    )
+
+    exit_code = main(["ask", "no-match", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert exit_code == 0
+    assert "Generation skipped because there is no retrieved context." in captured.out
+    assert latest_trace["metadata"]["generation_provider"] == "openai_responses"
+    assert latest_trace["metadata"]["generation_result_status"] == "skipped"
+    assert latest_trace["metadata"]["answer_generated"] is False
+    assert latest_trace["metadata"]["skip_reason"] == "no_retrieved_context"
+    assert "super-secret-key" not in captured.out
     assert "super-secret-key" not in json.dumps(latest_trace)
 
 
@@ -1410,7 +1461,7 @@ def test_ask_command_openai_provider_failure_keeps_old_trace(
     )
 
     def fake_post(url, *, headers, json, timeout):
-        raise RuntimeError("boom")
+        raise RuntimeError("boom super-secret-key")
 
     monkeypatch.setattr(
         "ragent_forge.app.services.generation_service.httpx.post",

@@ -19,7 +19,7 @@ local, inspectable RAG workflows rather than full autonomous agents.
 
 - No cloud service, hosted backend, or enterprise knowledge base.
 - No Web UI, desktop UI, authentication, or multi-user workflow.
-- No complete RAG pipeline, real LLM calls, embeddings, or vector database yet.
+- No embeddings, vector database integration, semantic retrieval, reranking, or agent workflows yet.
 - No no-code platform, complex agent autonomy, plugin system, or distributed jobs.
 - No Rust, PyO3, native extensions, or mixed-language build system in this step.
 
@@ -151,9 +151,11 @@ temperature = 0.2
 reasoning_effort = "low"
 ```
 
-`api_key` stores the provider key directly in `.ragent/config.toml`. The
-provider calls `{base_url.rstrip("/")}/responses`. `reasoning_effort` is
-optional; if omitted, the model default is used.
+`generation.api_key` stores the provider key directly in the local
+`.ragent/config.toml`. Treat this file as sensitive local state. `ragent config
+show` hides the key value, and traces do not store the key. The provider calls
+`{base_url.rstrip("/")}/responses`. `reasoning_effort` is optional; if omitted,
+the model default is used.
 
 The TUI Documents view reads the same workspace files. The TUI Trace view reads
 `.ragent/traces/latest_trace.json` and recent trace files under
