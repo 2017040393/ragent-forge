@@ -81,6 +81,17 @@ def write_embedding_config(workspace_dir: Path) -> None:
     )
 
 
+def write_retrieval_eval_cases(
+    cases_path: Path,
+    records: list[dict[str, object]],
+) -> None:
+    cases_path.parent.mkdir(parents=True, exist_ok=True)
+    cases_path.write_text(
+        "".join(json.dumps(record) + "\n" for record in records),
+        encoding="utf-8",
+    )
+
+
 def test_ingest_command_prints_statistics(
     tmp_path: Path,
     capsys,
@@ -1192,6 +1203,386 @@ def test_search_command_semantic_mode_missing_index_fails_without_new_trace(
         "Run `ragent index build` first."
     ) in captured.out
     assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
+
+
+def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    chunks = [
+        json.loads(line)
+        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "agent memory",
+                "expected_chunk_ids": [chunks[0]["chunk_id"]],
+            },
+            {
+                "id": "case-002",
+                "query": "missing",
+                "expected_source_paths": ["missing.md"],
+            },
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(cases_path),
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    report_path = workspace_dir / "eval" / "latest_retrieval_eval.json"
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    report_text = report_path.read_text(encoding="utf-8")
+    assert exit_code == 0
+    assert "Retrieval evaluation" in captured.out
+    assert "Cases: 2" in captured.out
+    assert "Retrieval mode: lexical" in captured.out
+    assert "Limit: 5" in captured.out
+    assert "Passed: 1" in captured.out
+    assert "Failed: 1" in captured.out
+    assert "hit@1: 0.5000" in captured.out
+    assert "hit@3: 0.5000" in captured.out
+    assert "hit@5 requested: 0.5000" in captured.out
+    assert "MRR: 0.5000" in captured.out
+    assert "Failed cases:" in captured.out
+    assert "- case-002 | rank: none | query: missing" in captured.out
+    assert "Report path:" in captured.out
+    assert "Saved trace to:" in captured.out
+    assert report_path.is_file()
+    assert report["evaluation_type"] == "retrieval"
+    assert report["retrieval_mode"] == "lexical"
+    assert report["retrieval_method"] == "lexical_token_overlap"
+    assert report["case_count"] == 2
+    assert report["passed_count"] == 1
+    assert report["failed_count"] == 1
+    assert report["metrics"]["hit@k"] == 0.5
+    assert latest_trace["operation"] == "retrieval_eval"
+    assert latest_trace["metadata"]["retrieval_mode"] == "lexical"
+    assert latest_trace["metadata"]["case_count"] == 2
+    assert "embedding_provider" not in latest_trace["metadata"]
+    assert "agent memory agent" not in report_text
+    assert "agent memory agent" not in json.dumps(latest_trace)
+
+
+def test_eval_retrieval_semantic_succeeds_after_index_build(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    write_embedding_config(workspace_dir)
+    install_fake_embedding_post(monkeypatch)
+    assert main(["index", "build", "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    chunks = [
+        json.loads(line)
+        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "retrieval",
+                "expected_chunk_ids": [chunks[1]["chunk_id"]],
+            }
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(cases_path),
+            "--retrieval",
+            "semantic",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    report_text = (workspace_dir / "eval" / "latest_retrieval_eval.json").read_text(
+        encoding="utf-8"
+    )
+    report = json.loads(report_text)
+    assert exit_code == 0
+    assert "Retrieval mode: semantic" in captured.out
+    assert "Failed cases: none" in captured.out
+    assert "embedding-secret-key" not in captured.out
+    assert report["retrieval_method"] == "semantic_cosine_similarity"
+    assert report["embedding_provider"] == "openai_embeddings"
+    assert report["embedding_model"] == "text-embedding-3-small"
+    assert report["index_path"].endswith("vector_index.jsonl")
+    assert latest_trace["operation"] == "retrieval_eval"
+    assert latest_trace["metadata"]["retrieval_mode"] == "semantic"
+    assert latest_trace["metadata"]["embedding_provider"] == "openai_embeddings"
+    assert latest_trace["metadata"]["embedding_model"] == "text-embedding-3-small"
+    assert latest_trace["metadata"]["index_path"].endswith("vector_index.jsonl")
+    assert "embedding-secret-key" not in report_text
+    assert '"embedding": [' not in report_text
+    assert "retrieval basics" not in report_text
+    assert "embedding-secret-key" not in json.dumps(latest_trace)
+    assert '"embedding": [' not in json.dumps(latest_trace)
+
+
+def test_eval_retrieval_semantic_missing_index_fails_without_new_trace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    write_embedding_config(workspace_dir)
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "agent",
+                "expected_source_paths": ["rag.md"],
+            }
+        ],
+    )
+    latest_trace_path = workspace_dir / "traces" / "latest_trace.json"
+    ingest_trace = latest_trace_path.read_text(encoding="utf-8")
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(cases_path),
+            "--retrieval",
+            "semantic",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert (
+        "Retrieval eval failed: vector index not found. "
+        "Run `ragent index build` first."
+    ) in captured.out
+    assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
+    assert not (workspace_dir / "eval" / "latest_retrieval_eval.json").exists()
+
+
+def test_eval_retrieval_missing_cases_file_fails_clearly(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(tmp_path / "missing.jsonl"),
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Retrieval eval failed: cases file not found:" in captured.out
+    assert not (workspace_dir / "traces" / "latest_trace.json").exists()
+
+
+def test_eval_retrieval_missing_chunks_fails_without_trace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "agent",
+                "expected_source_paths": ["rag.md"],
+            }
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(cases_path),
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert (
+        "Retrieval eval failed: no chunks found. "
+        "Run ragent ingest <path> first."
+    ) in captured.out
+    assert not (workspace_dir / "traces" / "latest_trace.json").exists()
+
+
+def test_eval_retrieval_invalid_cases_jsonl_fails_clearly_without_new_trace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    latest_trace_path = workspace_dir / "traces" / "latest_trace.json"
+    ingest_trace = latest_trace_path.read_text(encoding="utf-8")
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    cases_path.parent.mkdir(parents=True)
+    cases_path.write_text("{not-json}\n", encoding="utf-8")
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(cases_path),
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Retrieval eval failed:" in captured.out
+    assert "line 1" in captured.out
+    assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
+
+
+def test_eval_retrieval_empty_cases_file_fails_clearly(tmp_path: Path, capsys) -> None:
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    cases_path.parent.mkdir(parents=True)
+    cases_path.write_text("\n", encoding="utf-8")
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(cases_path),
+            "--workspace",
+            str(tmp_path / ".ragent"),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Retrieval eval failed: no eval cases found" in captured.out
+
+
+def test_eval_retrieval_limit_zero_fails_clearly(tmp_path: Path, capsys) -> None:
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "agent",
+                "expected_source_paths": ["rag.md"],
+            }
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(cases_path),
+            "--limit",
+            "0",
+            "--workspace",
+            str(tmp_path / ".ragent"),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Retrieval eval failed: limit must be greater than 0" in captured.out
 
 
 def test_search_command_prints_no_matches(tmp_path: Path, capsys) -> None:

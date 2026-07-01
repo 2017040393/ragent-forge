@@ -6,6 +6,7 @@ from ragent_forge.app.services.trace_service import (
     build_ask_retrieval_trace,
     build_index_build_trace,
     build_ingest_trace,
+    build_retrieval_eval_trace,
     build_search_trace,
 )
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
@@ -156,6 +157,98 @@ def test_build_search_trace_records_semantic_metadata() -> None:
     assert "[0.1" not in trace_json
     assert "full chunk text" not in trace_json
     assert "Generated answer" not in trace_json
+
+
+def test_build_retrieval_eval_trace_records_lexical_metrics_safely() -> None:
+    started_at = datetime(2026, 6, 30, 0, 0, 0, tzinfo=UTC)
+    finished_at = datetime(2026, 6, 30, 0, 0, 1, tzinfo=UTC)
+
+    trace = build_retrieval_eval_trace(
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        limit=5,
+        case_count=2,
+        passed_count=1,
+        failed_count=1,
+        metrics={
+            "hit@1": 0.5,
+            "hit@3": 0.5,
+            "hit@5": 0.5,
+            "hit@k": 0.5,
+            "mrr": 0.5,
+        },
+        report_path=Path(".ragent/eval/retrieval_eval_20260630T000001Z.json"),
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+
+    assert trace.trace_id == "retrieval-eval-20260630T000000Z"
+    assert trace.operation == "retrieval_eval"
+    assert trace.status == "success"
+    assert [step.name for step in trace.steps] == [
+        "load_eval_cases",
+        "run_retrieval_cases",
+        "compute_metrics",
+        "write_eval_report",
+        "render_eval_summary",
+    ]
+    assert trace.metadata == {
+        "evaluation_type": "retrieval",
+        "cases_path": str(Path("eval/retrieval_cases.jsonl")),
+        "retrieval_mode": "lexical",
+        "retrieval_method": "lexical_token_overlap",
+        "limit": 5,
+        "case_count": 2,
+        "passed_count": 1,
+        "failed_count": 1,
+        "hit@1": 0.5,
+        "hit@3": 0.5,
+        "hit@5": 0.5,
+        "hit@k": 0.5,
+        "mrr": 0.5,
+        "report_path": str(Path(".ragent/eval/retrieval_eval_20260630T000001Z.json")),
+    }
+    assert "embedding_provider" not in trace.metadata
+    assert "embedding_model" not in trace.metadata
+
+
+def test_build_retrieval_eval_trace_records_semantic_index_metadata_safely() -> None:
+    started_at = datetime(2026, 6, 30, 0, 0, 0, tzinfo=UTC)
+    finished_at = datetime(2026, 6, 30, 0, 0, 1, tzinfo=UTC)
+
+    trace = build_retrieval_eval_trace(
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        retrieval_mode="semantic",
+        retrieval_method="semantic_cosine_similarity",
+        limit=5,
+        case_count=2,
+        passed_count=2,
+        failed_count=0,
+        metrics={
+            "hit@1": 1.0,
+            "hit@3": 1.0,
+            "hit@5": 1.0,
+            "hit@k": 1.0,
+            "mrr": 1.0,
+        },
+        report_path=Path(".ragent/eval/retrieval_eval_20260630T000001Z.json"),
+        started_at=started_at,
+        finished_at=finished_at,
+        embedding_provider="openai_embeddings",
+        embedding_model="text-embedding-3-small",
+        index_path=Path(".ragent/index/vector_index.jsonl"),
+    )
+
+    assert trace.metadata["retrieval_mode"] == "semantic"
+    assert trace.metadata["retrieval_method"] == "semantic_cosine_similarity"
+    assert trace.metadata["embedding_provider"] == "openai_embeddings"
+    assert trace.metadata["embedding_model"] == "text-embedding-3-small"
+    assert trace.metadata["index_path"] == str(Path(".ragent/index/vector_index.jsonl"))
+    trace_json = trace.model_dump_json()
+    assert "embedding-secret-key" not in trace_json
+    assert "full chunk text" not in trace_json
+    assert '"embedding": [' not in trace_json
 
 
 def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None:

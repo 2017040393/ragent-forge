@@ -4,6 +4,7 @@ import argparse
 import json
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from pathlib import Path
 
 from rich.console import Console
 
@@ -19,6 +20,10 @@ from ragent_forge.app.services.embedding_service import EmbeddingService
 from ragent_forge.app.services.generation_service import GenerationService
 from ragent_forge.app.services.index_service import IndexBuildService
 from ragent_forge.app.services.ingest_service import IngestService
+from ragent_forge.app.services.retrieval_eval_service import (
+    RetrievalEvalReport,
+    RetrievalEvalService,
+)
 from ragent_forge.app.services.search_service import LexicalSearchService, SearchResult
 from ragent_forge.app.services.semantic_search_service import SemanticSearchService
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
@@ -26,6 +31,7 @@ from ragent_forge.app.services.trace_service import (
     build_ask_retrieval_trace,
     build_index_build_trace,
     build_ingest_trace,
+    build_retrieval_eval_trace,
     build_search_trace,
 )
 from ragent_forge.app.services.vector_index_service import VectorIndexService
@@ -180,6 +186,43 @@ def build_parser() -> argparse.ArgumentParser:
         "--workspace",
         default=".ragent",
         help="Local RAGentForge workspace directory to inspect.",
+    )
+
+    eval_parser = subparsers.add_parser(
+        "eval",
+        help="Run local evaluation workflows.",
+    )
+    eval_subparsers = eval_parser.add_subparsers(dest="eval_command")
+    retrieval_eval_parser = eval_subparsers.add_parser(
+        "retrieval",
+        help="Evaluate lexical or semantic retrieval quality with JSONL cases.",
+    )
+    retrieval_eval_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to evaluate.",
+    )
+    retrieval_eval_parser.add_argument(
+        "--cases",
+        required=True,
+        help="Path to a JSONL retrieval eval cases file.",
+    )
+    retrieval_eval_parser.add_argument(
+        "--retrieval",
+        choices=["lexical", "semantic"],
+        default="lexical",
+        help="Retrieval mode to evaluate.",
+    )
+    retrieval_eval_parser.add_argument(
+        "--limit",
+        type=int,
+        default=5,
+        help="Maximum number of top retrieval results to evaluate.",
+    )
+    retrieval_eval_parser.add_argument(
+        "--report-path",
+        default=None,
+        help="Optional path for the JSON retrieval eval report.",
     )
 
     index_parser = subparsers.add_parser(
@@ -347,6 +390,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _handle_traces_list(console, args.workspace, args.limit)
         if args.traces_command == "show":
             return _handle_traces_show(console, args.workspace, args.trace_id)
+        parser.print_help()
+        return 0
+
+    if args.command == "eval":
+        if args.eval_command == "retrieval":
+            return _handle_eval_retrieval(
+                console,
+                args.workspace,
+                args.cases,
+                args.retrieval,
+                args.limit,
+                args.report_path,
+            )
         parser.print_help()
         return 0
 
@@ -692,6 +748,149 @@ def _handle_index_status(console: Console, workspace_path: str) -> int:
     console.print(f"Embedding dim: {manifest.get('embedding_dim', 0)}")
     console.print(f"Built at: {manifest.get('built_at', '')}")
     return 0
+
+
+def _handle_eval_retrieval(
+    console: Console,
+    workspace_path: str,
+    cases_path: str,
+    retrieval: str,
+    limit: int,
+    report_path: str | None,
+) -> int:
+    started_at = datetime.now(UTC)
+    workspace = LocalWorkspace(workspace_path)
+    eval_service = RetrievalEvalService()
+
+    try:
+        if limit < 1:
+            raise ValueError("limit must be greater than 0")
+        cases = eval_service.load_cases(cases_path)
+        if not workspace.has_chunks():
+            console.print(
+                "Retrieval eval failed: no chunks found. "
+                "Run ragent ingest <path> first.",
+                markup=False,
+                soft_wrap=True,
+            )
+            return 1
+
+        retrieval_method = "lexical_token_overlap"
+        embedding_provider: str | None = None
+        embedding_model: str | None = None
+        index_path: Path | None = None
+        if retrieval == "semantic":
+            if not workspace.has_vector_index():
+                console.print(
+                    "Retrieval eval failed: vector index not found. "
+                    "Run `ragent index build` first.",
+                    markup=False,
+                    soft_wrap=True,
+                )
+                return 1
+            config = ConfigService(workspace).load()
+            embedding_service = EmbeddingService.from_config(config)
+            search_service = SemanticSearchService(workspace, embedding_service)
+            retrieval_method = "semantic_cosine_similarity"
+            embedding_provider = config.embedding.provider
+            embedding_model = config.embedding.model
+            index_path = workspace.vector_index_path
+        else:
+            search_service = LexicalSearchService(workspace)
+
+        report = eval_service.evaluate(
+            cases=cases,
+            search_service=search_service,
+            limit=limit,
+            retrieval_mode=retrieval,
+            retrieval_method=retrieval_method,
+            cases_path=cases_path,
+            workspace_path=workspace.root_path,
+            embedding_provider=embedding_provider,
+            embedding_model=embedding_model,
+            index_path=index_path,
+        )
+        report_payload = report.model_dump(mode="json", exclude_none=True)
+        written_report_path = workspace.write_retrieval_eval_report(
+            report_payload,
+            report_path,
+        )
+    except (FileNotFoundError, OSError, RuntimeError, ValueError) as exc:
+        console.print(
+            f"Retrieval eval failed: {exc}",
+            markup=False,
+            soft_wrap=True,
+        )
+        return 1
+
+    finished_at = datetime.now(UTC)
+    trace = build_retrieval_eval_trace(
+        cases_path=Path(cases_path),
+        retrieval_mode=retrieval,
+        retrieval_method=report.retrieval_method,
+        limit=report.limit,
+        case_count=report.case_count,
+        passed_count=report.passed_count,
+        failed_count=report.failed_count,
+        metrics=report.metrics,
+        report_path=written_report_path,
+        started_at=started_at,
+        finished_at=finished_at,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        index_path=index_path,
+    )
+    trace_path = workspace.write_trace(trace)
+    _print_retrieval_eval_summary(
+        console,
+        report,
+        written_report_path,
+        trace_path,
+    )
+    return 0
+
+
+def _print_retrieval_eval_summary(
+    console: Console,
+    report: RetrievalEvalReport,
+    report_path: Path,
+    trace_path: Path,
+) -> None:
+    console.print("Retrieval evaluation")
+    console.print()
+    console.print(f"Cases: {report.case_count}")
+    console.print(f"Retrieval mode: {report.retrieval_mode}")
+    console.print(f"Limit: {report.limit}")
+    console.print()
+    console.print(f"Passed: {report.passed_count}")
+    console.print(f"Failed: {report.failed_count}")
+    console.print(f"hit@1: {report.metrics['hit@1']:.4f}")
+    console.print(f"hit@3: {report.metrics['hit@3']:.4f}")
+    console.print(f"hit@5: {report.metrics['hit@5']:.4f}")
+    console.print(f"hit@{report.limit} requested: {report.metrics['hit@k']:.4f}")
+    console.print(f"MRR: {report.metrics['mrr']:.4f}")
+    console.print()
+    failed_results = [result for result in report.results if not result.passed]
+    if not failed_results:
+        console.print("Failed cases: none")
+    else:
+        console.print("Failed cases:")
+    for result in failed_results:
+        rank_text = result.rank if result.rank is not None else "none"
+        actual_top = [
+            str(top_result.get("chunk_id", ""))
+            for top_result in result.top_results
+        ]
+        console.print(
+            f"- {result.id} | rank: {rank_text} | query: {result.query}",
+            soft_wrap=True,
+        )
+        console.print(f"  expected chunks: {result.expected_chunk_ids}")
+        console.print(f"  expected sources: {result.expected_source_paths}")
+        console.print(f"  actual top{report.limit}: {actual_top}")
+    console.print()
+    console.print(f"Report path: {report_path}")
+    console.print(f"Saved trace to: {trace_path}")
 
 
 def _print_trace(console: Console, trace: dict[str, object]) -> None:

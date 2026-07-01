@@ -80,6 +80,8 @@ Implemented so far:
   answer with an OpenAI Responses-compatible provider.
 - `ragent ask <question> --retrieval semantic` uses semantic retrieval before
   assembling the context pack and optional generated answer.
+- `ragent eval retrieval --cases <path>` evaluates retrieval cases from JSONL
+  and writes a compact local report.
 - The default `null` generation provider keeps ask in retrieval-only mode when
   real generation is not configured.
 - `ragent traces latest`, `ragent traces list`, and
@@ -131,6 +133,13 @@ The semantic vector index lives at:
 ```text
 .ragent/index/vector_index.jsonl
 .ragent/index/vector_index_manifest.json
+```
+
+Retrieval evaluation reports live at:
+
+```text
+.ragent/eval/retrieval_eval_<timestamp>.json
+.ragent/eval/latest_retrieval_eval.json
 ```
 
 If the config file is missing, RAGentForge uses the default:
@@ -266,6 +275,11 @@ ragent search "agent memory"
 ragent search "agent memory" --retrieval lexical
 ragent search "agent memory" --retrieval semantic
 ragent search "agent memory" --limit 5
+ragent eval retrieval --cases eval/retrieval_cases.jsonl
+ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval lexical
+ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval semantic
+ragent eval retrieval --cases eval/retrieval_cases.jsonl --limit 5
+ragent eval retrieval --cases eval/retrieval_cases.jsonl --report-path report.json
 ragent traces latest
 ragent traces latest --workspace .ragent
 ragent traces list
@@ -313,18 +327,38 @@ memory and are not persisted. `openai_responses` sends a request to
 `{base_url}/responses` and supports both the official OpenAI Responses API and
 third-party Responses-compatible base URLs. Chat Completions is not implemented
 in this step. If no retrieved context is found, `ragent ask` skips generation.
-Successful ingest, index build, search, and ask retrieval commands write local
-JSON trace artifacts under `.ragent/traces/<trace_id>.json`;
+`ragent eval retrieval` reads a user-authored JSONL cases file and checks
+whether each query retrieves an expected chunk id or exact source path in the
+top-k results. Each line is one case, for example:
+
+```json
+{"id":"case-001","query":"How do I configure semantic retrieval?","expected_source_paths":["README.md"]}
+```
+
+Each case requires non-empty `id` and `query` fields plus at least one of
+`expected_chunk_ids` or `expected_source_paths`. The command reports `hit@1`,
+`hit@3`, `hit@5`, requested `hit@k`, and MRR; failed cases are printed in the
+CLI. Lexical evaluation is the default and does not require embedding config.
+Semantic evaluation uses `--retrieval semantic` and requires `ragent index
+build` first. Reports exclude API keys, full chunk text, embedding vectors,
+prompts, generated answers, and answer-quality judgments. This is retrieval
+evaluation only; answer evaluation, LLM-as-judge, reranking, hybrid retrieval,
+charts, dashboards, and TUI eval views are not implemented yet.
+Successful ingest, index build, search, ask retrieval, and retrieval eval
+commands write local JSON trace artifacts under `.ragent/traces/<trace_id>.json`;
 `.ragent/traces/latest_trace.json` points to the latest operation trace. Current
-traces cover ingest, index build, lexical search, semantic search, and ask
-retrieval workflows. Use `ragent traces latest` for the latest trace,
-`ragent traces list` for historical trace files, and
-`ragent traces show <trace_id>` for one specific trace. No external observability
-service is used. The TUI displays the same local workspace status, a small
-recent-chunks preview when chunks exist, and a read-only latest trace summary
-from `.ragent/traces/latest_trace.json`, including the latest search or ask
-retrieval trace after those commands. The TUI Trace view also shows a read-only
-recent trace history summary; use `ragent traces show <trace_id>` for full trace
-details. Interactive TUI trace history browsing is not implemented yet.
+traces cover ingest, index build, lexical search, semantic search, ask
+retrieval, and retrieval eval workflows. Use `ragent traces latest` for the
+latest trace, `ragent traces list` for historical trace files, and `ragent
+traces show <trace_id>` for one specific trace. No external observability
+service is used. The retrieval eval trace operation is `retrieval_eval` and
+stores only compact metadata such as case counts, hit metrics, report path, and
+semantic index metadata when relevant. The TUI displays the same local
+workspace status, a small recent-chunks preview when chunks exist, and a
+read-only latest trace summary from `.ragent/traces/latest_trace.json`,
+including the latest search or ask retrieval trace after those commands. The
+TUI Trace view also shows a read-only recent trace history summary; use
+`ragent traces show <trace_id>` for full trace details. Interactive TUI trace
+history browsing is not implemented yet.
 Default retrieval remains lexical; hybrid retrieval, reranking, vector database
 integration, and agent workflows are still not implemented.

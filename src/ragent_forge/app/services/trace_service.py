@@ -138,6 +138,100 @@ def build_search_trace(
     )
 
 
+def build_retrieval_eval_trace(
+    cases_path: Path,
+    retrieval_mode: str,
+    retrieval_method: str,
+    limit: int,
+    case_count: int,
+    passed_count: int,
+    failed_count: int,
+    metrics: dict[str, float],
+    report_path: Path,
+    started_at: datetime,
+    finished_at: datetime,
+    embedding_provider: str | None = None,
+    embedding_model: str | None = None,
+    index_path: Path | None = None,
+) -> OperationTrace:
+    started_at_utc = _as_utc(started_at)
+    finished_at_utc = _as_utc(finished_at)
+    metadata = {
+        "evaluation_type": "retrieval",
+        "cases_path": str(cases_path),
+        "retrieval_mode": retrieval_mode,
+        "retrieval_method": retrieval_method,
+        "limit": limit,
+        "case_count": case_count,
+        "passed_count": passed_count,
+        "failed_count": failed_count,
+        "hit@1": metrics["hit@1"],
+        "hit@3": metrics["hit@3"],
+        "hit@5": metrics["hit@5"],
+        "hit@k": metrics["hit@k"],
+        "mrr": metrics["mrr"],
+        "report_path": str(report_path),
+    }
+    if retrieval_mode == "semantic":
+        metadata["embedding_provider"] = embedding_provider
+        metadata["embedding_model"] = embedding_model
+        metadata["index_path"] = str(index_path) if index_path is not None else None
+
+    return OperationTrace(
+        trace_id=f"retrieval-eval-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        operation="retrieval_eval",
+        status="success",
+        started_at=_format_timestamp(started_at_utc),
+        finished_at=_format_timestamp(finished_at_utc),
+        steps=[
+            TraceStep(
+                name="load_eval_cases",
+                description="Load retrieval eval cases from JSONL.",
+                inputs={"cases_path": str(cases_path)},
+                outputs={"case_count": case_count},
+            ),
+            TraceStep(
+                name="run_retrieval_cases",
+                description="Run retrieval for each eval case query.",
+                inputs={
+                    "retrieval_mode": retrieval_mode,
+                    "retrieval_method": retrieval_method,
+                    "limit": limit,
+                },
+                outputs={
+                    "passed_count": passed_count,
+                    "failed_count": failed_count,
+                },
+            ),
+            TraceStep(
+                name="compute_metrics",
+                description="Compute hit-rate and reciprocal-rank metrics.",
+                inputs={"case_count": case_count},
+                outputs=metrics,
+            ),
+            TraceStep(
+                name="write_eval_report",
+                description="Write the compact retrieval eval report.",
+                inputs={
+                    "evaluation_type": "retrieval",
+                    "case_count": case_count,
+                },
+                outputs={"report_path": str(report_path)},
+            ),
+            TraceStep(
+                name="render_eval_summary",
+                description="Render the retrieval eval summary in the CLI.",
+                inputs={
+                    "passed_count": passed_count,
+                    "failed_count": failed_count,
+                },
+                outputs={"status": "success"},
+            ),
+        ],
+        metadata=metadata,
+    )
+
+
 def build_ask_retrieval_trace(
     question: str,
     limit: int,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -19,9 +20,13 @@ class LocalWorkspace:
         self.ingest_dir = self.root_path / "ingest"
         self.traces_dir = self.root_path / "traces"
         self.index_dir = self.root_path / "index"
+        self.eval_dir = self.root_path / "eval"
         self.chunks_path = self.chunks_dir / "chunks.jsonl"
         self.latest_summary_path = self.ingest_dir / "latest_summary.json"
         self.latest_trace_path = self.traces_dir / "latest_trace.json"
+        self.latest_retrieval_eval_path = (
+            self.eval_dir / "latest_retrieval_eval.json"
+        )
         self.config_path = self.root_path / "config.toml"
         self.vector_index_path = self.index_dir / "vector_index.jsonl"
         self.vector_index_manifest_path = (
@@ -48,6 +53,7 @@ class LocalWorkspace:
         self.ingest_dir.mkdir(parents=True, exist_ok=True)
         self.traces_dir.mkdir(parents=True, exist_ok=True)
         self.index_dir.mkdir(parents=True, exist_ok=True)
+        self.eval_dir.mkdir(parents=True, exist_ok=True)
 
     def write_chunks(self, chunks: list[DocumentChunk]) -> Path:
         self.ensure_exists()
@@ -85,6 +91,30 @@ class LocalWorkspace:
         trace_path.write_text(content, encoding="utf-8")
         self.latest_trace_path.write_text(content, encoding="utf-8")
         return self.latest_trace_path
+
+    def write_retrieval_eval_report(
+        self,
+        report: dict[str, Any],
+        report_path: str | Path | None = None,
+    ) -> Path:
+        self.ensure_exists()
+        if report_path is None:
+            destination = self.eval_dir / (
+                "retrieval_eval_"
+                f"{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}.json"
+            )
+        else:
+            destination = Path(report_path).expanduser()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        content = json.dumps(
+            report,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        ) + "\n"
+        destination.write_text(content, encoding="utf-8")
+        self.latest_retrieval_eval_path.write_text(content, encoding="utf-8")
+        return destination
 
     def read_chunks(self) -> list[dict[str, Any]]:
         records: list[dict[str, Any]] = []
