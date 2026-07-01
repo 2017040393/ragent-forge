@@ -85,9 +85,10 @@ def test_loading_openai_responses_config_returns_generation_provider(
             "provider = \"openai_responses\"\n"
             "base_url = \"https://api.openai.com/v1\"\n"
             "model = \"gpt-4o-mini\"\n"
-            "api_key_env = \"OPENAI_API_KEY\"\n"
+            "api_key = \"super-secret-key\"\n"
             "timeout_seconds = 60\n"
             "temperature = 0.2\n"
+            "reasoning_effort = \"low\"\n"
         ),
         encoding="utf-8",
     )
@@ -97,9 +98,10 @@ def test_loading_openai_responses_config_returns_generation_provider(
     assert config.generation.provider == "openai_responses"
     assert config.generation.base_url == "https://api.openai.com/v1"
     assert config.generation.model == "gpt-4o-mini"
-    assert config.generation.api_key_env == "OPENAI_API_KEY"
+    assert config.generation.api_key == "super-secret-key"
     assert config.generation.timeout_seconds == 60
     assert config.generation.temperature == 0.2
+    assert config.generation.reasoning_effort == "low"
 
 
 def test_loading_openai_responses_config_requires_base_url(tmp_path: Path) -> None:
@@ -110,7 +112,7 @@ def test_loading_openai_responses_config_requires_base_url(tmp_path: Path) -> No
             "[generation]\n"
             'provider = "openai_responses"\n'
             'model = "gpt-4o-mini"\n'
-            'api_key_env = "OPENAI_API_KEY"\n'
+            'api_key = "super-secret-key"\n'
         ),
         encoding="utf-8",
     )
@@ -133,7 +135,7 @@ def test_loading_openai_responses_config_requires_model(tmp_path: Path) -> None:
             "[generation]\n"
             'provider = "openai_responses"\n'
             'base_url = "https://api.openai.com/v1"\n'
-            'api_key_env = "OPENAI_API_KEY"\n'
+            'api_key = "super-secret-key"\n'
         ),
         encoding="utf-8",
     )
@@ -166,8 +168,34 @@ def test_loading_openai_responses_config_requires_api_key_env(
     with pytest.raises(
         ValueError,
         match=(
-            "Invalid config file: generation.api_key_env is required "
+            "Invalid config file: generation.api_key is required "
             "when generation.provider is openai_responses"
+        ),
+    ):
+        service.load()
+
+
+def test_loading_openai_responses_config_rejects_legacy_api_key_env(
+    tmp_path: Path,
+) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        (
+            "[generation]\n"
+            'provider = "openai_responses"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'model = "gpt-4o-mini"\n'
+            'api_key_env = "OPENAI_API_KEY"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Invalid config file: generation.api_key_env is no longer supported; "
+            "use generation.api_key instead"
         ),
     ):
         service.load()

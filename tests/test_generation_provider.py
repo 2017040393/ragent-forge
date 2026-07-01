@@ -101,6 +101,24 @@ def test_openai_responses_generation_provider_posts_to_sanitized_endpoint() -> N
     assert fake_client.calls[0]["timeout"] == 60
 
 
+def test_openai_responses_generation_provider_includes_reasoning_effort_when_set(
+    ) -> None:
+    fake_client = FakeHttpClient(
+        FakeResponse({"output_text": "Generated answer from responses"})
+    )
+    provider = OpenAIResponsesGenerationProvider(
+        base_url="https://api.openai.com/v1/",
+        model="gpt-5.4",
+        api_key="secret-key",
+        reasoning_effort="low",
+        http_client=fake_client,
+    )
+
+    provider.generate(make_generation_request())
+
+    assert fake_client.calls[0]["json"]["reasoning"] == {"effort": "low"}
+
+
 def test_openai_responses_generation_provider_parses_nested_output_text() -> None:
     fake_client = FakeHttpClient(
         FakeResponse(

@@ -254,9 +254,10 @@ def test_config_show_reads_openai_responses_config_without_printing_api_key(
             'provider = "openai_responses"\n'
             'base_url = "https://api.openai.com/v1"\n'
             'model = "gpt-4o-mini"\n'
-            'api_key_env = "OPENAI_API_KEY"\n'
+            'api_key = "super-secret-key"\n'
             "timeout_seconds = 60\n"
             "temperature = 0.2\n"
+            'reasoning_effort = "medium"\n'
         ),
         encoding="utf-8",
     )
@@ -269,9 +270,10 @@ def test_config_show_reads_openai_responses_config_without_printing_api_key(
     assert "generation.provider: openai_responses" in captured.out
     assert "generation.base_url: https://api.openai.com/v1" in captured.out
     assert "generation.model: gpt-4o-mini" in captured.out
-    assert "generation.api_key_env: OPENAI_API_KEY" in captured.out
+    assert "generation.api_key: <hidden>" in captured.out
     assert "generation.timeout_seconds: 60" in captured.out
     assert "generation.temperature: 0.2" in captured.out
+    assert "generation.reasoning_effort: medium" in captured.out
     assert "super-secret-key" not in captured.out
 
 
@@ -1295,13 +1297,12 @@ def test_ask_command_with_openai_responses_prints_answer_sources_and_trace_metad
             'provider = "openai_responses"\n'
             'base_url = "https://api.openai.com/v1"\n'
             'model = "gpt-4o-mini"\n'
-            'api_key_env = "OPENAI_API_KEY"\n'
+            'api_key = "super-secret-key"\n'
             "timeout_seconds = 60\n"
             "temperature = 0.2\n"
         ),
         encoding="utf-8",
     )
-    monkeypatch.setenv("OPENAI_API_KEY", "super-secret-key")
 
     class FakeResponse:
         def raise_for_status(self) -> None:
@@ -1353,7 +1354,6 @@ def test_ask_command_with_openai_responses_prints_answer_sources_and_trace_metad
 def test_ask_command_openai_missing_api_key_keeps_old_trace(
     tmp_path: Path,
     capsys,
-    monkeypatch,
 ) -> None:
     knowledge_dir = tmp_path / "knowledge"
     knowledge_dir.mkdir()
@@ -1369,20 +1369,19 @@ def test_ask_command_openai_missing_api_key_keeps_old_trace(
             'provider = "openai_responses"\n'
             'base_url = "https://api.openai.com/v1"\n'
             'model = "gpt-4o-mini"\n'
-            'api_key_env = "OPENAI_API_KEY"\n'
+            'api_key = ""\n'
         ),
         encoding="utf-8",
     )
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     exit_code = main(["ask", "agent", "--workspace", str(workspace_dir)])
 
     captured = capsys.readouterr()
     assert exit_code == 1
-    assert (
-        "Ask failed: Missing API key environment variable: OPENAI_API_KEY"
-        in captured.out
+    assert "Ask failed: Invalid config file: generation.api_key is required" in (
+        captured.out
     )
+    assert "generation.provider is openai_responses" in captured.out
     assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
 
 
@@ -1405,11 +1404,10 @@ def test_ask_command_openai_provider_failure_keeps_old_trace(
             'provider = "openai_responses"\n'
             'base_url = "https://api.openai.com/v1"\n'
             'model = "gpt-4o-mini"\n'
-            'api_key_env = "OPENAI_API_KEY"\n'
+            'api_key = "super-secret-key"\n'
         ),
         encoding="utf-8",
     )
-    monkeypatch.setenv("OPENAI_API_KEY", "super-secret-key")
 
     def fake_post(url, *, headers, json, timeout):
         raise RuntimeError("boom")

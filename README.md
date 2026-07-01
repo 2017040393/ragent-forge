@@ -132,9 +132,10 @@ Official OpenAI Responses API example:
 provider = "openai_responses"
 base_url = "https://api.openai.com/v1"
 model = "gpt-4o-mini"
-api_key_env = "OPENAI_API_KEY"
+api_key = "sk-..."
 timeout_seconds = 60
 temperature = 0.2
+reasoning_effort = "low"
 ```
 
 Third-party Responses-compatible API example:
@@ -144,14 +145,15 @@ Third-party Responses-compatible API example:
 provider = "openai_responses"
 base_url = "https://third-party.example.com/v1"
 model = "some-responses-compatible-model"
-api_key_env = "THIRD_PARTY_API_KEY"
+api_key = "tp-..."
 timeout_seconds = 60
 temperature = 0.2
+reasoning_effort = "low"
 ```
 
-API keys are read from environment variables named by `api_key_env`. Do not
-store real API keys in `.ragent/config.toml`. The provider calls
-`{base_url.rstrip("/")}/responses`.
+`api_key` stores the provider key directly in `.ragent/config.toml`. The
+provider calls `{base_url.rstrip("/")}/responses`. `reasoning_effort` is
+optional; if omitted, the model default is used.
 
 The TUI Documents view reads the same workspace files. The TUI Trace view reads
 `.ragent/traces/latest_trace.json` and recent trace files under
@@ -230,11 +232,11 @@ It writes `.ragent/chunks/chunks.jsonl` and
 prints the effective default `generation.provider = "null"`. `ragent config init`
 writes that default file, and `ragent config init --overwrite` replaces an
 existing config with the default. `ragent config show` also prints
-`generation.base_url`, `generation.model`, `generation.api_key_env`,
-`generation.timeout_seconds`, and `generation.temperature` for
-`openai_responses` configs. API keys are read from environment variables and
-are never stored in config or printed by the CLI. Unsupported provider values
-fail clearly.
+`generation.base_url`, `generation.model`, hidden `generation.api_key`,
+`generation.timeout_seconds`, `generation.temperature`, and optional
+`generation.reasoning_effort` for `openai_responses` configs. The CLI hides the
+configured API key value when showing config. Unsupported provider values fail
+clearly.
 `ragent chunks list` and `ragent chunks show <chunk_id>` read
 `.ragent/chunks/chunks.jsonl` so you can inspect chunking output before
 broader retrieval work is implemented. `ragent search` also reads

@@ -59,7 +59,12 @@ class ConfigService:
         if provider == "openai_responses":
             base_url = generation.get("base_url")
             model = generation.get("model")
-            api_key_env = generation.get("api_key_env")
+            api_key = generation.get("api_key")
+            if "api_key_env" in generation:
+                raise ValueError(
+                    "Invalid config file: generation.api_key_env is no longer "
+                    "supported; use generation.api_key instead"
+                )
             if not isinstance(base_url, str) or not base_url.strip():
                 raise ValueError(
                     "Invalid config file: generation.base_url is required "
@@ -70,9 +75,9 @@ class ConfigService:
                     "Invalid config file: generation.model is required "
                     "when generation.provider is openai_responses"
                 )
-            if not isinstance(api_key_env, str) or not api_key_env.strip():
+            if not isinstance(api_key, str) or not api_key.strip():
                 raise ValueError(
-                    "Invalid config file: generation.api_key_env is required "
+                    "Invalid config file: generation.api_key is required "
                     "when generation.provider is openai_responses"
                 )
 

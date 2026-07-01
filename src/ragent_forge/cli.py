@@ -469,11 +469,16 @@ def _handle_config_show(console: Console, workspace_path: str) -> int:
     if config.generation.provider == "openai_responses":
         console.print(f"generation.base_url: {config.generation.base_url}")
         console.print(f"generation.model: {config.generation.model}")
-        console.print(f"generation.api_key_env: {config.generation.api_key_env}")
+        if config.generation.api_key:
+            console.print("generation.api_key: <hidden>")
         console.print(
             f"generation.timeout_seconds: {config.generation.timeout_seconds}"
         )
         console.print(f"generation.temperature: {config.generation.temperature}")
+        if config.generation.reasoning_effort is not None:
+            console.print(
+                f"generation.reasoning_effort: {config.generation.reasoning_effort}"
+            )
     return 0
 
 

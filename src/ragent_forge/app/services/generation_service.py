@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import Any, Protocol
 
 import httpx
@@ -44,6 +43,7 @@ class OpenAIResponsesGenerationProvider:
         api_key: str,
         timeout_seconds: int = 60,
         temperature: float = 0.2,
+        reasoning_effort: str | None = None,
         http_client: Any | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
@@ -51,6 +51,7 @@ class OpenAIResponsesGenerationProvider:
         self.api_key = api_key
         self.timeout_seconds = timeout_seconds
         self.temperature = temperature
+        self.reasoning_effort = reasoning_effort
         self.http_client = http_client or httpx
 
     def generate(self, request: GenerationRequest) -> GenerationResult:
@@ -86,6 +87,8 @@ class OpenAIResponsesGenerationProvider:
             ],
             "temperature": self.temperature,
         }
+        if self.reasoning_effort is not None:
+            body["reasoning"] = {"effort": self.reasoning_effort}
         try:
             response = self.http_client.post(
                 f"{self.base_url}/responses",
@@ -157,6 +160,7 @@ class GenerationService:
         if provider_name == "openai_responses":
             base_url = generation.base_url
             model = generation.model
+            api_key = generation.api_key
             if not base_url:
                 raise ValueError(
                     "Invalid config file: generation.base_url is required "
@@ -167,21 +171,15 @@ class GenerationService:
                     "Invalid config file: generation.model is required "
                     "when generation.provider is openai_responses"
                 )
-            api_key_env = generation.api_key_env
-            if not api_key_env:
+            if generation.api_key_env is not None:
                 raise ValueError(
-                    "Invalid config file: generation.api_key_env is required "
-                    "when generation.provider is openai_responses"
+                    "Invalid config file: generation.api_key_env is no longer "
+                    "supported; use generation.api_key instead"
                 )
-            try:
-                api_key = os.environ[api_key_env]
-            except KeyError as exc:
+            if not api_key:
                 raise ValueError(
-                    f"Missing API key environment variable: {api_key_env}"
-                ) from exc
-            if not api_key.strip():
-                raise ValueError(
-                    f"Missing API key environment variable: {api_key_env}"
+                    "Invalid config file: generation.api_key is required "
+                    "when generation.provider is openai_responses"
                 )
             return cls(
                 OpenAIResponsesGenerationProvider(
@@ -190,6 +188,7 @@ class GenerationService:
                     api_key=api_key,
                     timeout_seconds=generation.timeout_seconds,
                     temperature=generation.temperature,
+                    reasoning_effort=generation.reasoning_effort,
                 )
             )
         raise ValueError(f"Unsupported generation provider: {provider_name}")
