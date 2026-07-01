@@ -79,7 +79,6 @@ class GenerationConfig(BaseModel):
     base_url: str | None = None
     model: str | None = None
     api_key: str | None = None
-    api_key_env: str | None = None
     timeout_seconds: int = 60
     temperature: float = 0.2
     reasoning_effort: Literal["none", "low", "medium", "high", "xhigh"] | None = (

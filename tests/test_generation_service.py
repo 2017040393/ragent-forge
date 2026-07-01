@@ -169,27 +169,6 @@ def test_generation_service_from_config_requires_model() -> None:
         )
 
 
-def test_generation_service_from_config_rejects_legacy_api_key_env_name() -> None:
-    with pytest.raises(
-        ValueError,
-        match=(
-            "Invalid config file: generation.api_key_env is no longer supported; "
-            "use generation.api_key instead"
-        ),
-    ):
-        GenerationService.from_config(
-            AppConfig(
-                generation=GenerationConfig(
-                    provider="openai_responses",
-                    base_url="https://api.openai.com/v1",
-                    model="gpt-4o-mini",
-                    api_key=None,
-                    api_key_env="OPENAI_API_KEY",
-                )
-            )
-        )
-
-
 def test_generation_service_from_config_rejects_unsupported_provider() -> None:
     class UnsupportedGenerationConfig(BaseModel):
         provider: str

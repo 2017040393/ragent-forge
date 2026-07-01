@@ -150,7 +150,7 @@ def test_loading_openai_responses_config_requires_model(tmp_path: Path) -> None:
         service.load()
 
 
-def test_loading_openai_responses_config_requires_api_key_env(
+def test_loading_openai_responses_config_requires_api_key(
     tmp_path: Path,
 ) -> None:
     service = make_config_service(tmp_path)
@@ -175,18 +175,14 @@ def test_loading_openai_responses_config_requires_api_key_env(
         service.load()
 
 
-def test_loading_openai_responses_config_rejects_legacy_api_key_env(
-    tmp_path: Path,
-) -> None:
+def test_loading_config_rejects_unknown_generation_setting(tmp_path: Path) -> None:
     service = make_config_service(tmp_path)
     service.workspace.root_path.mkdir(parents=True)
     service.workspace.config_path.write_text(
         (
             "[generation]\n"
-            'provider = "openai_responses"\n'
-            'base_url = "https://api.openai.com/v1"\n'
-            'model = "gpt-4o-mini"\n'
-            'api_key_env = "OPENAI_API_KEY"\n'
+            'provider = "null"\n'
+            'unexpected = "value"\n'
         ),
         encoding="utf-8",
     )
@@ -194,8 +190,8 @@ def test_loading_openai_responses_config_rejects_legacy_api_key_env(
     with pytest.raises(
         ValueError,
         match=(
-            "Invalid config file: generation.api_key_env is no longer supported; "
-            "use generation.api_key instead"
+            "Invalid config file: unsupported generation settings: "
+            "generation.unexpected"
         ),
     ):
         service.load()

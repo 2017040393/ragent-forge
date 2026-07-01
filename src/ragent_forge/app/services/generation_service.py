@@ -205,11 +205,6 @@ class GenerationService:
                     "Invalid config file: generation.model is required "
                     "when generation.provider is openai_responses"
                 )
-            if generation.api_key_env is not None:
-                raise ValueError(
-                    "Invalid config file: generation.api_key_env is no longer "
-                    "supported; use generation.api_key instead"
-                )
             if not api_key:
                 raise ValueError(
                     "Invalid config file: generation.api_key is required "

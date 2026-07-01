@@ -13,6 +13,16 @@ DEFAULT_CONFIG_TEXT = """[generation]
 provider = "null"
 """
 
+SUPPORTED_GENERATION_KEYS = {
+    "provider",
+    "base_url",
+    "model",
+    "api_key",
+    "timeout_seconds",
+    "temperature",
+    "reasoning_effort",
+}
+
 
 class ConfigService:
     def __init__(self, workspace: LocalWorkspace) -> None:
@@ -56,15 +66,21 @@ class ConfigService:
             )
         if provider not in {"null", "openai_responses"}:
             raise ValueError(f"Unsupported generation provider: {provider}")
+        unknown_generation_keys = sorted(
+            key for key in generation if key not in SUPPORTED_GENERATION_KEYS
+        )
+        if unknown_generation_keys:
+            formatted_keys = ", ".join(
+                f"generation.{key}" for key in unknown_generation_keys
+            )
+            raise ValueError(
+                "Invalid config file: unsupported generation settings: "
+                f"{formatted_keys}"
+            )
         if provider == "openai_responses":
             base_url = generation.get("base_url")
             model = generation.get("model")
             api_key = generation.get("api_key")
-            if "api_key_env" in generation:
-                raise ValueError(
-                    "Invalid config file: generation.api_key_env is no longer "
-                    "supported; use generation.api_key instead"
-                )
             if not isinstance(base_url, str) or not base_url.strip():
                 raise ValueError(
                     "Invalid config file: generation.base_url is required "
