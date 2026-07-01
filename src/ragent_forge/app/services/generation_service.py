@@ -72,6 +72,15 @@ class OpenAIResponsesGenerationProvider:
             },
         )
 
+    def _format_retry_failure(self, attempt: int, exc: Exception) -> RuntimeError:
+        retries = max(0, attempt - 1)
+        if retries == 0:
+            return RuntimeError(f"Generation provider failed: {exc}")
+        return RuntimeError(
+            "Generation provider failed after "
+            f"{attempt} attempts (retried {retries} times): {exc}"
+        )
+
     def _post(self, request: GenerationRequest) -> object:
         body = {
             "model": self.model,
@@ -111,11 +120,11 @@ class OpenAIResponsesGenerationProvider:
             except Exception as exc:  # pragma: no cover - wrapped consistently
                 last_error = exc
                 if attempt >= self.max_attempts or not self._should_retry(exc):
-                    raise RuntimeError(f"Generation provider failed: {exc}") from exc
+                    raise self._format_retry_failure(attempt, exc) from exc
                 time.sleep(self.retry_delay_seconds * attempt)
 
         assert last_error is not None
-        raise RuntimeError(f"Generation provider failed: {last_error}") from last_error
+        raise self._format_retry_failure(self.max_attempts, last_error) from last_error
 
     def _should_retry(self, exc: Exception) -> bool:
         if isinstance(exc, httpx.TransportError):

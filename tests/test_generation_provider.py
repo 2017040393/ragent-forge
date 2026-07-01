@@ -275,3 +275,66 @@ def test_openai_responses_generation_provider_retries_ssl_eof_then_succeeds() ->
 
     assert result.answer == "Generated answer after retry"
     assert len(fake_client.calls) == 2
+
+
+def test_openai_responses_generation_provider_reports_retry_count_after_429_exhausted(
+    ) -> None:
+    fake_client = SequencedFakeHttpClient(
+        [
+            FakeResponse({"error": "rate limit"}, status_code=429),
+            FakeResponse({"error": "rate limit"}, status_code=429),
+            FakeResponse({"error": "rate limit"}, status_code=429),
+        ]
+    )
+    provider = OpenAIResponsesGenerationProvider(
+        base_url="https://third-party.example.com/v1",
+        model="some-responses-compatible-model",
+        api_key="secret-key",
+        http_client=fake_client,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            r"Generation provider failed after 3 attempts "
+            r"\(retried 2 times\): HTTP 429"
+        ),
+    ):
+        provider.generate(make_generation_request())
+
+
+def test_openai_responses_generation_provider_reports_retry_count_after_eof(
+    ) -> None:
+    fake_client = SequencedFakeHttpClient(
+        [
+            httpx.ConnectError(
+                "[SSL: UNEXPECTED_EOF_WHILE_READING] "
+                "EOF occurred in violation of protocol"
+            ),
+            httpx.ConnectError(
+                "[SSL: UNEXPECTED_EOF_WHILE_READING] "
+                "EOF occurred in violation of protocol"
+            ),
+            httpx.ConnectError(
+                "[SSL: UNEXPECTED_EOF_WHILE_READING] "
+                "EOF occurred in violation of protocol"
+            ),
+        ]
+    )
+    provider = OpenAIResponsesGenerationProvider(
+        base_url="https://third-party.example.com/v1",
+        model="some-responses-compatible-model",
+        api_key="secret-key",
+        http_client=fake_client,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            r"Generation provider failed after 3 attempts "
+            r"\(retried 2 times\): "
+            r"\[SSL: UNEXPECTED_EOF_WHILE_READING\] "
+            r"EOF occurred in violation of protocol"
+        ),
+    ):
+        provider.generate(make_generation_request())
