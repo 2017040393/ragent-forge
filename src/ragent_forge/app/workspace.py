@@ -18,10 +18,15 @@ class LocalWorkspace:
         self.chunks_dir = self.root_path / "chunks"
         self.ingest_dir = self.root_path / "ingest"
         self.traces_dir = self.root_path / "traces"
+        self.index_dir = self.root_path / "index"
         self.chunks_path = self.chunks_dir / "chunks.jsonl"
         self.latest_summary_path = self.ingest_dir / "latest_summary.json"
         self.latest_trace_path = self.traces_dir / "latest_trace.json"
         self.config_path = self.root_path / "config.toml"
+        self.vector_index_path = self.index_dir / "vector_index.jsonl"
+        self.vector_index_manifest_path = (
+            self.index_dir / "vector_index_manifest.json"
+        )
 
     def exists(self) -> bool:
         return self.root_path.exists()
@@ -35,10 +40,14 @@ class LocalWorkspace:
     def has_latest_trace(self) -> bool:
         return self.latest_trace_path.is_file()
 
+    def has_vector_index(self) -> bool:
+        return self.vector_index_path.is_file()
+
     def ensure_exists(self) -> None:
         self.chunks_dir.mkdir(parents=True, exist_ok=True)
         self.ingest_dir.mkdir(parents=True, exist_ok=True)
         self.traces_dir.mkdir(parents=True, exist_ok=True)
+        self.index_dir.mkdir(parents=True, exist_ok=True)
 
     def write_chunks(self, chunks: list[DocumentChunk]) -> Path:
         self.ensure_exists()

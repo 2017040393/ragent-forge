@@ -92,18 +92,29 @@ def build_search_trace(
     result_chunk_ids: list[str],
     started_at: datetime,
     finished_at: datetime,
+    retrieval_mode: str = "lexical",
+    retrieval_method: str = "lexical_token_overlap",
+    embedding_provider: str | None = None,
+    embedding_model: str | None = None,
+    index_path: Path | None = None,
 ) -> OperationTrace:
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
     metadata = {
         "query": query,
         "limit": limit,
-        "scoring_method": "lexical_token_overlap",
+        "retrieval_mode": retrieval_mode,
+        "scoring_method": retrieval_method,
         "chunks_path": str(chunks_path),
         "total_chunks": total_chunks,
         "result_count": len(result_chunk_ids),
         "result_chunk_ids": result_chunk_ids,
     }
+    if retrieval_mode == "semantic":
+        metadata["retrieval_method"] = retrieval_method
+        metadata["embedding_provider"] = embedding_provider
+        metadata["embedding_model"] = embedding_model
+        metadata["index_path"] = str(index_path) if index_path is not None else None
     return OperationTrace(
         trace_id=f"search-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
         operation="search",
@@ -160,6 +171,11 @@ def build_ask_retrieval_trace(
     max_context_chars: int,
     started_at: datetime,
     finished_at: datetime,
+    retrieval_mode: str = "lexical",
+    retrieval_method: str = "lexical_token_overlap",
+    embedding_provider: str | None = None,
+    embedding_model: str | None = None,
+    index_path: Path | None = None,
 ) -> OperationTrace:
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
@@ -171,7 +187,8 @@ def build_ask_retrieval_trace(
     metadata = {
         "question": question,
         "limit": limit,
-        "retrieval_method": "lexical_token_overlap",
+        "retrieval_mode": retrieval_mode,
+        "retrieval_method": retrieval_method,
         "chunks_path": str(chunks_path),
         "total_chunks": total_chunks,
         "retrieved_count": len(retrieved_chunk_ids),
@@ -186,6 +203,10 @@ def build_ask_retrieval_trace(
         "prompt_preview_shown": prompt_preview_shown,
         "max_context_chars": max_context_chars,
     }
+    if retrieval_mode == "semantic":
+        metadata["embedding_provider"] = embedding_provider
+        metadata["embedding_model"] = embedding_model
+        metadata["index_path"] = str(index_path) if index_path is not None else None
     metadata.update(_generation_metadata(generation_result.metadata))
     if generation_result.status == "success":
         metadata["source_count"] = len(retrieved_chunk_ids)
@@ -232,6 +253,65 @@ def build_ask_retrieval_trace(
                 description="Render the ask result preview in the CLI.",
                 inputs={"retrieved_count": len(retrieved_chunk_ids)},
                 outputs={"status": "success"},
+            ),
+        ],
+        metadata=metadata,
+    )
+
+
+def build_index_build_trace(
+    embedding_provider: str,
+    embedding_model: str,
+    chunk_count: int,
+    embedding_dim: int,
+    index_path: Path,
+    chunks_path: Path,
+    batch_size: int,
+    started_at: datetime,
+    finished_at: datetime,
+) -> OperationTrace:
+    started_at_utc = _as_utc(started_at)
+    finished_at_utc = _as_utc(finished_at)
+    metadata = {
+        "embedding_provider": embedding_provider,
+        "embedding_model": embedding_model,
+        "chunk_count": chunk_count,
+        "embedding_dim": embedding_dim,
+        "index_path": str(index_path),
+        "chunks_path": str(chunks_path),
+        "batch_size": batch_size,
+    }
+    return OperationTrace(
+        trace_id=f"index-build-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        operation="index_build",
+        status="success",
+        started_at=_format_timestamp(started_at_utc),
+        finished_at=_format_timestamp(finished_at_utc),
+        steps=[
+            TraceStep(
+                name="read_chunks",
+                description="Read chunk records from the local workspace.",
+                inputs={"chunks_path": str(chunks_path)},
+                outputs={"chunk_count": chunk_count},
+            ),
+            TraceStep(
+                name="embed_chunks",
+                description="Embed chunk text with the configured embedding provider.",
+                inputs={
+                    "embedding_provider": embedding_provider,
+                    "embedding_model": embedding_model,
+                    "batch_size": batch_size,
+                },
+                outputs={
+                    "chunk_count": chunk_count,
+                    "embedding_dim": embedding_dim,
+                },
+            ),
+            TraceStep(
+                name="write_vector_index",
+                description="Persist vector index records to the local workspace.",
+                inputs={"chunk_count": chunk_count},
+                outputs={"index_path": str(index_path)},
             ),
         ],
         metadata=metadata,

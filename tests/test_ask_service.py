@@ -2,6 +2,7 @@ from pathlib import Path
 
 from ragent_forge.app.models import Document, GenerationResult, IngestResult
 from ragent_forge.app.services.ask_service import AskService
+from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 
@@ -130,3 +131,37 @@ def test_ask_service_calls_generation_provider_once_when_context_exists(
 
     assert result.answer == "Generated answer"
     assert fake_generation_service.calls == 1
+
+
+def test_ask_service_uses_injected_search_service_and_retrieval_method(
+    tmp_path: Path,
+) -> None:
+    class FakeSearchService:
+        def count_chunks(self) -> int:
+            return 2
+
+        def search(self, query: str, limit: int) -> list[SearchResult]:
+            assert query == "meaning of retrieval"
+            assert limit == 1
+            return [
+                SearchResult(
+                    chunk_id="/knowledge/rag.md::chunk-0001",
+                    document_id="/knowledge/rag.md",
+                    source_path="/knowledge/rag.md",
+                    start_char=10,
+                    end_char=30,
+                    score=0.9,
+                    text="retrieval basics",
+                )
+            ]
+
+    workspace = make_ask_workspace(tmp_path)
+
+    result = AskService(
+        workspace,
+        search_service=FakeSearchService(),
+        retrieval_method="semantic_cosine_similarity",
+    ).retrieve_context("meaning of retrieval", limit=1)
+
+    assert result.results[0].chunk_id == "/knowledge/rag.md::chunk-0001"
+    assert result.context_pack.retrieval_method == "semantic_cosine_similarity"

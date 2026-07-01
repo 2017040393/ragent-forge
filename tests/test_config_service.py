@@ -17,6 +17,7 @@ def test_missing_config_returns_default_generation_provider(tmp_path: Path) -> N
     config = make_config_service(tmp_path).load()
 
     assert config.generation.provider == "null"
+    assert config.embedding.provider == "none"
 
 
 def test_write_default_creates_config_file(tmp_path: Path) -> None:
@@ -102,6 +103,141 @@ def test_loading_openai_responses_config_returns_generation_provider(
     assert config.generation.timeout_seconds == 60
     assert config.generation.temperature == 0.2
     assert config.generation.reasoning_effort == "low"
+
+
+def test_loading_embedding_none_config_returns_embedding_provider(
+    tmp_path: Path,
+) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        (
+            "[generation]\n"
+            'provider = "null"\n'
+            "\n"
+            "[embedding]\n"
+            'provider = "none"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    config = service.load()
+
+    assert config.embedding.provider == "none"
+
+
+def test_loading_openai_embeddings_config_returns_embedding_provider(
+    tmp_path: Path,
+) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        (
+            "[generation]\n"
+            'provider = "null"\n'
+            "\n"
+            "[embedding]\n"
+            'provider = "openai_embeddings"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'model = "text-embedding-3-small"\n'
+            'api_key = "embedding-secret-key"\n'
+            "timeout_seconds = 30\n"
+            "batch_size = 32\n"
+        ),
+        encoding="utf-8",
+    )
+
+    config = service.load()
+
+    assert config.embedding.provider == "openai_embeddings"
+    assert config.embedding.base_url == "https://api.openai.com/v1"
+    assert config.embedding.model == "text-embedding-3-small"
+    assert config.embedding.api_key == "embedding-secret-key"
+    assert config.embedding.timeout_seconds == 30
+    assert config.embedding.batch_size == 32
+
+
+def test_loading_openai_embeddings_config_requires_base_url(tmp_path: Path) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        (
+            "[embedding]\n"
+            'provider = "openai_embeddings"\n'
+            'model = "text-embedding-3-small"\n'
+            'api_key = "embedding-secret-key"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Invalid config file: embedding.base_url is required "
+            "when embedding.provider is openai_embeddings"
+        ),
+    ):
+        service.load()
+
+
+def test_loading_openai_embeddings_config_requires_model(tmp_path: Path) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        (
+            "[embedding]\n"
+            'provider = "openai_embeddings"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'api_key = "embedding-secret-key"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Invalid config file: embedding.model is required "
+            "when embedding.provider is openai_embeddings"
+        ),
+    ):
+        service.load()
+
+
+def test_loading_openai_embeddings_config_requires_api_key(tmp_path: Path) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        (
+            "[embedding]\n"
+            'provider = "openai_embeddings"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'model = "text-embedding-3-small"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Invalid config file: embedding.api_key is required "
+            "when embedding.provider is openai_embeddings"
+        ),
+    ):
+        service.load()
+
+
+def test_loading_unsupported_embedding_provider_raises_clear_value_error(
+    tmp_path: Path,
+) -> None:
+    service = make_config_service(tmp_path)
+    service.workspace.root_path.mkdir(parents=True)
+    service.workspace.config_path.write_text(
+        "[embedding]\nprovider = \"local\"\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Unsupported embedding provider: local"):
+        service.load()
 
 
 def test_loading_openai_responses_config_requires_base_url(tmp_path: Path) -> None:

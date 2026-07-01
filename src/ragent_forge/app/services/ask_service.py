@@ -11,6 +11,14 @@ from ragent_forge.app.services.search_service import LexicalSearchService, Searc
 from ragent_forge.app.workspace import LocalWorkspace
 
 
+class SearchServiceProtocol:
+    def search(self, query: str, limit: int = 10) -> list[SearchResult]:
+        ...
+
+    def count_chunks(self) -> int:
+        ...
+
+
 class AskRetrievalResult(BaseModel):
     question: str
     results: list[SearchResult]
@@ -33,9 +41,12 @@ class AskService:
         self,
         workspace: LocalWorkspace,
         generation_service: GenerationService | None = None,
+        search_service: SearchServiceProtocol | None = None,
+        retrieval_method: str = "lexical_token_overlap",
     ) -> None:
         self.workspace = workspace
-        self.search_service = LexicalSearchService(workspace)
+        self.search_service = search_service or LexicalSearchService(workspace)
+        self.retrieval_method = retrieval_method
         self.generation_service = generation_service or GenerationService()
 
     def retrieve_context(
@@ -45,7 +56,12 @@ class AskService:
         max_context_chars: int = 4000,
     ) -> AskRetrievalResult:
         results = self.search_service.search(question, limit)
-        context_pack = build_context_pack(question, results, max_context_chars)
+        context_pack = build_context_pack(
+            question,
+            results,
+            max_context_chars,
+            retrieval_method=self.retrieval_method,
+        )
         generation_result = (
             self._skip_generation()
             if not results
@@ -86,10 +102,14 @@ class AskService:
         cls,
         workspace: LocalWorkspace,
         generation_service: GenerationService | None = None,
+        search_service: SearchServiceProtocol | None = None,
+        retrieval_method: str = "lexical_token_overlap",
     ) -> AskService:
         return cls(
             workspace=workspace,
             generation_service=generation_service or GenerationService(),
+            search_service=search_service,
+            retrieval_method=retrieval_method,
         )
 
     def count_chunks(self) -> int:

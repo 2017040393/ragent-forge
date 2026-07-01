@@ -74,6 +74,14 @@ class GenerationResult(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class EmbeddingResult(BaseModel):
+    provider_name: str
+    model: str
+    embeddings: list[list[float]]
+    usage: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class GenerationConfig(BaseModel):
     provider: Literal["null", "openai_responses"] = "null"
     base_url: str | None = None
@@ -86,8 +94,18 @@ class GenerationConfig(BaseModel):
     )
 
 
+class EmbeddingConfig(BaseModel):
+    provider: Literal["none", "openai_embeddings"] = "none"
+    base_url: str | None = None
+    model: str | None = None
+    api_key: str | None = None
+    timeout_seconds: int = 60
+    batch_size: int = 64
+
+
 class AppConfig(BaseModel):
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
+    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
 
 
 class TraceStep(BaseModel):

@@ -8,6 +8,7 @@ def build_context_pack(
     question: str,
     results: list[SearchResult],
     max_context_chars: int = 4000,
+    retrieval_method: str = "lexical_token_overlap",
 ) -> ContextPack:
     remaining_chars = max(0, max_context_chars)
     context_chunks: list[ContextChunk] = []
@@ -36,6 +37,7 @@ def build_context_pack(
 
     context_pack = ContextPack(
         question=question,
+        retrieval_method=retrieval_method,
         context_chunks=context_chunks,
         total_context_chars=total_context_chars,
         prompt_preview="",

@@ -15,15 +15,20 @@ from ragent_forge.app.services.ask_service import AskService
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.context_service import build_generation_prompt
+from ragent_forge.app.services.embedding_service import EmbeddingService
 from ragent_forge.app.services.generation_service import GenerationService
+from ragent_forge.app.services.index_service import IndexBuildService
 from ragent_forge.app.services.ingest_service import IngestService
 from ragent_forge.app.services.search_service import LexicalSearchService, SearchResult
+from ragent_forge.app.services.semantic_search_service import SemanticSearchService
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
 from ragent_forge.app.services.trace_service import (
     build_ask_retrieval_trace,
+    build_index_build_trace,
     build_ingest_trace,
     build_search_trace,
 )
+from ragent_forge.app.services.vector_index_service import VectorIndexService
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
 
@@ -177,15 +182,47 @@ def build_parser() -> argparse.ArgumentParser:
         help="Local RAGentForge workspace directory to inspect.",
     )
 
+    index_parser = subparsers.add_parser(
+        "index",
+        help="Build or inspect the local semantic vector index.",
+    )
+    index_subparsers = index_parser.add_subparsers(dest="index_command")
+
+    index_build_parser = index_subparsers.add_parser(
+        "build",
+        help="Build the local semantic vector index from generated chunks.",
+    )
+    index_build_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to index.",
+    )
+
+    index_status_parser = index_subparsers.add_parser(
+        "status",
+        help="Show local semantic vector index status.",
+    )
+    index_status_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to inspect.",
+    )
+
     search_parser = subparsers.add_parser(
         "search",
-        help="Search generated chunks with simple lexical matching.",
+        help="Search generated chunks with lexical or semantic retrieval.",
     )
-    search_parser.add_argument("query", help="Lexical query to search for.")
+    search_parser.add_argument("query", help="Query to search for.")
     search_parser.add_argument(
         "--workspace",
         default=".ragent",
         help="Local RAGentForge workspace directory to search.",
+    )
+    search_parser.add_argument(
+        "--retrieval",
+        choices=["lexical", "semantic"],
+        default="lexical",
+        help="Retrieval mode to use.",
     )
     search_parser.add_argument(
         "--limit",
@@ -203,6 +240,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--workspace",
         default=".ragent",
         help="Local RAGentForge workspace directory to search.",
+    )
+    ask_parser.add_argument(
+        "--retrieval",
+        choices=["lexical", "semantic"],
+        default="lexical",
+        help="Retrieval mode to use.",
     )
     ask_parser.add_argument(
         "--limit",
@@ -307,8 +350,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.print_help()
         return 0
 
+    if args.command == "index":
+        if args.index_command == "build":
+            return _handle_index_build(console, args.workspace)
+        if args.index_command == "status":
+            return _handle_index_status(console, args.workspace)
+        parser.print_help()
+        return 0
+
     if args.command == "search":
-        return _handle_search(console, args.workspace, args.query, args.limit)
+        return _handle_search(
+            console,
+            args.workspace,
+            args.query,
+            args.limit,
+            args.retrieval,
+        )
 
     if args.command == "ask":
         return _handle_ask(
@@ -318,6 +375,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.limit,
             args.show_prompt,
             args.max_context_chars,
+            args.retrieval,
         )
 
     parser.print_help()
@@ -477,6 +535,14 @@ def _handle_config_show(console: Console, workspace_path: str) -> int:
             console.print(
                 f"generation.reasoning_effort: {config.generation.reasoning_effort}"
             )
+    console.print(f"embedding.provider: {config.embedding.provider}")
+    if config.embedding.provider == "openai_embeddings":
+        console.print(f"embedding.base_url: {config.embedding.base_url}")
+        console.print(f"embedding.model: {config.embedding.model}")
+        if config.embedding.api_key:
+            console.print("embedding.api_key: <hidden>")
+        console.print(f"embedding.timeout_seconds: {config.embedding.timeout_seconds}")
+        console.print(f"embedding.batch_size: {config.embedding.batch_size}")
     return 0
 
 
@@ -559,6 +625,75 @@ def _handle_traces_show(
     return 0
 
 
+def _handle_index_build(console: Console, workspace_path: str) -> int:
+    workspace = LocalWorkspace(workspace_path)
+    if not workspace.has_chunks():
+        _print_no_chunks(console)
+        return 0
+
+    started_at = datetime.now(UTC)
+    try:
+        config = ConfigService(workspace).load()
+        embedding_service = EmbeddingService.from_config(config)
+        result = IndexBuildService(
+            workspace,
+            embedding_service=embedding_service,
+        ).build(
+            embedding_provider=config.embedding.provider,
+            embedding_model=config.embedding.model,
+            batch_size=config.embedding.batch_size,
+        )
+    except (OSError, RuntimeError, ValueError) as exc:
+        console.print(f"Index build failed: {exc}", markup=False, soft_wrap=True)
+        return 1
+    finished_at = datetime.now(UTC)
+    trace = build_index_build_trace(
+        embedding_provider=result.embedding_provider,
+        embedding_model=result.embedding_model,
+        chunk_count=result.chunk_count,
+        embedding_dim=result.embedding_dim,
+        index_path=result.index_path,
+        chunks_path=result.chunks_path,
+        batch_size=result.batch_size,
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+    trace_path = workspace.write_trace(trace)
+
+    console.print("Semantic index build")
+    console.print()
+    console.print(f"Embedding provider: {result.embedding_provider}")
+    console.print(f"Embedding model: {result.embedding_model}")
+    console.print(f"Chunks embedded: {result.chunk_count}")
+    console.print(f"Embedding dim: {result.embedding_dim}")
+    console.print(f"Index path: {result.index_path}")
+    console.print(f"Saved trace to: {trace_path}")
+    return 0
+
+
+def _handle_index_status(console: Console, workspace_path: str) -> int:
+    workspace = LocalWorkspace(workspace_path)
+    if not workspace.has_vector_index():
+        console.print("Semantic index: missing")
+        console.print("Run `ragent index build` to create it.")
+        return 0
+
+    try:
+        manifest = VectorIndexService(workspace).read_manifest()
+    except (OSError, ValueError) as exc:
+        console.print(f"[bold red]Index status failed:[/bold red] {exc}")
+        return 1
+
+    console.print("Semantic index: ready")
+    index_path = manifest.get("index_path", workspace.vector_index_path)
+    console.print(f"Index path: {index_path}")
+    console.print(f"Chunks indexed: {manifest.get('chunk_count', 0)}")
+    console.print(f"Embedding model: {manifest.get('embedding_model', '')}")
+    console.print(f"Embedding dim: {manifest.get('embedding_dim', 0)}")
+    console.print(f"Built at: {manifest.get('built_at', '')}")
+    return 0
+
+
 def _print_trace(console: Console, trace: dict[str, object]) -> None:
     console.print(f"Trace ID: {trace.get('trace_id', '')}", soft_wrap=True)
     console.print(f"Operation: {trace.get('operation', '')}")
@@ -593,6 +728,7 @@ def _handle_search(
     workspace_path: str,
     query: str,
     limit: int,
+    retrieval: str,
 ) -> int:
     workspace = LocalWorkspace(workspace_path)
     if not workspace.has_chunks():
@@ -600,12 +736,39 @@ def _handle_search(
         return 0
 
     started_at = datetime.now(UTC)
-    search_service = LexicalSearchService(workspace)
+    retrieval_method = "lexical_token_overlap"
+    embedding_provider: str | None = None
+    embedding_model: str | None = None
+    index_path = None
     try:
+        if retrieval == "semantic":
+            if not workspace.has_vector_index():
+                console.print(
+                    "Semantic search failed: vector index not found. "
+                    "Run `ragent index build` first.",
+                    markup=False,
+                    soft_wrap=True,
+                )
+                return 1
+            config = ConfigService(workspace).load()
+            embedding_service = EmbeddingService.from_config(config)
+            search_service = SemanticSearchService(workspace, embedding_service)
+            retrieval_method = "semantic_cosine_similarity"
+            embedding_provider = config.embedding.provider
+            embedding_model = config.embedding.model
+            index_path = workspace.vector_index_path
+        else:
+            search_service = LexicalSearchService(workspace)
+
         results = search_service.search(query, limit)
         total_chunks = search_service.count_chunks()
-    except (OSError, ValueError) as exc:
-        console.print(f"[bold red]Search failed:[/bold red] {exc}")
+    except (OSError, RuntimeError, ValueError) as exc:
+        failure_label = (
+            "Semantic search failed"
+            if retrieval == "semantic"
+            else "Search failed"
+        )
+        console.print(f"{failure_label}: {exc}", markup=False, soft_wrap=True)
         return 1
     finished_at = datetime.now(UTC)
     trace = build_search_trace(
@@ -616,10 +779,16 @@ def _handle_search(
         result_chunk_ids=[result.chunk_id for result in results],
         started_at=started_at,
         finished_at=finished_at,
+        retrieval_mode=retrieval,
+        retrieval_method=retrieval_method,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        index_path=index_path,
     )
     trace_path = workspace.write_trace(trace)
 
     console.print(f"Search query: {query}")
+    console.print(f"Retrieval mode: {retrieval}")
     if not results:
         console.print("No matches found.")
         console.print(f"Saved trace to: {trace_path}")
@@ -652,6 +821,7 @@ def _handle_ask(
     limit: int,
     show_prompt: bool,
     max_context_chars: int,
+    retrieval: str,
 ) -> int:
     workspace = LocalWorkspace(workspace_path)
     if not workspace.has_chunks():
@@ -659,12 +829,34 @@ def _handle_ask(
         return 0
 
     started_at = datetime.now(UTC)
+    retrieval_method = "lexical_token_overlap"
+    embedding_provider: str | None = None
+    embedding_model: str | None = None
+    index_path = None
     try:
         config = ConfigService(workspace).load()
         generation_service = GenerationService.from_config(config)
+        search_service = None
+        if retrieval == "semantic":
+            if not workspace.has_vector_index():
+                console.print(
+                    "Ask failed: vector index not found. "
+                    "Run `ragent index build` first.",
+                    markup=False,
+                    soft_wrap=True,
+                )
+                return 1
+            embedding_service = EmbeddingService.from_config(config)
+            search_service = SemanticSearchService(workspace, embedding_service)
+            retrieval_method = "semantic_cosine_similarity"
+            embedding_provider = config.embedding.provider
+            embedding_model = config.embedding.model
+            index_path = workspace.vector_index_path
         ask_service = AskService(
             workspace,
             generation_service=generation_service,
+            search_service=search_service,
+            retrieval_method=retrieval_method,
         )
         result = ask_service.ask(question, limit, max_context_chars)
         total_chunks = ask_service.count_chunks()
@@ -687,6 +879,11 @@ def _handle_ask(
         max_context_chars=max_context_chars,
         started_at=started_at,
         finished_at=finished_at,
+        retrieval_mode=retrieval,
+        retrieval_method=retrieval_method,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        index_path=index_path,
     )
     trace_path = workspace.write_trace(trace)
 
@@ -696,6 +893,7 @@ def _handle_ask(
         console.print("Ask pipeline: retrieval-only mode")
     console.print()
     console.print(f"Question: {question}")
+    console.print(f"Retrieval mode: {retrieval}")
 
     if result.generation_result.status == "success":
         console.print(f"Generation provider: {result.generation_result.provider_name}")
