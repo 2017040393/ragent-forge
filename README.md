@@ -75,7 +75,7 @@ Implemented so far:
 - `ragent traces latest`, `ragent traces list`, and
   `ragent traces show <trace_id>` inspect local operation traces.
 - `ragent tui` shows Documents workspace status, recent chunk previews, and
-  the latest trace summary.
+  the latest trace summary plus a read-only recent trace history summary.
 
 Real embeddings, vector database integration, answer generation, persistent
 retrieval indexes, and agent workflows are intentionally not implemented yet.
@@ -123,10 +123,11 @@ If the config file is missing, RAGentForge uses the default:
 provider = "null"
 ```
 
-The TUI Documents view reads the same workspace files. The TUI Trace view still
-reads only `.ragent/traces/latest_trace.json`. TUI trace history browsing,
-interactive trace selection, and TUI ingestion interactions are not implemented
-yet.
+The TUI Documents view reads the same workspace files. The TUI Trace view reads
+`.ragent/traces/latest_trace.json` and recent trace files under
+`.ragent/traces/<trace_id>.json`. TUI trace history is read-only and not
+interactive yet; use `ragent traces show <trace_id>` to inspect a specific trace.
+TUI trace selection and TUI ingestion interactions are not implemented yet.
 
 ## Development Setup
 
@@ -227,5 +228,7 @@ service is used, and this does not implement semantic, vector, LLM, or agent
 retrieval tracing. The TUI displays the same local workspace status, a small
 recent-chunks preview when chunks exist, and a read-only latest trace summary
 from `.ragent/traces/latest_trace.json`, including the latest search or ask
-retrieval trace after those commands. TUI trace history browsing is not
-implemented yet. `ragent ask` does not generate or fake an answer yet.
+retrieval trace after those commands. The TUI Trace view also shows a read-only
+recent trace history summary; use `ragent traces show <trace_id>` for full trace
+details. Interactive TUI trace history browsing is not implemented yet.
+`ragent ask` does not generate or fake an answer yet.
