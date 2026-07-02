@@ -117,6 +117,11 @@ and friendly errors can all become transcript messages. Metadata can carry
 selected source ids, retrieval mode, limits, or trace ids without forcing those
 details into visible text.
 
+The transcript model foundation lives in
+`src/ragent_forge/tui/shell_models.py`. It is intentionally pure and independent
+from Textual rendering so it can support a future Shell page without changing
+the existing page-based TUI.
+
 ## Command Dispatch
 
 Command parsing should remain independent from UI rendering. The parser should
