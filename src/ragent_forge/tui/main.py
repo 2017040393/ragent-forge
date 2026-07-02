@@ -4,7 +4,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.widgets import (
     Button,
     DataTable,
@@ -15,6 +15,7 @@ from textual.widgets import (
     Select,
     Static,
 )
+from textual.worker import Worker, WorkerState
 
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.tui.view_models import (
@@ -44,6 +45,9 @@ from ragent_forge.tui.view_models import (
     run_tui_ask,
     run_tui_search,
 )
+
+ASK_RUNNING_STATUS = "Running ask..."
+ASK_FAILED_STATUS = "Ask failed. Check configuration and workspace files."
 
 
 class RagentForgeApp(App[None]):
@@ -82,6 +86,31 @@ class RagentForgeApp(App[None]):
     #search-controls {
         height: auto;
         margin-bottom: 1;
+    }
+
+    #ask-controls {
+        height: auto;
+        margin-bottom: 1;
+    }
+
+    #ask-message {
+        height: auto;
+        margin-bottom: 1;
+    }
+
+    #ask-answer-container {
+        height: 12;
+        margin-bottom: 1;
+        padding: 1;
+        border: solid $secondary;
+    }
+
+    #ask-answer {
+        height: auto;
+    }
+
+    #ask-sources-table {
+        height: 1fr;
     }
 
     #query-input {
@@ -137,6 +166,7 @@ class RagentForgeApp(App[None]):
         self.documents_model: DocumentsPageModel | None = None
         self.search_state = SearchPageState()
         self.ask_state = AskPageState()
+        self.ask_running = False
         self.trace_model: TracePageModel | None = None
         self.selected_chunk: ChunkRow | None = None
         self.selected_search_result: SearchResult | None = None
@@ -215,7 +245,8 @@ class RagentForgeApp(App[None]):
                         )
                         yield Button("Run Ask", id="run-ask")
                     yield Static("", id="ask-message")
-                    yield Static("", id="ask-answer")
+                    with ScrollableContainer(id="ask-answer-container"):
+                        yield Static("", id="ask-answer")
                     yield DataTable(id="ask-sources-table", cursor_type="row")
                 with Vertical(id="trace-page", classes="page hidden"):
                     yield Label("Trace")
@@ -452,6 +483,9 @@ class RagentForgeApp(App[None]):
             )
 
     def _run_ask_from_inputs(self) -> None:
+        if self.ask_running:
+            return
+
         question = self.query_one("#ask-question-input", Input).value
         mode_value = self.query_one("#ask-retrieval-mode", Select).value
         mode = (
@@ -473,7 +507,51 @@ class RagentForgeApp(App[None]):
         except ValueError:
             max_context_chars = 4000
         show_prompt = self.query_one("#ask-show-prompt", Select).value == "true"
-        self.ask_state = run_tui_ask(
+        self.ask_state = replace(
+            self.ask_state,
+            question=question,
+            retrieval_mode=mode,  # type: ignore[arg-type]
+            limit=limit,
+            max_context_chars=max_context_chars,
+            show_prompt=show_prompt,
+            status=ASK_RUNNING_STATUS,
+            answer=None,
+            sources=[],
+            selected_source=None,
+            generation_status=None,
+            generation_provider=None,
+            prompt_preview=None,
+            error=None,
+            has_run=True,
+        )
+        self.selected_ask_source = None
+        self._set_ask_running(True)
+        self._render_ask()
+        self._render_inspector()
+        self.run_worker(
+            lambda: self._run_ask_worker(
+                question,
+                mode,
+                limit,
+                max_context_chars,
+                show_prompt,
+            ),
+            name="ask",
+            group="ask",
+            exclusive=True,
+            thread=True,
+            exit_on_error=False,
+        )
+
+    def _run_ask_worker(
+        self,
+        question: str,
+        mode: str,
+        limit: int,
+        max_context_chars: int,
+        show_prompt: bool,
+    ) -> AskPageState:
+        return run_tui_ask(
             self.workspace_path,
             question,
             mode,
@@ -481,8 +559,47 @@ class RagentForgeApp(App[None]):
             max_context_chars,
             show_prompt,
         )
+
+    def _set_ask_running(self, running: bool) -> None:
+        self.ask_running = running
+        run_button = self.query_one("#run-ask", Button)
+        run_button.disabled = running
+        run_button.label = "Running..." if running else "Run Ask"
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        if event.worker.name != "ask":
+            return
+        if event.state == WorkerState.SUCCESS:
+            result = event.worker.result
+            if isinstance(result, AskPageState):
+                self.ask_state = result
+                self.selected_ask_source = result.selected_source
+            else:
+                self._show_ask_worker_failure()
+        elif event.state in {WorkerState.ERROR, WorkerState.CANCELLED}:
+            self._show_ask_worker_failure()
+        else:
+            return
+
+        self._set_ask_running(False)
         self._render_ask()
         self._render_inspector()
+        event.stop()
+
+    def _show_ask_worker_failure(self) -> None:
+        self.ask_state = replace(
+            self.ask_state,
+            status=ASK_FAILED_STATUS,
+            error=ASK_FAILED_STATUS,
+            answer=None,
+            sources=[],
+            selected_source=None,
+            generation_status=None,
+            generation_provider=None,
+            prompt_preview=None,
+            has_run=True,
+        )
+        self.selected_ask_source = None
 
     def _run_search_from_inputs(self) -> None:
         query = self.query_one("#query-input", Input).value

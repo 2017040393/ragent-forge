@@ -419,8 +419,10 @@ views, keeps full paths separated in the Inspector, highlights the active
 navigation page, and shows clearer Search/Ask status plus
 Documents/Trace/Settings empty states. The TUI can run Search and Ask, but it
 does not run ingest, build the semantic index, run retrieval eval, or edit
-config; use the CLI commands for those workflows. TUI Ask does not write new
-traces yet, so CLI `ragent ask` remains the trace-producing ask workflow.
+config; use the CLI commands for those workflows. TUI Ask runs in a background
+worker so the interface stays responsive during retrieval and generation. TUI
+Ask does not write new traces yet, so CLI `ragent ask` remains the
+trace-producing ask workflow.
 
 `ragent ingest` loads and
 chunks local Markdown/TXT files without creating embeddings or a vector index.

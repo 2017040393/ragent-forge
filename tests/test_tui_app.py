@@ -1,11 +1,13 @@
 from pathlib import Path
 
 import pytest
-from textual.widgets import Static
+from textual.containers import ScrollableContainer
+from textual.widgets import Button, Static
 
 from ragent_forge.app.models import Document, IngestResult, OperationTrace, TraceStep
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
+from ragent_forge.tui import main as tui_main
 from ragent_forge.tui.main import RagentForgeApp
 
 
@@ -82,11 +84,104 @@ async def test_tui_app_navigates_and_runs_lexical_ask(tmp_path: Path) -> None:
         await pilot.click("#ask-question-input")
         await pilot.press("A", "g", "e", "n", "t", "i", "c")
         await pilot.press("enter")
+        await pilot.pause(0.2)
 
         inspector = app.query_one("#inspector-content", Static)
         assert "Ask source" in str(inspector.renderable)
         assert "full source_path:" in str(inspector.renderable)
         assert "/knowledge/agentic_rag.md" in str(inspector.renderable)
+
+
+@pytest.mark.anyio
+async def test_tui_app_ask_running_state_disables_run_button(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test() as pilot:
+        await pilot.press("a")
+
+        app._set_ask_running(True)
+        assert app.ask_running is True
+        assert app.query_one("#run-ask", Button).disabled is True
+
+        app._set_ask_running(False)
+        assert app.ask_running is False
+        assert app.query_one("#run-ask", Button).disabled is False
+
+
+@pytest.mark.anyio
+async def test_tui_app_run_ask_starts_worker_without_sync_call(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    started_workers: list[tuple[object, dict[str, object]]] = []
+
+    def forbidden_sync_call(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("run_tui_ask should run inside a worker")
+
+    def fake_run_worker(work: object, **kwargs: object) -> object:
+        started_workers.append((work, kwargs))
+        return object()
+
+    monkeypatch.setattr(tui_main, "run_tui_ask", forbidden_sync_call)
+    monkeypatch.setattr(app, "run_worker", fake_run_worker)
+
+    async with app.run_test() as pilot:
+        await pilot.press("a")
+        await pilot.click("#ask-question-input")
+        await pilot.press("A", "g", "e", "n", "t", "i", "c")
+        await pilot.press("enter")
+
+        assert started_workers
+        assert started_workers[0][1]["thread"] is True
+        assert started_workers[0][1]["exclusive"] is True
+        assert app.ask_running is True
+        assert app.query_one("#run-ask", Button).disabled is True
+        assert "Running ask..." in str(
+            app.query_one("#ask-message", Static).renderable
+        )
+
+
+@pytest.mark.anyio
+async def test_tui_app_run_ask_ignores_duplicate_start_while_running(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    started_workers: list[object] = []
+
+    def fake_run_worker(work: object, **_kwargs: object) -> object:
+        started_workers.append(work)
+        return object()
+
+    monkeypatch.setattr(app, "run_worker", fake_run_worker)
+
+    async with app.run_test() as pilot:
+        await pilot.press("a")
+        app.ask_running = True
+
+        app._run_ask_from_inputs()
+
+        assert started_workers == []
+
+
+@pytest.mark.anyio
+async def test_tui_app_ask_answer_uses_scroll_container(tmp_path: Path) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test() as pilot:
+        await pilot.press("a")
+
+        app.query_one("#ask-answer-container", ScrollableContainer)
+        assert "#ask-answer-container" in RagentForgeApp.CSS
+        assert "height: 12" in RagentForgeApp.CSS
+        assert "#ask-sources-table" in RagentForgeApp.CSS
 
 
 @pytest.mark.anyio

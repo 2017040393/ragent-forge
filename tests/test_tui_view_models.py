@@ -232,6 +232,79 @@ def test_ask_page_defaults_to_lexical_limit_and_initial_status() -> None:
     assert "Enter a question and press Enter or Run Ask." in vm.format_ask_page(state)
 
 
+def test_ask_page_running_state_is_safe() -> None:
+    state = vm.AskPageState(
+        question="What is Agentic RAG?",
+        status="Running ask...",
+        has_run=True,
+    )
+
+    text = vm.format_ask_page(state)
+
+    assert "Running ask..." in text
+    assert "api_key" not in text
+    assert "generation-secret" not in text
+
+
+def test_ask_page_formats_generated_answer_and_sources() -> None:
+    source = SearchResult(
+        chunk_id="doc::chunk-0000",
+        document_id="doc",
+        source_path="/knowledge/rag.md",
+        start_char=0,
+        end_char=42,
+        score=0.75,
+        text="Agentic RAG adds planning.",
+        metadata={"retrieval_method": "lexical_token_overlap"},
+    )
+    state = vm.AskPageState(
+        question="What does RAG add?",
+        status="Generation: success",
+        answer="It adds planning before retrieval.",
+        sources=[source],
+        selected_source=source,
+        generation_status="success",
+        generation_provider="openai_responses",
+        has_run=True,
+    )
+
+    text = vm.format_ask_page(state)
+
+    assert "It adds planning before retrieval." in text
+    assert "rag.md" in text
+    assert "chunk-0000" in text
+
+
+def test_ask_page_accepts_long_answer_without_changing_sources() -> None:
+    source = SearchResult(
+        chunk_id="chunk-0000",
+        document_id="doc",
+        source_path="/knowledge/rag.md",
+        start_char=0,
+        end_char=42,
+        score=0.75,
+        text="Agentic RAG adds planning.",
+        metadata={"retrieval_method": "lexical_token_overlap"},
+    )
+    long_answer = "Long answer. " * 300
+    state = vm.AskPageState(
+        question="Explain RAG",
+        status="Generation: success",
+        answer=long_answer,
+        sources=[source],
+        selected_source=source,
+        generation_status="success",
+        generation_provider="openai_responses",
+        has_run=True,
+    )
+
+    text = vm.format_ask_page(state)
+
+    assert long_answer in text
+    assert state.sources == [source]
+    assert "# | Score | Source | Chunk" in text
+
+
 def test_tui_ask_rejects_empty_question(tmp_path: Path) -> None:
     state = vm.run_tui_ask(tmp_path / ".ragent", "   ", "lexical", 5, 4000, False)
 
