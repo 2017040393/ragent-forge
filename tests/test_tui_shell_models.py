@@ -586,6 +586,7 @@ def test_messages_from_ask_state_with_error_returns_error_message() -> None:
             metadata={"operation": "ask", "retrieval_mode": "semantic"},
         ),
     )
+    assert messages[0].sources == ()
 
 
 def test_messages_from_ask_state_with_answer_returns_assistant_message() -> None:
@@ -616,6 +617,26 @@ def test_messages_from_ask_state_with_answer_returns_assistant_message() -> None
     assert len(message.sources) == 1
 
 
+def test_messages_from_ask_state_with_answer_renders_sources_block() -> None:
+    result = make_search_result()
+    state = AskPageState(
+        question="What is RAG?",
+        retrieval_mode="hybrid",
+        answer="Agentic RAG adds planning.",
+        sources=[result],
+        generation_status="success",
+        generation_provider="openai_responses",
+        has_run=True,
+    )
+
+    rendered = format_transcript(messages_from_ask_state(state))
+
+    assert "Assistant:\n  Agentic RAG adds planning." in rendered
+    assert "Sources:" in rendered
+    assert "1. rag_basics.md" in rendered
+    assert "chunk=chunk-0000" in rendered
+
+
 def test_messages_from_ask_state_with_status_returns_tool_message() -> None:
     result = make_search_result()
     state = AskPageState(
@@ -636,6 +657,42 @@ def test_messages_from_ask_state_with_status_returns_tool_message() -> None:
     )
     assert messages[0].metadata["source_count"] == 1
     assert len(messages[0].sources) == 1
+
+
+def test_messages_from_ask_state_with_status_renders_sources_block() -> None:
+    result = make_search_result()
+    state = AskPageState(
+        question="What is RAG?",
+        retrieval_mode="lexical",
+        status="Generation: not configured. Showing retrieved context only.",
+        sources=[result],
+        generation_status="not_configured",
+        generation_provider="null",
+        has_run=True,
+    )
+
+    rendered = format_transcript(messages_from_ask_state(state))
+
+    assert "Tool:" in rendered
+    assert "Generation: not configured. Showing retrieved context only." in rendered
+    assert "Sources:" in rendered
+    assert "1. rag_basics.md" in rendered
+
+
+def test_messages_from_ask_state_does_not_dump_prompt_preview() -> None:
+    state = AskPageState(
+        question="What is RAG?",
+        retrieval_mode="lexical",
+        answer="Short answer.",
+        prompt_preview="PROMPT PREVIEW SHOULD NOT APPEAR",
+        show_prompt=True,
+        has_run=True,
+    )
+
+    rendered = format_transcript(messages_from_ask_state(state))
+
+    assert "Short answer." in rendered
+    assert "PROMPT PREVIEW SHOULD NOT APPEAR" not in rendered
 
 
 def test_messages_from_ask_state_fallback_returns_tool_message() -> None:

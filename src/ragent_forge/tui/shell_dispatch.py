@@ -10,7 +10,6 @@ from ragent_forge.tui.shell_models import (
     TranscriptMessage,
     TranscriptRole,
     append_message,
-    append_messages,
     clear_transcript,
     set_limit,
     set_max_context_chars,
@@ -18,11 +17,7 @@ from ragent_forge.tui.shell_models import (
     set_show_prompt,
 )
 
-ShellAction = Literal["none", "quit", "search"]
-
-ASK_NOT_WIRED_MESSAGE = (
-    "Ask execution from Shell is not wired yet. Use the Ask page for now."
-)
+ShellAction = Literal["none", "quit", "search", "ask"]
 
 _PLANNED_NOT_WIRED_MESSAGES = {
     "docs": "/docs dispatch is not wired yet. Use the Documents page for now.",
@@ -51,6 +46,7 @@ class ShellDispatchResult:
     state: ShellState
     action: ShellAction = "none"
     search_query: str | None = None
+    ask_question: str | None = None
 
 
 def apply_shell_input(
@@ -64,7 +60,7 @@ def apply_shell_input(
         return ShellDispatchResult(_append_shell_message(state, "error", parsed.error))
 
     if parsed.name == "ask":
-        return ShellDispatchResult(_append_ask_placeholder(state, parsed.args))
+        return ShellDispatchResult(state, action="ask", ask_question=parsed.args)
     if parsed.name == "help":
         return ShellDispatchResult(
             _append_shell_message(state, "tool", format_tui_command_help())
@@ -98,16 +94,6 @@ def apply_shell_input(
 
     return ShellDispatchResult(
         _append_shell_message(state, "error", "Unknown command.")
-    )
-
-
-def _append_ask_placeholder(state: ShellState, question: str) -> ShellState:
-    return append_messages(
-        state,
-        (
-            TranscriptMessage(role="user", text=question),
-            TranscriptMessage(role="tool", text=ASK_NOT_WIRED_MESSAGE),
-        ),
     )
 
 

@@ -175,7 +175,8 @@ Current implementation status:
 - Shell `/search <query>` is wired through a background worker.
 - Shell search sources are displayed in the transcript.
 - Shell Inspector shows selected-source details.
-- Shell Ask command dispatch is not wired yet.
+- Shell ordinary questions and `/ask <question>` are wired through a background
+  worker.
 
 ## Migration Plan
 

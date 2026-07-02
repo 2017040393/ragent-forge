@@ -434,10 +434,12 @@ also run read-only project inspection commands such as `/docs`, `/trace`, and
 mode and limit. Semantic and hybrid Shell search require an existing vector
 index, just like the Search page. Shell search results include compact source
 lists in the transcript, and the Inspector shows details for the currently
-selected source. Interactive source navigation is not implemented yet. Ask
-execution from the Shell remains intentionally not wired; use the existing Ask
-page for generated answers. Normal text and `/ask <question>` are recognized
-as Ask intent, but real Shell Ask execution is not wired yet.
+selected source. Interactive source navigation is not implemented yet. The
+experimental Shell page can now run ordinary questions and `/ask <question>`
+through the existing Ask pipeline using the current Shell mode, limit, context,
+and prompt settings. Shell Ask runs in a background worker and does not write
+new traces; CLI `ragent ask` remains the trace-producing Ask workflow. The
+existing Ask page remains available.
 
 `ragent ingest` loads and
 chunks local Markdown/TXT files without creating embeddings or a vector index.

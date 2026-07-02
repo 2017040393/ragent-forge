@@ -23,11 +23,13 @@ from ragent_forge.tui.shell_models import (
     ShellState,
     TranscriptMessage,
     append_message,
+    append_messages,
     create_initial_shell_state,
     format_shell_inspector,
     format_shell_status,
     format_transcript,
     message_from_search_state,
+    messages_from_ask_state,
     select_source,
     set_running,
 )
@@ -61,6 +63,7 @@ from ragent_forge.tui.view_models import (
 
 ASK_RUNNING_STATUS = "Running ask..."
 ASK_FAILED_STATUS = "Ask failed. Check configuration and workspace files."
+SHELL_ASK_FAILED_STATUS = "Ask failed. Check configuration and workspace files."
 SHELL_SEARCH_FAILED_STATUS = "Search failed. Check configuration and workspace files."
 
 
@@ -518,8 +521,58 @@ class RagentForgeApp(App[None]):
         if result.action == "search" and result.search_query is not None:
             self._run_shell_search_from_dispatch(result.search_query)
             return
+        if result.action == "ask" and result.ask_question is not None:
+            self._run_shell_ask_from_dispatch(result.ask_question)
+            return
         self._render_shell()
         self._render_inspector()
+
+    def _run_shell_ask_from_dispatch(self, question: str) -> None:
+        mode = self.shell_state.retrieval_mode
+        limit = self.shell_state.limit
+        max_context_chars = self.shell_state.max_context_chars
+        show_prompt = self.shell_state.show_prompt
+        self.shell_state = append_messages(
+            self.shell_state,
+            (
+                TranscriptMessage(role="user", text=question),
+                TranscriptMessage(role="tool", text=f"Running ask for: {question}"),
+            ),
+        )
+        self._set_shell_running(True)
+        self._render_shell()
+        self._render_inspector()
+        self.run_worker(
+            lambda: self._run_shell_ask_worker(
+                question,
+                mode,
+                limit,
+                max_context_chars,
+                show_prompt,
+            ),
+            name="shell-ask",
+            group="shell",
+            exclusive=True,
+            thread=True,
+            exit_on_error=False,
+        )
+
+    def _run_shell_ask_worker(
+        self,
+        question: str,
+        mode: str,
+        limit: int,
+        max_context_chars: int,
+        show_prompt: bool,
+    ) -> AskPageState:
+        return run_tui_ask(
+            self.workspace_path,
+            question,
+            mode,
+            limit,
+            max_context_chars,
+            show_prompt,
+        )
 
     def _run_shell_search_from_dispatch(self, query: str) -> None:
         mode = self.shell_state.retrieval_mode
@@ -711,6 +764,9 @@ class RagentForgeApp(App[None]):
         run_button.label = "Running..." if running else "Run Ask"
 
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        if event.worker.name == "shell-ask":
+            self._handle_shell_ask_worker_state(event)
+            return
         if event.worker.name == "shell-search":
             self._handle_shell_search_worker_state(event)
             return
@@ -730,6 +786,34 @@ class RagentForgeApp(App[None]):
 
         self._set_ask_running(False)
         self._render_ask()
+        self._render_inspector()
+        event.stop()
+
+    def _handle_shell_ask_worker_state(
+        self,
+        event: Worker.StateChanged,
+    ) -> None:
+        if event.state == WorkerState.SUCCESS:
+            result = event.worker.result
+            if isinstance(result, AskPageState):
+                messages = messages_from_ask_state(result)
+                self.shell_state = append_messages(self.shell_state, messages)
+                for message in messages:
+                    if message.sources:
+                        self.shell_state = select_source(
+                            self.shell_state,
+                            message.sources[0],
+                        )
+                        break
+            else:
+                self._show_shell_ask_worker_failure()
+        elif event.state in {WorkerState.ERROR, WorkerState.CANCELLED}:
+            self._show_shell_ask_worker_failure()
+        else:
+            return
+
+        self._set_shell_running(False)
+        self._render_shell()
         self._render_inspector()
         event.stop()
 
@@ -766,6 +850,12 @@ class RagentForgeApp(App[None]):
         self.shell_state = append_message(
             self.shell_state,
             TranscriptMessage(role="error", text=SHELL_SEARCH_FAILED_STATUS),
+        )
+
+    def _show_shell_ask_worker_failure(self) -> None:
+        self.shell_state = append_message(
+            self.shell_state,
+            TranscriptMessage(role="error", text=SHELL_ASK_FAILED_STATUS),
         )
 
     def _show_ask_worker_failure(self) -> None:

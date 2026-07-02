@@ -1,14 +1,18 @@
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from textual.containers import ScrollableContainer
 from textual.widgets import Button, Input, Static
+from textual.worker import WorkerState
 
 from ragent_forge.app.models import Document, IngestResult, OperationTrace, TraceStep
+from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 from ragent_forge.tui import main as tui_main
 from ragent_forge.tui.main import RagentForgeApp
+from ragent_forge.tui.view_models import AskPageState
 
 
 def make_tui_workspace(tmp_path: Path) -> LocalWorkspace:
@@ -94,29 +98,138 @@ async def test_tui_app_shell_page_renders_status_transcript_and_input(
 
 
 @pytest.mark.anyio
-async def test_tui_app_shell_submission_uses_dispatch_without_running_ask(
+async def test_tui_app_shell_submission_starts_ask_worker_and_uses_shell_settings(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     workspace = make_tui_workspace(tmp_path)
     app = RagentForgeApp(workspace.root_path)
+    started_workers: list[tuple[object, dict[str, object]]] = []
+    calls: list[tuple[object, str, str, int, int, bool]] = []
 
-    def forbidden_sync_call(*_args: object, **_kwargs: object) -> None:
-        raise AssertionError("Shell MVP should not run ask execution")
+    def fake_run_tui_ask(
+        workspace_path: object,
+        question: str,
+        mode: str,
+        limit: int,
+        max_context_chars: int,
+        show_prompt: bool,
+    ) -> AskPageState:
+        calls.append(
+            (workspace_path, question, mode, limit, max_context_chars, show_prompt)
+        )
+        return AskPageState(question=question, answer="answer", has_run=True)
 
-    monkeypatch.setattr(tui_main, "run_tui_ask", forbidden_sync_call)
+    def fake_run_worker(work: object, **kwargs: object) -> object:
+        started_workers.append((work, kwargs))
+        return object()
+
+    monkeypatch.setattr(tui_main, "run_tui_ask", fake_run_tui_ask)
+    monkeypatch.setattr(app, "run_worker", fake_run_worker)
 
     async with app.run_test() as pilot:
         await pilot.press("h")
+        app.shell_state = replace(
+            app.shell_state,
+            retrieval_mode="hybrid",
+            limit=3,
+            max_context_chars=3000,
+            show_prompt=True,
+        )
+        app._render_shell()
         shell_input = app.query_one("#shell-input", Input)
         shell_input.value = "What is Agentic RAG?"
 
         app._submit_shell_input()
 
+        assert calls == []
+        assert started_workers
+        assert started_workers[0][1]["name"] == "shell-ask"
+        assert started_workers[0][1]["group"] == "shell"
+        assert started_workers[0][1]["thread"] is True
+        assert started_workers[0][1]["exclusive"] is True
+        assert shell_input.disabled is True
+        assert app.shell_state.running is True
         assert shell_input.value == ""
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         assert "User:\n  What is Agentic RAG?" in transcript
-        assert "Ask execution from Shell is not wired yet." in transcript
+        assert "Running ask for: What is Agentic RAG?" in transcript
+        assert "status: running" in str(
+            app.query_one("#shell-status", Static).renderable
+        )
+
+        work = started_workers[0][0]
+        assert callable(work)
+        result = work()
+
+        assert isinstance(result, AskPageState)
+        assert calls == [
+            (
+                workspace.root_path,
+                "What is Agentic RAG?",
+                "hybrid",
+                3,
+                3000,
+                True,
+            )
+        ]
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_ask_worker_success_appends_messages_and_selects_source(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    source = SearchResult(
+        chunk_id="/knowledge/agentic_rag.md::chunk-0000",
+        document_id="/knowledge/agentic_rag.md",
+        source_path="/knowledge/agentic_rag.md",
+        start_char=0,
+        end_char=42,
+        score=1.0,
+        text="Agentic RAG adds planning before retrieval.",
+        metadata={"retrieval_method": "lexical_token_overlap"},
+    )
+
+    class FakeWorker:
+        name = "shell-ask"
+        result = AskPageState(
+            question="What is Agentic RAG?",
+            retrieval_mode="lexical",
+            answer="Agentic RAG adds planning.",
+            sources=[source],
+            generation_status="success",
+            generation_provider="openai_responses",
+            has_run=True,
+        )
+
+    class FakeEvent:
+        state = WorkerState.SUCCESS
+        worker = FakeWorker()
+        stopped = False
+
+        def stop(self) -> None:
+            self.stopped = True
+
+    async with app.run_test() as pilot:
+        await pilot.press("h")
+        app._set_shell_running(True)
+
+        event = FakeEvent()
+        app._handle_shell_ask_worker_state(event)  # type: ignore[arg-type]
+
+        assert event.stopped is True
+        assert app.shell_state.running is False
+        assert app.query_one("#shell-input", Input).disabled is False
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert "Assistant:\n  Agentic RAG adds planning." in transcript
+        assert "Sources:" in transcript
+        assert "agentic_rag.md" in transcript
+        assert app.shell_state.selected_source is not None
+        assert app.shell_state.selected_source.source_path == (
+            "/knowledge/agentic_rag.md"
+        )
 
 
 @pytest.mark.anyio

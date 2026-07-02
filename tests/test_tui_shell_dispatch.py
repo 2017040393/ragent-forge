@@ -7,8 +7,6 @@ from ragent_forge.tui.shell_models import (
     format_transcript,
 )
 
-ASK_NOT_WIRED = "Ask execution from Shell is not wired yet. Use the Ask page for now."
-
 
 def test_shell_initial_state_renders_status_and_welcome_transcript() -> None:
     state = create_initial_shell_state()
@@ -19,25 +17,32 @@ def test_shell_initial_state_renders_status_and_welcome_transcript() -> None:
     assert "RAGentForge command shell." in format_transcript(state.messages)
 
 
-def test_apply_shell_input_normal_text_appends_ask_placeholder() -> None:
+def test_apply_shell_input_normal_text_returns_ask_action() -> None:
     result = apply_shell_input(create_initial_shell_state(), "What is Agentic RAG?")
 
-    assert result.action == "none"
+    assert result.action == "ask"
+    assert result.ask_question == "What is Agentic RAG?"
     assert result.search_query is None
-    assert result.state.messages[-2:] == (
-        TranscriptMessage(role="user", text="What is Agentic RAG?"),
-        TranscriptMessage(role="tool", text=ASK_NOT_WIRED),
-    )
+    assert result.state == create_initial_shell_state()
 
 
-def test_apply_shell_input_ask_command_appends_ask_placeholder() -> None:
+def test_apply_shell_input_ask_command_returns_ask_action() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/ask What is RAG?")
 
-    assert result.action == "none"
+    assert result.action == "ask"
+    assert result.ask_question == "What is RAG?"
     assert result.search_query is None
-    assert result.state.messages[-2:] == (
-        TranscriptMessage(role="user", text="What is RAG?"),
-        TranscriptMessage(role="tool", text=ASK_NOT_WIRED),
+    assert result.state == create_initial_shell_state()
+
+
+def test_apply_shell_input_ask_without_question_appends_parser_error() -> None:
+    result = apply_shell_input(create_initial_shell_state(), "/ask")
+
+    assert result.action == "none"
+    assert result.ask_question is None
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="error",
+        text="Missing arguments for /ask. Usage: /ask <question>",
     )
 
 
@@ -46,6 +51,7 @@ def test_apply_shell_input_search_returns_search_action() -> None:
 
     assert result.action == "search"
     assert result.search_query == "agent memory"
+    assert result.ask_question is None
     assert result.state == create_initial_shell_state()
 
 
@@ -346,6 +352,7 @@ def test_apply_shell_input_missing_arguments_appends_parser_error() -> None:
 
     assert result.action == "none"
     assert result.search_query is None
+    assert result.ask_question is None
     assert result.state.messages[-1] == TranscriptMessage(
         role="error",
         text="Missing arguments for /search. Usage: /search <query>",
@@ -368,9 +375,9 @@ def test_apply_shell_input_exit_returns_quit_action() -> None:
 
 
 def test_shell_transcript_formatting_hides_api_keys_from_shell_messages() -> None:
-    result = apply_shell_input(create_initial_shell_state(), "api_key=abc123")
+    message = TranscriptMessage(role="tool", text="api_key=abc123")
 
-    rendered = format_transcript(result.state.messages)
+    rendered = format_transcript((message,))
 
     assert "abc123" not in rendered
     assert "<hidden>" in rendered
