@@ -170,6 +170,8 @@ Current implementation status:
 - Command parser exists.
 - Transcript model exists.
 - Experimental Shell page exists.
+- Local Shell commands are wired.
+- Read-only Shell commands `/docs`, `/trace`, and `/settings` are wired.
 - Full Ask/Search command dispatch is not wired yet.
 
 ## Migration Plan

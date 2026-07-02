@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
@@ -32,6 +33,19 @@ _PLANNED_NOT_WIRED_MESSAGES = {
     ),
 }
 
+_READ_ONLY_ERROR_MESSAGES = {
+    "docs": "Unable to load document summary.",
+    "trace": "Unable to load trace summary.",
+    "settings": "Unable to load settings summary.",
+}
+
+
+@dataclass(frozen=True)
+class ShellReadOnlyHandlers:
+    docs: Callable[[], str] | None = None
+    trace: Callable[[], str] | None = None
+    settings: Callable[[], str] | None = None
+
 
 @dataclass(frozen=True)
 class ShellDispatchResult:
@@ -39,7 +53,12 @@ class ShellDispatchResult:
     action: ShellAction = "none"
 
 
-def apply_shell_input(state: ShellState, text: str) -> ShellDispatchResult:
+def apply_shell_input(
+    state: ShellState,
+    text: str,
+    *,
+    handlers: ShellReadOnlyHandlers | None = None,
+) -> ShellDispatchResult:
     parsed = parse_tui_input(text)
     if parsed.error:
         return ShellDispatchResult(_append_shell_message(state, "error", parsed.error))
@@ -60,6 +79,10 @@ def apply_shell_input(state: ShellState, text: str) -> ShellDispatchResult:
         return ShellDispatchResult(_apply_context_command(state, parsed.args))
     if parsed.name == "prompt":
         return ShellDispatchResult(_apply_prompt_command(state, parsed.args))
+    if parsed.name in {"docs", "trace", "settings"}:
+        return ShellDispatchResult(
+            _apply_read_only_command(state, parsed.name, handlers)
+        )
     if parsed.name in _PLANNED_NOT_WIRED_MESSAGES:
         return ShellDispatchResult(
             _append_shell_message(
@@ -141,6 +164,51 @@ def _apply_prompt_command(state: ShellState, value: str) -> ShellState:
     updated = set_show_prompt(state, enabled)
     status = "enabled" if enabled else "disabled"
     return _append_shell_message(updated, "tool", f"prompt preview {status}")
+
+
+def _apply_read_only_command(
+    state: ShellState,
+    command: Literal["docs", "trace", "settings"],
+    handlers: ShellReadOnlyHandlers | None,
+) -> ShellState:
+    handler = _read_only_handler(command, handlers)
+    if handler is None:
+        return _append_shell_message(
+            state,
+            "tool",
+            _PLANNED_NOT_WIRED_MESSAGES[command],
+        )
+
+    try:
+        text = handler()
+    except Exception:
+        return _append_shell_message(
+            state,
+            "error",
+            _READ_ONLY_ERROR_MESSAGES[command],
+        )
+
+    return append_message(
+        state,
+        TranscriptMessage(
+            role="tool",
+            text=text,
+            metadata={"operation": "shell_command", "command": command},
+        ),
+    )
+
+
+def _read_only_handler(
+    command: Literal["docs", "trace", "settings"],
+    handlers: ShellReadOnlyHandlers | None,
+) -> Callable[[], str] | None:
+    if handlers is None:
+        return None
+    if command == "docs":
+        return handlers.docs
+    if command == "trace":
+        return handlers.trace
+    return handlers.settings
 
 
 def _append_shell_message(

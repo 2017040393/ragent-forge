@@ -119,6 +119,24 @@ async def test_tui_app_shell_submission_uses_dispatch_without_running_ask(
         assert "Ask execution from Shell is not wired yet." in transcript
 
 
+def test_tui_app_shell_read_only_handlers_return_workspace_summaries(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    add_trace(workspace)
+    app = RagentForgeApp(workspace.root_path)
+
+    handlers = app._shell_read_only_handlers()
+
+    assert handlers.docs is not None
+    assert handlers.trace is not None
+    assert handlers.settings is not None
+    assert "Workspace" in handlers.docs()
+    assert "Latest trace" in handlers.trace()
+    assert "read_chunks" in handlers.trace()
+    assert "config path:" in handlers.settings()
+
+
 @pytest.mark.anyio
 async def test_tui_app_shell_inspector_shows_basic_details(tmp_path: Path) -> None:
     workspace = make_tui_workspace(tmp_path)

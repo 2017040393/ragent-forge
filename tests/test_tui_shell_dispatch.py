@@ -1,5 +1,5 @@
 from ragent_forge.tui.commands import format_tui_command_help
-from ragent_forge.tui.shell_dispatch import apply_shell_input
+from ragent_forge.tui.shell_dispatch import ShellReadOnlyHandlers, apply_shell_input
 from ragent_forge.tui.shell_models import (
     TranscriptMessage,
     create_initial_shell_state,
@@ -170,6 +170,159 @@ def test_apply_shell_input_planned_not_wired_commands_append_messages() -> None:
             role="tool",
             text=message,
         )
+
+
+def test_apply_shell_input_config_without_handlers_uses_settings_fallback() -> None:
+    result = apply_shell_input(create_initial_shell_state(), "/config")
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="tool",
+        text="/settings dispatch is not wired yet. Use the Settings page for now.",
+    )
+
+
+def test_apply_shell_input_docs_handler_appends_tool_output() -> None:
+    result = apply_shell_input(
+        create_initial_shell_state(),
+        "/docs",
+        handlers=ShellReadOnlyHandlers(docs=lambda: "Workspace\n  status: ready"),
+    )
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="tool",
+        text="Workspace\n  status: ready",
+        metadata={"operation": "shell_command", "command": "docs"},
+    )
+
+
+def test_apply_shell_input_trace_handler_appends_tool_output() -> None:
+    result = apply_shell_input(
+        create_initial_shell_state(),
+        "/trace",
+        handlers=ShellReadOnlyHandlers(trace=lambda: "Latest trace\n\nSteps"),
+    )
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="tool",
+        text="Latest trace\n\nSteps",
+        metadata={"operation": "shell_command", "command": "trace"},
+    )
+
+
+def test_apply_shell_input_settings_handler_appends_tool_output() -> None:
+    result = apply_shell_input(
+        create_initial_shell_state(),
+        "/settings",
+        handlers=ShellReadOnlyHandlers(settings=lambda: "config path: .ragent"),
+    )
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="tool",
+        text="config path: .ragent",
+        metadata={"operation": "shell_command", "command": "settings"},
+    )
+
+
+def test_apply_shell_input_config_uses_settings_handler() -> None:
+    result = apply_shell_input(
+        create_initial_shell_state(),
+        "/config",
+        handlers=ShellReadOnlyHandlers(settings=lambda: "config path: .ragent"),
+    )
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="tool",
+        text="config path: .ragent",
+        metadata={"operation": "shell_command", "command": "settings"},
+    )
+
+
+def test_apply_shell_input_docs_handler_error_appends_friendly_error() -> None:
+    def fail() -> str:
+        raise RuntimeError("broken docs")
+
+    result = apply_shell_input(
+        create_initial_shell_state(),
+        "/docs",
+        handlers=ShellReadOnlyHandlers(docs=fail),
+    )
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="error",
+        text="Unable to load document summary.",
+    )
+
+
+def test_apply_shell_input_trace_handler_error_appends_friendly_error() -> None:
+    def fail() -> str:
+        raise RuntimeError("broken trace")
+
+    result = apply_shell_input(
+        create_initial_shell_state(),
+        "/trace",
+        handlers=ShellReadOnlyHandlers(trace=fail),
+    )
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="error",
+        text="Unable to load trace summary.",
+    )
+
+
+def test_apply_shell_input_settings_handler_error_appends_friendly_error() -> None:
+    def fail() -> str:
+        raise RuntimeError("broken settings")
+
+    result = apply_shell_input(
+        create_initial_shell_state(),
+        "/settings",
+        handlers=ShellReadOnlyHandlers(settings=fail),
+    )
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="error",
+        text="Unable to load settings summary.",
+    )
+
+
+def test_apply_shell_input_handler_output_is_only_appended_as_text() -> None:
+    state = apply_shell_input(create_initial_shell_state(), "question").state
+
+    result = apply_shell_input(
+        state,
+        "/docs",
+        handlers=ShellReadOnlyHandlers(docs=lambda: "/clear"),
+    )
+
+    assert len(result.state.messages) == len(state.messages) + 1
+    assert result.state.messages[-1].text == "/clear"
+
+
+def test_apply_shell_input_does_not_display_read_only_command_metadata() -> None:
+    result = apply_shell_input(
+        create_initial_shell_state(),
+        "/docs",
+        handlers=ShellReadOnlyHandlers(docs=lambda: "Workspace"),
+    )
+
+    rendered = format_transcript((result.state.messages[-1],))
+
+    assert "Workspace" in rendered
+    assert "shell_command" not in rendered
+    assert "command" not in rendered
+
+
+def test_read_only_handler_output_with_api_key_is_hidden_by_formatter() -> None:
+    result = apply_shell_input(
+        create_initial_shell_state(),
+        "/settings",
+        handlers=ShellReadOnlyHandlers(settings=lambda: "api_key: abc123"),
+    )
+
+    rendered = format_transcript(result.state.messages)
+
+    assert "abc123" not in rendered
+    assert "<hidden>" in rendered
 
 
 def test_apply_shell_input_unknown_command_appends_error() -> None:

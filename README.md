@@ -428,8 +428,10 @@ retrieval and generation. TUI Ask does not write new traces yet, so CLI
 The TUI also includes an experimental Shell page for the future command-first
 workflow. It renders shell status, transcript output, and a composer input. In
 this MVP, local commands such as `/help`, `/mode`, `/limit`, `/context`,
-`/prompt`, `/clear`, and `/exit` are handled, while the Ask, Search, Documents,
-Trace, and Settings dispatch paths still remain on the existing pages. Normal
+`/prompt`, `/clear`, and `/exit` are handled. The experimental Shell page can
+also run read-only project inspection commands such as `/docs`, `/trace`, and
+`/settings`. Ask and Search execution from the Shell are still intentionally
+not wired; use the existing Ask and Search pages for those workflows. Normal
 text and `/ask <question>` are recognized as Ask intent, but real Shell Ask
 execution is not wired yet.
 

@@ -18,7 +18,7 @@ from textual.widgets import (
 from textual.worker import Worker, WorkerState
 
 from ragent_forge.app.services.search_service import SearchResult
-from ragent_forge.tui.shell_dispatch import apply_shell_input
+from ragent_forge.tui.shell_dispatch import ShellReadOnlyHandlers, apply_shell_input
 from ragent_forge.tui.shell_models import (
     ShellState,
     create_initial_shell_state,
@@ -498,13 +498,39 @@ class RagentForgeApp(App[None]):
         shell_input = self.query_one("#shell-input", Input)
         text = shell_input.value
         shell_input.value = ""
-        result = apply_shell_input(self.shell_state, text)
+        result = apply_shell_input(
+            self.shell_state,
+            text,
+            handlers=self._shell_read_only_handlers(),
+        )
         self.shell_state = result.state
         if result.action == "quit":
             self.exit()
             return
         self._render_shell()
         self._render_inspector()
+
+    def _shell_read_only_handlers(self) -> ShellReadOnlyHandlers:
+        return ShellReadOnlyHandlers(
+            docs=self._shell_docs_summary,
+            trace=self._shell_trace_summary,
+            settings=self._shell_settings_summary,
+        )
+
+    def _shell_docs_summary(self) -> str:
+        return format_documents_page(load_documents_page_model(self.workspace_path))
+
+    def _shell_trace_summary(self) -> str:
+        model = load_trace_page_model(self.workspace_path)
+        return "\n\n".join(
+            [
+                format_trace_overview(model.selected_trace),
+                format_trace_steps(model.selected_trace),
+            ]
+        )
+
+    def _shell_settings_summary(self) -> str:
+        return format_settings_page(load_settings_page_model(self.workspace_path))
 
     def _render_search(self) -> None:
         self.selected_search_result = self.search_state.selected_result
