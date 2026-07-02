@@ -424,6 +424,11 @@ worker so the interface stays responsive during retrieval and generation. TUI
 Ask does not write new traces yet, so CLI `ragent ask` remains the
 trace-producing ask workflow.
 
+The current TUI is page-based, but the project includes a design and parser
+foundation for a future command-first shell where ordinary input runs Ask and
+slash commands such as `/search`, `/docs`, `/trace`, `/settings`, `/mode`, and
+`/help` control secondary workflows.
+
 `ragent ingest` loads and
 chunks local Markdown/TXT files without creating embeddings or a vector index.
 It writes `.ragent/chunks/chunks.jsonl` and
