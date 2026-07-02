@@ -1,8 +1,10 @@
 import pytest
 
 from ragent_forge.tui.commands import (
+    complete_tui_command_suggestion,
     format_tui_command_help,
     format_tui_command_suggestions,
+    get_tui_command_suggestion_items,
     list_tui_commands,
     match_tui_commands,
     parse_tui_input,
@@ -274,6 +276,37 @@ def test_format_tui_command_suggestions_does_not_mutate_command_registry() -> No
     _ = format_tui_command_suggestions("/se")
 
     assert list_tui_commands() == before
+
+
+def test_get_tui_command_suggestion_items_returns_matching_specs() -> None:
+    items = get_tui_command_suggestion_items("/se")
+
+    assert [item.name for item in items] == ["search", "settings"]
+
+
+def test_get_tui_command_suggestion_items_hides_for_command_arguments() -> None:
+    assert get_tui_command_suggestion_items("/search rag") == []
+
+
+def test_format_tui_command_suggestions_marks_selected_item() -> None:
+    text = format_tui_command_suggestions("/se", selected_index=1)
+
+    assert "  /search <query>" in text
+    assert "> /settings" in text
+
+
+def test_complete_tui_command_suggestion_uses_selected_canonical_command() -> None:
+    assert complete_tui_command_suggestion("/se", selected_index=1) == "/settings "
+
+
+def test_complete_tui_command_suggestion_uses_canonical_alias_target() -> None:
+    assert complete_tui_command_suggestion("/config", selected_index=0) == "/settings "
+    assert complete_tui_command_suggestion("/q", selected_index=0) == "/exit "
+
+
+def test_complete_tui_command_suggestion_returns_none_without_candidates() -> None:
+    assert complete_tui_command_suggestion("hello", selected_index=0) is None
+    assert complete_tui_command_suggestion("/search rag", selected_index=0) is None
 
 
 @pytest.mark.parametrize(

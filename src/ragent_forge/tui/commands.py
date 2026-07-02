@@ -213,30 +213,71 @@ def format_tui_command_help(
     return "\n".join(lines)
 
 
-def format_tui_command_suggestions(text: str, *, limit: int = 6) -> str:
+def get_tui_command_suggestion_items(
+    text: str,
+    *,
+    limit: int = 6,
+) -> list[SlashCommandSpec]:
     if limit <= 0:
-        return ""
+        return []
 
     raw = text.lstrip()
     if not raw or not raw.startswith("/"):
-        return ""
+        return []
 
     command_fragment = raw[1:]
     if any(character.isspace() for character in command_fragment):
-        return ""
+        return []
 
-    matches = match_tui_commands(command_fragment)
-    if not matches:
+    return match_tui_commands(command_fragment)[:limit]
+
+
+def complete_tui_command_suggestion(
+    text: str,
+    *,
+    selected_index: int = 0,
+    limit: int = 6,
+) -> str | None:
+    items = get_tui_command_suggestion_items(text, limit=limit)
+    if not items:
+        return None
+
+    selected = items[selected_index % len(items)]
+    return f"/{selected.name} "
+
+
+def format_tui_command_suggestions(
+    text: str,
+    *,
+    limit: int = 6,
+    selected_index: int | None = None,
+) -> str:
+    visible_matches = get_tui_command_suggestion_items(text, limit=limit)
+    if not visible_matches:
+        raw = text.lstrip()
+        if not raw or not raw.startswith("/"):
+            return ""
+        command_fragment = raw[1:]
+        if not command_fragment or any(
+            character.isspace() for character in command_fragment
+        ):
+            return ""
         return "No matching commands. Type /help for the command list."
 
-    visible_matches = matches[:limit]
     usage_width = max(len(command.usage) for command in visible_matches)
     lines = ["Suggestions:"]
-    lines.extend(
-        f"  {command.usage.ljust(usage_width)}  {command.description}"
-        for command in visible_matches
+    selected_match_index = (
+        selected_index % len(visible_matches)
+        if selected_index is not None
+        else None
     )
-    if len(matches) > limit:
+    for index, command in enumerate(visible_matches):
+        marker = ">" if index == selected_match_index else " "
+        lines.append(
+            f"{marker} {command.usage.ljust(usage_width)}  {command.description}"
+        )
+
+    if len(match_tui_commands(text.lstrip()[1:])) > limit:
         lines.append("  ... type more to narrow results")
     return "\n".join(lines)
 

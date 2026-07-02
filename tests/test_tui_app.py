@@ -2,6 +2,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from textual import events
 from textual.containers import ScrollableContainer
 from textual.css.query import NoMatches
 from textual.widgets import Footer, Input, Static
@@ -198,6 +199,76 @@ async def test_tui_app_shell_submission_clears_suggestions(tmp_path: Path) -> No
 
         assert app.query_one("#shell-suggestions", Static).renderable == ""
         assert shell_input.value == ""
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_suggestions_can_move_selection(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "/se"
+        app._render_shell_suggestions()
+        assert "> /search <query>" in str(
+            app.query_one("#shell-suggestions", Static).renderable
+        )
+
+        app._move_shell_suggestion(1)
+
+        suggestions = str(app.query_one("#shell-suggestions", Static).renderable)
+        assert "  /search <query>" in suggestions
+        assert "> /settings" in suggestions
+
+        app._move_shell_suggestion(-1)
+
+        assert "> /search <query>" in str(
+            app.query_one("#shell-suggestions", Static).renderable
+        )
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_tab_completes_selected_suggestion(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "/se"
+        app._render_shell_suggestions()
+        app._move_shell_suggestion(1)
+
+        assert app._complete_shell_suggestion() is True
+
+        assert shell_input.value == "/settings "
+        assert shell_input.cursor_position == len("/settings ")
+        assert app.query_one("#shell-suggestions", Static).renderable == ""
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_enter_completes_suggestion_without_executing(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        before_messages = app.shell_state.messages
+        shell_input.value = "/se"
+        app._render_shell_suggestions()
+
+        app.on_key(events.Key("enter", "\r"))
+
+        assert shell_input.value == "/search "
+        assert app.shell_state.messages == before_messages
+        assert "Running search" not in str(
+            app.query_one("#shell-transcript", Static).renderable
+        )
 
 
 @pytest.mark.anyio

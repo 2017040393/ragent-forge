@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from textual import events
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.widgets import Header, Input, Label, Static
 from textual.worker import Worker, WorkerState
 
-from ragent_forge.tui.commands import format_tui_command_suggestions
+from ragent_forge.tui.commands import (
+    complete_tui_command_suggestion,
+    format_tui_command_suggestions,
+    get_tui_command_suggestion_items,
+)
 from ragent_forge.tui.shell_dispatch import ShellReadOnlyHandlers, apply_shell_input
 from ragent_forge.tui.shell_models import (
     ShellState,
@@ -96,6 +101,7 @@ class RagentForgeApp(App[None]):
         super().__init__()
         self.workspace_path = workspace_path
         self.shell_state: ShellState = create_initial_shell_state()
+        self.shell_suggestion_index = 0
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -125,7 +131,28 @@ class RagentForgeApp(App[None]):
 
     def on_input_changed(self, event: Input.Changed) -> None:
         if event.input.id == "shell-input":
+            self.shell_suggestion_index = 0
             self._render_shell_suggestions(event.value)
+
+    def on_key(self, event: events.Key) -> None:
+        if self.shell_state.running:
+            return
+
+        shell_input = self.query_one("#shell-input", Input)
+        if not shell_input.has_focus:
+            return
+
+        if event.key == "down" and self._move_shell_suggestion(1):
+            event.prevent_default()
+            event.stop()
+            return
+        if event.key == "up" and self._move_shell_suggestion(-1):
+            event.prevent_default()
+            event.stop()
+            return
+        if event.key in {"tab", "enter"} and self._complete_shell_suggestion():
+            event.prevent_default()
+            event.stop()
 
     def _render_shell(self) -> None:
         self.query_one("#shell-status", Static).update(
@@ -142,6 +169,7 @@ class RagentForgeApp(App[None]):
         if self.shell_state.running:
             return
         shell_input.value = ""
+        self.shell_suggestion_index = 0
         self._render_shell_suggestions("")
 
         result = apply_shell_input(
@@ -346,9 +374,43 @@ class RagentForgeApp(App[None]):
     def _render_shell_suggestions(self, text: str | None = None) -> None:
         if text is None:
             text = self.query_one("#shell-input", Input).value
+        items = get_tui_command_suggestion_items(text)
+        if items:
+            self.shell_suggestion_index %= len(items)
+            selected_index: int | None = self.shell_suggestion_index
+        else:
+            self.shell_suggestion_index = 0
+            selected_index = None
         self.query_one("#shell-suggestions", Static).update(
-            format_tui_command_suggestions(text)
+            format_tui_command_suggestions(text, selected_index=selected_index)
         )
+
+    def _move_shell_suggestion(self, delta: int) -> bool:
+        shell_input = self.query_one("#shell-input", Input)
+        items = get_tui_command_suggestion_items(shell_input.value)
+        if not items:
+            return False
+        self.shell_suggestion_index = (
+            self.shell_suggestion_index + delta
+        ) % len(items)
+        self._render_shell_suggestions(shell_input.value)
+        return True
+
+    def _complete_shell_suggestion(self) -> bool:
+        shell_input = self.query_one("#shell-input", Input)
+        completion = complete_tui_command_suggestion(
+            shell_input.value,
+            selected_index=self.shell_suggestion_index,
+        )
+        if completion is None:
+            return False
+
+        shell_input.value = completion
+        shell_input.cursor_position = len(completion)
+        self.shell_suggestion_index = 0
+        self._render_shell_suggestions("")
+        self._focus_shell_input()
+        return True
 
     def _focus_shell_input(self) -> None:
         shell_input = self.query_one("#shell-input", Input)

@@ -424,8 +424,9 @@ The Shell is composer-first. Use slash commands such as `/help`, `/clear`,
 single-key shortcuts such as `q` to quit; use `/exit`, `/quit`, or `/q` from the
 composer.
 
-Typing `/` in the Shell composer shows lightweight inline command suggestions.
-Suggestions are read-only; commands still run only after pressing Enter.
+Typing `/` in the Shell composer opens a lightweight inline command candidate
+list. Use Up/Down to choose a command, then Tab or Enter to complete it into the
+composer; command execution still happens through the composer text.
 
 Use `/mode`, `/limit`, `/context`, and `/prompt` to control Shell behavior. Use
 `/help` for the command list. The TUI does not run ingest, build the semantic

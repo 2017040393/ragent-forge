@@ -191,8 +191,8 @@ Current implementation status:
 - Shell Inspector shows selected-source details.
 - Shell ordinary questions and `/ask <question>` are wired through a background
   worker.
-- Lightweight inline command suggestions are available while typing slash
-  commands.
+- Lightweight inline command candidates are available while typing slash
+  commands, with Up/Down selection and Tab/Enter completion into the composer.
 
 ## Migration Plan
 
@@ -204,7 +204,7 @@ suggestions, transcript polish, and optional richer status panels.
 
 - No command palette.
 - No popup autocomplete.
-- No Tab completion or suggestion selection.
+- No command execution directly from the candidate list.
 - No session persistence.
 - No agent tool loop.
 - No TUI ingest execution.
