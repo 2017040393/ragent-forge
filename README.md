@@ -220,13 +220,13 @@ keys. Traces and the vector index do not store API keys. The vector index stores
 embedding vectors and metadata but not original full chunk text; full text
 remains in `.ragent/chunks/chunks.jsonl`.
 
-The TUI Documents view reads the same workspace files. The TUI Search and Ask
-pages run over existing chunks and indexes but do not run ingest or build the
-semantic index. The TUI Trace view reads `.ragent/traces/latest_trace.json` and
-recent trace files under `.ragent/traces/<trace_id>.json`. TUI trace history is
-read-only; use `ragent traces show <trace_id>` to inspect a specific trace. TUI
-Ask does not write new traces in this MVP; the CLI `ragent ask` command remains
-the trace-producing ask workflow.
+The TUI Shell reads the same workspace files through commands such as `/docs`,
+`/trace`, and `/settings`. Shell Search and Ask run over existing chunks and
+indexes but do not run ingest or build the semantic index. Shell trace summaries
+read `.ragent/traces/latest_trace.json` and recent trace files under
+`.ragent/traces/<trace_id>.json`; use `ragent traces show <trace_id>` to inspect
+a specific trace. Shell Ask does not write new traces in this MVP; the CLI
+`ragent ask` command remains the trace-producing ask workflow.
 
 ## Development Setup
 
@@ -409,37 +409,21 @@ ragent ask "What is Agentic RAG?" --show-prompt
 ragent ask "What is Agentic RAG?" --show-prompt --limit 5
 ```
 
-`ragent tui` launches the Textual workbench. It provides an experimental Shell
-page for the future command-first workflow, a Documents page with compact
-workspace and chunk rows, a Search page for lexical, semantic, or hybrid
-retrieval over existing chunks, an Ask page that reuses the same RAG ask
-pipeline with optional generation, a Trace page for recent operation traces, a
-read-only Settings page, and an Inspector panel for the selected shell state,
-chunk, search result, ask source, trace, or status item. The TUI uses compact
-paths in main views, keeps full paths separated in the Inspector, highlights
-the active navigation page, and shows clearer Search/Ask status plus
-Documents/Trace/Settings empty states. The TUI can run Search and Ask from
-their existing pages, but it does not run ingest, build the semantic index, run
-retrieval eval, or edit config; use the CLI commands for those workflows. TUI
-Ask runs in a background worker so the interface stays responsive during
-retrieval and generation. TUI Ask does not write new traces yet, so CLI
-`ragent ask` remains the trace-producing ask workflow.
+`ragent tui` launches a command-first Textual shell. The Shell provides a
+status line, transcript output, composer input, and Inspector panel. Ordinary
+text and `/ask <question>` run the existing Ask pipeline in a background worker.
+`/search <query>` runs retrieval in a background worker using the current Shell
+mode and limit. Read-only commands such as `/docs`, `/trace`, and `/settings`
+append project state summaries to the transcript. Shell search and ask results
+include compact source lists in the transcript, and the Inspector shows details
+for the currently selected source. Interactive source navigation is not
+implemented yet.
 
-The TUI also includes an experimental Shell page for the future command-first
-workflow. It renders shell status, transcript output, and a composer input. In
-this MVP, local commands such as `/help`, `/mode`, `/limit`, `/context`,
-`/prompt`, `/clear`, and `/exit` are handled. The experimental Shell page can
-also run read-only project inspection commands such as `/docs`, `/trace`, and
-`/settings`. It can run `/search <query>` using the current Shell retrieval
-mode and limit. Semantic and hybrid Shell search require an existing vector
-index, just like the Search page. Shell search results include compact source
-lists in the transcript, and the Inspector shows details for the currently
-selected source. Interactive source navigation is not implemented yet. The
-experimental Shell page can now run ordinary questions and `/ask <question>`
-through the existing Ask pipeline using the current Shell mode, limit, context,
-and prompt settings. Shell Ask runs in a background worker and does not write
-new traces; CLI `ragent ask` remains the trace-producing Ask workflow. The
-existing Ask page remains available.
+Use `/mode`, `/limit`, `/context`, and `/prompt` to control Shell behavior. Use
+`/help` for the command list. The TUI does not run ingest, build the semantic
+index, run retrieval eval, or edit config; use the CLI commands for those
+workflows. Shell Ask does not write new traces; CLI `ragent ask` remains the
+trace-producing Ask workflow.
 
 `ragent ingest` loads and
 chunks local Markdown/TXT files without creating embeddings or a vector index.

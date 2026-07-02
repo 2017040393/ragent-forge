@@ -2,8 +2,8 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from textual.containers import ScrollableContainer
-from textual.widgets import Button, Input, Static
+from textual.css.query import NoMatches
+from textual.widgets import Input, Static
 from textual.worker import WorkerState
 
 from ragent_forge.app.models import Document, IngestResult, OperationTrace, TraceStep
@@ -49,43 +49,25 @@ def add_trace(workspace: LocalWorkspace) -> None:
     )
 
 
+def assert_missing_widget(app: RagentForgeApp, selector: str) -> None:
+    with pytest.raises(NoMatches):
+        app.query_one(selector)
+
+
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"
 
 
 @pytest.mark.anyio
-async def test_tui_app_navigates_and_runs_lexical_search(tmp_path: Path) -> None:
-    workspace = make_tui_workspace(tmp_path)
-    app = RagentForgeApp(workspace.root_path)
-
-    async with app.run_test() as pilot:
-        await pilot.press("s")
-        await pilot.click("#query-input")
-        await pilot.press("A", "g", "e", "n", "t", "i", "c")
-        await pilot.press("enter")
-
-        assert app.current_page == "search"
-        inspector = app.query_one("#inspector-content", Static)
-        assert "Search result" in str(inspector.renderable)
-        assert "full source_path:" in str(inspector.renderable)
-        assert "/knowledge/agentic_rag.md" in str(inspector.renderable)
-        assert "/knowledge/agentic_rag.md |" not in str(
-            app.query_one("#search-message", Static).renderable
-        )
-
-
-@pytest.mark.anyio
-async def test_tui_app_shell_page_renders_status_transcript_and_input(
+async def test_tui_app_opens_as_single_shell_without_old_pages(
     tmp_path: Path,
 ) -> None:
     workspace = make_tui_workspace(tmp_path)
     app = RagentForgeApp(workspace.root_path)
 
-    async with app.run_test() as pilot:
-        await pilot.press("h")
-
-        assert app.current_page == "shell"
+    async with app.run_test():
+        assert not hasattr(app, "current_page")
         assert "mode: lexical" in str(
             app.query_one("#shell-status", Static).renderable
         )
@@ -95,6 +77,79 @@ async def test_tui_app_shell_page_renders_status_transcript_and_input(
         assert app.query_one("#shell-input", Input).placeholder == (
             "Ask a question or type /help"
         )
+        assert "Shell details" in str(
+            app.query_one("#inspector-content", Static).renderable
+        )
+
+        for selector in (
+            "#navigation",
+            "#documents-page",
+            "#search-page",
+            "#ask-page",
+            "#trace-page",
+            "#settings-page",
+            "#query-input",
+            "#ask-question-input",
+            "#run-search",
+            "#run-ask",
+        ):
+            assert_missing_widget(app, selector)
+
+
+def test_tui_app_bindings_are_shell_only() -> None:
+    binding_keys = {binding[0] for binding in RagentForgeApp.BINDINGS}
+    binding_actions = {binding[1] for binding in RagentForgeApp.BINDINGS}
+
+    assert binding_keys == {"/", "ctrl+l", "r", "q"}
+    assert "focus_shell_input" in binding_actions
+    assert "clear_shell" in binding_actions
+    assert "refresh_shell" in binding_actions
+    assert all("switch_page" not in action for action in binding_actions)
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_help_and_mode_commands_update_transcript(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+
+        shell_input.value = "/help"
+        app._submit_shell_input()
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert "Slash commands" in transcript
+
+        shell_input.value = "/mode hybrid"
+        app._submit_shell_input()
+        assert app.shell_state.retrieval_mode == "hybrid"
+        assert "mode: hybrid" in str(
+            app.query_one("#shell-status", Static).renderable
+        )
+
+
+@pytest.mark.anyio
+async def test_tui_app_clear_binding_clears_shell_transcript(tmp_path: Path) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        app.shell_state = replace(
+            app.shell_state,
+            messages=(
+                *app.shell_state.messages,
+                tui_main.TranscriptMessage(role="tool", text="old"),
+            ),
+        )
+        app._render_shell()
+
+        app.action_clear_shell()
+
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert "RAGentForge command shell." in transcript
+        assert "old" not in transcript
 
 
 @pytest.mark.anyio
@@ -127,8 +182,7 @@ async def test_tui_app_shell_submission_starts_ask_worker_and_uses_shell_setting
     monkeypatch.setattr(tui_main, "run_tui_ask", fake_run_tui_ask)
     monkeypatch.setattr(app, "run_worker", fake_run_worker)
 
-    async with app.run_test() as pilot:
-        await pilot.press("h")
+    async with app.run_test():
         app.shell_state = replace(
             app.shell_state,
             retrieval_mode="hybrid",
@@ -154,9 +208,6 @@ async def test_tui_app_shell_submission_starts_ask_worker_and_uses_shell_setting
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         assert "User:\n  What is Agentic RAG?" in transcript
         assert "Running ask for: What is Agentic RAG?" in transcript
-        assert "status: running" in str(
-            app.query_one("#shell-status", Static).renderable
-        )
 
         work = started_workers[0][0]
         assert callable(work)
@@ -212,8 +263,7 @@ async def test_tui_app_shell_ask_worker_success_appends_messages_and_selects_sou
         def stop(self) -> None:
             self.stopped = True
 
-    async with app.run_test() as pilot:
-        await pilot.press("h")
+    async with app.run_test():
         app._set_shell_running(True)
 
         event = FakeEvent()
@@ -251,8 +301,7 @@ async def test_tui_app_shell_search_starts_worker_and_disables_input(
     monkeypatch.setattr(tui_main, "run_tui_search", forbidden_sync_call)
     monkeypatch.setattr(app, "run_worker", fake_run_worker)
 
-    async with app.run_test() as pilot:
-        await pilot.press("h")
+    async with app.run_test():
         shell_input = app.query_one("#shell-input", Input)
         shell_input.value = "/search Agentic"
 
@@ -288,147 +337,3 @@ def test_tui_app_shell_read_only_handlers_return_workspace_summaries(
     assert "Latest trace" in handlers.trace()
     assert "read_chunks" in handlers.trace()
     assert "config path:" in handlers.settings()
-
-
-@pytest.mark.anyio
-async def test_tui_app_shell_inspector_shows_basic_details(tmp_path: Path) -> None:
-    workspace = make_tui_workspace(tmp_path)
-    app = RagentForgeApp(workspace.root_path)
-
-    async with app.run_test() as pilot:
-        await pilot.press("h")
-
-        inspector = str(app.query_one("#inspector-content", Static).renderable)
-        assert "Shell details" in inspector
-        assert "mode: lexical" in inspector
-        assert "messages: 1" in inspector
-
-
-@pytest.mark.anyio
-async def test_tui_app_navigates_and_runs_lexical_ask(tmp_path: Path) -> None:
-    workspace = make_tui_workspace(tmp_path)
-    app = RagentForgeApp(workspace.root_path)
-
-    async with app.run_test() as pilot:
-        await pilot.press("a")
-
-        assert app.current_page == "ask"
-
-        await pilot.click("#ask-question-input")
-        await pilot.press("A", "g", "e", "n", "t", "i", "c")
-        await pilot.press("enter")
-        await pilot.pause(0.2)
-
-        inspector = app.query_one("#inspector-content", Static)
-        assert "Ask source" in str(inspector.renderable)
-        assert "full source_path:" in str(inspector.renderable)
-        assert "/knowledge/agentic_rag.md" in str(inspector.renderable)
-
-
-@pytest.mark.anyio
-async def test_tui_app_ask_running_state_disables_run_button(
-    tmp_path: Path,
-) -> None:
-    workspace = make_tui_workspace(tmp_path)
-    app = RagentForgeApp(workspace.root_path)
-
-    async with app.run_test() as pilot:
-        await pilot.press("a")
-
-        app._set_ask_running(True)
-        assert app.ask_running is True
-        assert app.query_one("#run-ask", Button).disabled is True
-
-        app._set_ask_running(False)
-        assert app.ask_running is False
-        assert app.query_one("#run-ask", Button).disabled is False
-
-
-@pytest.mark.anyio
-async def test_tui_app_run_ask_starts_worker_without_sync_call(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    workspace = make_tui_workspace(tmp_path)
-    app = RagentForgeApp(workspace.root_path)
-    started_workers: list[tuple[object, dict[str, object]]] = []
-
-    def forbidden_sync_call(*_args: object, **_kwargs: object) -> None:
-        raise AssertionError("run_tui_ask should run inside a worker")
-
-    def fake_run_worker(work: object, **kwargs: object) -> object:
-        started_workers.append((work, kwargs))
-        return object()
-
-    monkeypatch.setattr(tui_main, "run_tui_ask", forbidden_sync_call)
-    monkeypatch.setattr(app, "run_worker", fake_run_worker)
-
-    async with app.run_test() as pilot:
-        await pilot.press("a")
-        await pilot.click("#ask-question-input")
-        await pilot.press("A", "g", "e", "n", "t", "i", "c")
-        await pilot.press("enter")
-
-        assert started_workers
-        assert started_workers[0][1]["thread"] is True
-        assert started_workers[0][1]["exclusive"] is True
-        assert app.ask_running is True
-        assert app.query_one("#run-ask", Button).disabled is True
-        assert "Running ask..." in str(
-            app.query_one("#ask-message", Static).renderable
-        )
-
-
-@pytest.mark.anyio
-async def test_tui_app_run_ask_ignores_duplicate_start_while_running(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    workspace = make_tui_workspace(tmp_path)
-    app = RagentForgeApp(workspace.root_path)
-    started_workers: list[object] = []
-
-    def fake_run_worker(work: object, **_kwargs: object) -> object:
-        started_workers.append(work)
-        return object()
-
-    monkeypatch.setattr(app, "run_worker", fake_run_worker)
-
-    async with app.run_test() as pilot:
-        await pilot.press("a")
-        app.ask_running = True
-
-        app._run_ask_from_inputs()
-
-        assert started_workers == []
-
-
-@pytest.mark.anyio
-async def test_tui_app_ask_answer_uses_scroll_container(tmp_path: Path) -> None:
-    workspace = make_tui_workspace(tmp_path)
-    app = RagentForgeApp(workspace.root_path)
-
-    async with app.run_test() as pilot:
-        await pilot.press("a")
-
-        app.query_one("#ask-answer-container", ScrollableContainer)
-        assert "#ask-answer-container" in RagentForgeApp.CSS
-        assert "height: 12" in RagentForgeApp.CSS
-        assert "#ask-sources-table" in RagentForgeApp.CSS
-
-
-@pytest.mark.anyio
-async def test_tui_app_trace_page_shows_selected_trace_steps(
-    tmp_path: Path,
-) -> None:
-    workspace = make_tui_workspace(tmp_path)
-    add_trace(workspace)
-    app = RagentForgeApp(workspace.root_path)
-
-    async with app.run_test() as pilot:
-        await pilot.press("t")
-
-        assert app.current_page == "trace"
-        trace_steps = app.query_one("#trace-steps", Static)
-        assert "Steps" in str(trace_steps.renderable)
-        assert "1. read_chunks" in str(trace_steps.renderable)

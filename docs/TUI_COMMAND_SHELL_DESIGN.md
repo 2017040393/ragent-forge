@@ -2,11 +2,12 @@
 
 ## Motivation
 
-The current page-based TUI is functional: it exposes Documents, Search, Ask,
-Trace, Settings, and an Inspector. As the feature set grows, that structure
-increasingly feels like a management dashboard rather than a local RAG console.
+The TUI has moved from a page-based workbench to a single Shell interface. The
+old structure was useful for bootstrapping Documents, Search, Ask, Trace,
+Settings, and Inspector behavior, but it increasingly felt like a management
+dashboard rather than a local RAG console.
 
-The future direction is an Ask-first / command-first local RAG console. A user
+The direction is an Ask-first / command-first local RAG console. A user
 should be able to open the TUI and immediately type a question. Secondary
 workflows should be available through slash commands instead of forcing the user
 to move through page navigation first.
@@ -49,7 +50,7 @@ Sources:
 
 ## Proposed Layout
 
-The future shell layout should be compact and composer-first:
+The shell layout should be compact and composer-first:
 
 ```text
 Header/status
@@ -58,10 +59,9 @@ Bottom composer input
 Optional Inspector/details panel
 ```
 
-The existing three-column page UI should not be deleted immediately. The command
-shell should be added incrementally, proven with tests, and allowed to reuse the
-current page view models and formatters while the project learns which shell
-interactions are worth promoting.
+The Shell reuses the existing view models and formatters for read-only
+summaries, retrieval, Ask, and selected-source details without exposing the old
+page navigation.
 
 ## Slash Commands
 
@@ -87,7 +87,7 @@ matching in the first shell MVP.
 
 ## Shell State
 
-The future shell state can be modeled independently from Textual widgets:
+The shell state is modeled independently from Textual widgets:
 
 ```python
 retrieval_mode: "lexical" | "semantic" | "hybrid"
@@ -120,7 +120,7 @@ details into visible text.
 The transcript model foundation lives in
 `src/ragent_forge/tui/shell_models.py`. It is intentionally pure and independent
 from Textual rendering so it can support a future Shell page without changing
-the existing page-based TUI.
+backend services or CLI behavior.
 
 ## Command Dispatch
 
@@ -169,7 +169,7 @@ Current implementation status:
 
 - Command parser exists.
 - Transcript model exists.
-- Experimental Shell page exists.
+- TUI is now a single command-first Shell.
 - Local Shell commands are wired.
 - Read-only Shell commands `/docs`, `/trace`, and `/settings` are wired.
 - Shell `/search <query>` is wired through a background worker.
@@ -180,15 +180,9 @@ Current implementation status:
 
 ## Migration Plan
 
-1. Add command parser and design doc.
-2. Add transcript models.
-3. Add a Shell page while keeping existing pages.
-4. Make Shell the default TUI page after the interaction is proven.
-5. Gradually reduce reliance on left navigation if desired.
-6. Add optional command suggestions later.
-
-Each phase should keep existing pages working until there is a tested replacement
-for the relevant workflow.
+The old page-based TUI has been removed in favor of the single Shell interface.
+Future work should improve the Shell itself: source navigation, command
+suggestions, transcript polish, and optional richer status panels.
 
 ## Non-goals
 
