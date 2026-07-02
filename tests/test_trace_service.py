@@ -159,6 +159,62 @@ def test_build_search_trace_records_semantic_metadata() -> None:
     assert "Generated answer" not in trace_json
 
 
+def test_build_search_trace_records_hybrid_rrf_metadata_and_steps() -> None:
+    started_at = datetime(2026, 6, 30, 0, 0, 0, tzinfo=UTC)
+    finished_at = datetime(2026, 6, 30, 0, 0, 1, tzinfo=UTC)
+
+    trace = build_search_trace(
+        query="agent memory",
+        limit=5,
+        chunks_path=Path(".ragent/chunks/chunks.jsonl"),
+        total_chunks=7,
+        result_chunk_ids=["/knowledge/rag.md::chunk-0002"],
+        started_at=started_at,
+        finished_at=finished_at,
+        retrieval_mode="hybrid",
+        retrieval_method="hybrid_rrf",
+        fusion_method="reciprocal_rank_fusion",
+        rrf_k=60,
+        lexical_weight=1.0,
+        semantic_weight=1.0,
+        candidate_limit=20,
+        embedding_provider="openai_embeddings",
+        embedding_model="text-embedding-3-small",
+        index_path=Path(".ragent/index/vector_index.jsonl"),
+    )
+
+    assert trace.metadata["retrieval_mode"] == "hybrid"
+    assert trace.metadata["retrieval_method"] == "hybrid_rrf"
+    assert trace.metadata["fusion_method"] == "reciprocal_rank_fusion"
+    assert trace.metadata["rrf_k"] == 60
+    assert trace.metadata["lexical_weight"] == 1.0
+    assert trace.metadata["semantic_weight"] == 1.0
+    assert trace.metadata["candidate_limit"] == 20
+    assert trace.metadata["embedding_provider"] == "openai_embeddings"
+    assert trace.metadata["embedding_model"] == "text-embedding-3-small"
+    assert trace.metadata["index_path"] == str(Path(".ragent/index/vector_index.jsonl"))
+    assert [step.name for step in trace.steps] == [
+        "read_chunks",
+        "run_lexical_search",
+        "embed_query",
+        "load_vector_index",
+        "run_semantic_search",
+        "fuse_results",
+        "rank_results",
+        "render_results",
+    ]
+    assert trace.steps[5].inputs == {
+        "retrieval_method": "hybrid_rrf",
+        "fusion_method": "reciprocal_rank_fusion",
+        "rrf_k": 60,
+    }
+    trace_json = trace.model_dump_json()
+    assert "embedding-secret-key" not in trace_json
+    assert "[0.1" not in trace_json
+    assert "full chunk text" not in trace_json
+    assert "Generated answer" not in trace_json
+
+
 def test_build_retrieval_eval_trace_records_lexical_metrics_safely() -> None:
     started_at = datetime(2026, 6, 30, 0, 0, 0, tzinfo=UTC)
     finished_at = datetime(2026, 6, 30, 0, 0, 1, tzinfo=UTC)
@@ -245,6 +301,53 @@ def test_build_retrieval_eval_trace_records_semantic_index_metadata_safely() -> 
     assert trace.metadata["embedding_provider"] == "openai_embeddings"
     assert trace.metadata["embedding_model"] == "text-embedding-3-small"
     assert trace.metadata["index_path"] == str(Path(".ragent/index/vector_index.jsonl"))
+    trace_json = trace.model_dump_json()
+    assert "embedding-secret-key" not in trace_json
+    assert "full chunk text" not in trace_json
+    assert '"embedding": [' not in trace_json
+
+
+def test_build_retrieval_eval_trace_records_hybrid_fusion_metadata() -> None:
+    started_at = datetime(2026, 6, 30, 0, 0, 0, tzinfo=UTC)
+    finished_at = datetime(2026, 6, 30, 0, 0, 1, tzinfo=UTC)
+
+    trace = build_retrieval_eval_trace(
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        retrieval_mode="hybrid",
+        retrieval_method="hybrid_rrf",
+        limit=5,
+        case_count=2,
+        passed_count=2,
+        failed_count=0,
+        metrics={
+            "hit@1": 1.0,
+            "hit@3": 1.0,
+            "hit@5": 1.0,
+            "hit@k": 1.0,
+            "mrr": 1.0,
+        },
+        report_path=Path(".ragent/eval/retrieval_eval_20260630T000001Z.json"),
+        started_at=started_at,
+        finished_at=finished_at,
+        fusion_method="reciprocal_rank_fusion",
+        rrf_k=60,
+        lexical_weight=1.0,
+        semantic_weight=1.0,
+        embedding_provider="openai_embeddings",
+        embedding_model="text-embedding-3-small",
+        index_path=Path(".ragent/index/vector_index.jsonl"),
+    )
+
+    assert trace.metadata["retrieval_mode"] == "hybrid"
+    assert trace.metadata["retrieval_method"] == "hybrid_rrf"
+    assert trace.metadata["fusion_method"] == "reciprocal_rank_fusion"
+    assert trace.metadata["rrf_k"] == 60
+    assert trace.metadata["lexical_weight"] == 1.0
+    assert trace.metadata["semantic_weight"] == 1.0
+    assert trace.metadata["embedding_provider"] == "openai_embeddings"
+    assert trace.metadata["embedding_model"] == "text-embedding-3-small"
+    assert trace.metadata["index_path"] == str(Path(".ragent/index/vector_index.jsonl"))
+    assert trace.metadata["hit@k"] == 1.0
     trace_json = trace.model_dump_json()
     assert "embedding-secret-key" not in trace_json
     assert "full chunk text" not in trace_json
@@ -410,6 +513,69 @@ def test_build_ask_retrieval_trace_records_semantic_metadata() -> None:
         "index_path": str(Path(".ragent/index/vector_index.jsonl")),
     }
     assert "Retrieve context chunks with lexical search." not in trace.model_dump_json()
+    assert "embedding-secret-key" not in trace.model_dump_json()
+    assert "[0.1" not in trace.model_dump_json()
+    assert "full chunk text" not in trace.model_dump_json()
+    assert "Generated answer" not in trace.model_dump_json()
+
+
+def test_build_ask_retrieval_trace_records_hybrid_metadata() -> None:
+    started_at = datetime(2026, 6, 30, 0, 0, 0, tzinfo=UTC)
+    finished_at = datetime(2026, 6, 30, 0, 0, 1, tzinfo=UTC)
+
+    trace = build_ask_retrieval_trace(
+        question="what is agent memory?",
+        limit=3,
+        chunks_path=Path(".ragent/chunks/chunks.jsonl"),
+        total_chunks=7,
+        retrieved_chunk_ids=["/knowledge/rag.md::chunk-0002"],
+        generation_result=GenerationResult(
+            provider_name="null",
+            status="not_configured",
+            answer=None,
+        ),
+        config_generation_provider="null",
+        context_chunk_count=1,
+        total_context_chars=128,
+        prompt_preview_shown=False,
+        max_context_chars=4000,
+        started_at=started_at,
+        finished_at=finished_at,
+        retrieval_mode="hybrid",
+        retrieval_method="hybrid_rrf",
+        fusion_method="reciprocal_rank_fusion",
+        rrf_k=60,
+        lexical_weight=1.0,
+        semantic_weight=1.0,
+        embedding_provider="openai_embeddings",
+        embedding_model="text-embedding-3-small",
+        index_path=Path(".ragent/index/vector_index.jsonl"),
+    )
+
+    assert trace.metadata["retrieval_mode"] == "hybrid"
+    assert trace.metadata["retrieval_method"] == "hybrid_rrf"
+    assert trace.metadata["fusion_method"] == "reciprocal_rank_fusion"
+    assert trace.metadata["rrf_k"] == 60
+    assert trace.metadata["lexical_weight"] == 1.0
+    assert trace.metadata["semantic_weight"] == 1.0
+    assert trace.metadata["embedding_provider"] == "openai_embeddings"
+    assert trace.metadata["embedding_model"] == "text-embedding-3-small"
+    assert trace.metadata["index_path"] == str(Path(".ragent/index/vector_index.jsonl"))
+    retrieval_step = trace.steps[1]
+    assert retrieval_step.name == "retrieve_context"
+    assert retrieval_step.description == (
+        "Retrieve context chunks with hybrid lexical and semantic search."
+    )
+    assert retrieval_step.inputs == {
+        "question": "what is agent memory?",
+        "limit": 3,
+        "retrieval_method": "hybrid_rrf",
+        "fusion_method": "reciprocal_rank_fusion",
+        "rrf_k": 60,
+        "embedding_provider": "openai_embeddings",
+        "embedding_model": "text-embedding-3-small",
+        "index_path": str(Path(".ragent/index/vector_index.jsonl")),
+    }
     assert "embedding-secret-key" not in trace.model_dump_json()
     assert "[0.1" not in trace.model_dump_json()
     assert "full chunk text" not in trace.model_dump_json()

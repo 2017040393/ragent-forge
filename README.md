@@ -19,7 +19,7 @@ local, inspectable RAG workflows rather than full autonomous agents.
 
 - No cloud service, hosted backend, or enterprise knowledge base.
 - No Web UI, desktop UI, authentication, or multi-user workflow.
-- No vector database integration, hybrid retrieval, reranking, or agent workflows yet.
+- No vector database integration, reranking, or agent workflows yet.
 - No no-code platform, complex agent autonomy, plugin system, or distributed jobs.
 - No Rust, PyO3, native extensions, or mixed-language build system in this step.
 
@@ -41,7 +41,7 @@ local, inspectable RAG workflows rather than full autonomous agents.
 ## Planned Roadmap
 
 - `v0.1`: Local TUI + inspectable RAG foundations.
-- `v0.2`: Hybrid retrieval and better trace views.
+- `v0.2`: Retrieval polish and better trace views.
 - `v0.3`: Project memory over local workspaces.
 - `v0.4`: Minimal agent runtime with explicit controls.
 - `v0.5`: Evaluation dashboard for retrieval and answer quality.
@@ -74,14 +74,20 @@ Implemented so far:
   ready.
 - `ragent search <query> --retrieval semantic` performs cosine-similarity
   semantic search after an index has been built.
+- `ragent search <query> --retrieval hybrid` combines lexical and semantic
+  candidates with Reciprocal Rank Fusion after an index has been built.
 - Successful `ragent ingest` writes a local JSON trace for the ingest workflow.
 - Successful `ragent search` writes a local JSON trace for the search workflow.
 - `ragent ask <question>` retrieves local context and can optionally generate an
   answer with an OpenAI Responses-compatible provider.
 - `ragent ask <question> --retrieval semantic` uses semantic retrieval before
   assembling the context pack and optional generated answer.
+- `ragent ask <question> --retrieval hybrid` uses hybrid RRF retrieval before
+  the same context packing and optional generation pipeline.
 - `ragent eval retrieval --cases <path>` evaluates retrieval cases from JSONL
   and writes a compact local report.
+- `ragent eval retrieval --cases <path> --retrieval hybrid` evaluates hybrid
+  RRF retrieval with the same hit-rate and MRR metrics.
 - The default `null` generation provider keeps ask in retrieval-only mode when
   real generation is not configured.
 - `ragent traces latest`, `ragent traces list`, and
@@ -89,8 +95,8 @@ Implemented so far:
 - `ragent tui` shows Documents workspace status, recent chunk previews, and
   the latest trace summary plus a read-only recent trace history summary.
 
-Hybrid retrieval, reranking, vector databases, and agent workflows are
-intentionally not implemented yet.
+Reranking, vector databases, and agent workflows are intentionally not
+implemented yet.
 
 ## Local Workspace
 
@@ -274,10 +280,12 @@ ragent index build
 ragent search "agent memory"
 ragent search "agent memory" --retrieval lexical
 ragent search "agent memory" --retrieval semantic
+ragent search "agent memory" --retrieval hybrid
 ragent search "agent memory" --limit 5
 ragent eval retrieval --cases eval/retrieval_cases.jsonl
 ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval lexical
 ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval semantic
+ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval hybrid
 ragent eval retrieval --cases eval/retrieval_cases.jsonl --limit 5
 ragent eval retrieval --cases eval/retrieval_cases.jsonl --report-path report.json
 ragent traces latest
@@ -288,6 +296,7 @@ ragent traces show "<trace_id>"
 ragent ask "What is Agentic RAG?"
 ragent ask "What is Agentic RAG?" --retrieval lexical
 ragent ask "What is Agentic RAG?" --retrieval semantic
+ragent ask "What is Agentic RAG?" --retrieval hybrid
 ragent ask "What is Agentic RAG?" --limit 5
 ragent ask "What is Agentic RAG?" --show-prompt
 ragent ask "What is Agentic RAG?" --show-prompt --limit 5
@@ -308,18 +317,25 @@ fail clearly.
 `ragent chunks list` and `ragent chunks show <chunk_id>` read
 `.ragent/chunks/chunks.jsonl` so you can inspect chunking output directly.
 `ragent search` defaults to simple
-lexical token overlap over `.ragent/chunks/chunks.jsonl`. Semantic retrieval is
-opt-in with `--retrieval semantic` and requires `ragent index build` first.
+lexical token overlap over `.ragent/chunks/chunks.jsonl`. Retrieval modes are
+`lexical`, `semantic`, and `hybrid`; the default remains `lexical`. Semantic
+retrieval is opt-in with `--retrieval semantic` and requires `ragent index
+build` first. Hybrid retrieval is opt-in with `--retrieval hybrid`, also
+requires `ragent index build`, and combines lexical top-N candidates with
+semantic top-N candidates using Reciprocal Rank Fusion (RRF).
 `ragent index build` embeds chunks in batches and writes
 `.ragent/index/vector_index.jsonl`; `ragent index status` reports whether that
 index is ready. The MVP computes cosine similarity locally from JSONL vectors.
-It does not use BM25, hybrid retrieval, reranking, FAISS, Chroma, LanceDB, or a
-vector database. Use `ragent chunks show <chunk_id>` to inspect full chunk
-content. `ragent ask` defaults to lexical retrieval, assembles a context pack,
+It does not use BM25, LLM reranking, cross-encoder reranking, score
+normalization, FAISS, Chroma, LanceDB, LangChain, LlamaIndex, or a vector
+database. Use `ragent chunks show <chunk_id>` to inspect full chunk content.
+`ragent ask` defaults to lexical retrieval, assembles a context pack,
 and either stays in retrieval-only mode with the default `null` provider or
 generates an answer with an OpenAI Responses-compatible provider. `ragent ask
 --retrieval semantic` uses the semantic index before the same context packing
-and generation step. `ragent ask --show-prompt` shows the actual generation
+and generation step. `ragent ask --retrieval hybrid` uses hybrid RRF retrieval
+before the same context packing and generation step. `ragent ask --show-prompt`
+shows the actual generation
 prompt assembled from the question, retrieved chunks, scores, and source
 references; the prompt is only sent when
 `generation.provider = "openai_responses"`. Context packs are generated in
@@ -340,25 +356,37 @@ Each case requires non-empty `id` and `query` fields plus at least one of
 `hit@3`, `hit@5`, requested `hit@k`, and MRR; failed cases are printed in the
 CLI. Lexical evaluation is the default and does not require embedding config.
 Semantic evaluation uses `--retrieval semantic` and requires `ragent index
-build` first. Reports exclude API keys, full chunk text, embedding vectors,
-prompts, generated answers, and answer-quality judgments. This is retrieval
-evaluation only; answer evaluation, LLM-as-judge, reranking, hybrid retrieval,
-charts, dashboards, and TUI eval views are not implemented yet.
+build` first. Hybrid evaluation uses `--retrieval hybrid`, requires the same
+semantic vector index, and reports `retrieval_method = "hybrid_rrf"` plus RRF
+fusion metadata. To compare modes manually, run:
+
+```bash
+ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval lexical
+ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval semantic
+ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval hybrid
+```
+
+There is no dedicated compare command in this step. Reports exclude API keys,
+full chunk text, embedding vectors, prompts, generated answers, and
+answer-quality judgments. This is retrieval evaluation only; answer evaluation,
+LLM-as-judge, reranking, charts, dashboards, and TUI eval views are not
+implemented yet.
 Successful ingest, index build, search, ask retrieval, and retrieval eval
 commands write local JSON trace artifacts under `.ragent/traces/<trace_id>.json`;
 `.ragent/traces/latest_trace.json` points to the latest operation trace. Current
-traces cover ingest, index build, lexical search, semantic search, ask
-retrieval, and retrieval eval workflows. Use `ragent traces latest` for the
-latest trace, `ragent traces list` for historical trace files, and `ragent
-traces show <trace_id>` for one specific trace. No external observability
-service is used. The retrieval eval trace operation is `retrieval_eval` and
-stores only compact metadata such as case counts, hit metrics, report path, and
-semantic index metadata when relevant. The TUI displays the same local
+traces cover ingest, index build, lexical search, semantic search, hybrid
+search, ask retrieval, and retrieval eval workflows. Use `ragent traces latest`
+for the latest trace, `ragent traces list` for historical trace files, and
+`ragent traces show <trace_id>` for one specific trace. No external
+observability service is used. The retrieval eval trace operation is
+`retrieval_eval` and stores only compact metadata such as case counts, hit
+metrics, report path, semantic index metadata, and hybrid RRF metadata when
+relevant. The TUI displays the same local
 workspace status, a small recent-chunks preview when chunks exist, and a
 read-only latest trace summary from `.ragent/traces/latest_trace.json`,
 including the latest search or ask retrieval trace after those commands. The
 TUI Trace view also shows a read-only recent trace history summary; use
 `ragent traces show <trace_id>` for full trace details. Interactive TUI trace
 history browsing is not implemented yet.
-Default retrieval remains lexical; hybrid retrieval, reranking, vector database
-integration, and agent workflows are still not implemented.
+Default retrieval remains lexical; reranking, vector database integration, and
+agent workflows are still not implemented.

@@ -94,6 +94,11 @@ def build_search_trace(
     finished_at: datetime,
     retrieval_mode: str = "lexical",
     retrieval_method: str = "lexical_token_overlap",
+    fusion_method: str | None = None,
+    rrf_k: int | None = None,
+    lexical_weight: float | None = None,
+    semantic_weight: float | None = None,
+    candidate_limit: int | None = None,
     embedding_provider: str | None = None,
     embedding_model: str | None = None,
     index_path: Path | None = None,
@@ -115,6 +120,16 @@ def build_search_trace(
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
+    if retrieval_mode == "hybrid":
+        metadata["retrieval_method"] = retrieval_method
+        metadata["fusion_method"] = fusion_method
+        metadata["rrf_k"] = rrf_k
+        metadata["lexical_weight"] = lexical_weight
+        metadata["semantic_weight"] = semantic_weight
+        metadata["candidate_limit"] = candidate_limit
+        metadata["embedding_provider"] = embedding_provider
+        metadata["embedding_model"] = embedding_model
+        metadata["index_path"] = str(index_path) if index_path is not None else None
     steps = _build_search_steps(
         query=query,
         limit=limit,
@@ -123,6 +138,9 @@ def build_search_trace(
         result_chunk_ids=result_chunk_ids,
         retrieval_mode=retrieval_mode,
         retrieval_method=retrieval_method,
+        fusion_method=fusion_method,
+        rrf_k=rrf_k,
+        candidate_limit=candidate_limit,
         embedding_provider=embedding_provider,
         embedding_model=embedding_model,
         index_path=index_path,
@@ -150,6 +168,10 @@ def build_retrieval_eval_trace(
     report_path: Path,
     started_at: datetime,
     finished_at: datetime,
+    fusion_method: str | None = None,
+    rrf_k: int | None = None,
+    lexical_weight: float | None = None,
+    semantic_weight: float | None = None,
     embedding_provider: str | None = None,
     embedding_model: str | None = None,
     index_path: Path | None = None,
@@ -173,6 +195,14 @@ def build_retrieval_eval_trace(
         "report_path": str(report_path),
     }
     if retrieval_mode == "semantic":
+        metadata["embedding_provider"] = embedding_provider
+        metadata["embedding_model"] = embedding_model
+        metadata["index_path"] = str(index_path) if index_path is not None else None
+    if retrieval_mode == "hybrid":
+        metadata["fusion_method"] = fusion_method
+        metadata["rrf_k"] = rrf_k
+        metadata["lexical_weight"] = lexical_weight
+        metadata["semantic_weight"] = semantic_weight
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
@@ -248,6 +278,10 @@ def build_ask_retrieval_trace(
     finished_at: datetime,
     retrieval_mode: str = "lexical",
     retrieval_method: str = "lexical_token_overlap",
+    fusion_method: str | None = None,
+    rrf_k: int | None = None,
+    lexical_weight: float | None = None,
+    semantic_weight: float | None = None,
     embedding_provider: str | None = None,
     embedding_model: str | None = None,
     index_path: Path | None = None,
@@ -282,6 +316,14 @@ def build_ask_retrieval_trace(
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
+    if retrieval_mode == "hybrid":
+        metadata["fusion_method"] = fusion_method
+        metadata["rrf_k"] = rrf_k
+        metadata["lexical_weight"] = lexical_weight
+        metadata["semantic_weight"] = semantic_weight
+        metadata["embedding_provider"] = embedding_provider
+        metadata["embedding_model"] = embedding_model
+        metadata["index_path"] = str(index_path) if index_path is not None else None
     metadata.update(_generation_metadata(generation_result.metadata))
     if generation_result.status == "success":
         metadata["source_count"] = len(retrieved_chunk_ids)
@@ -295,6 +337,8 @@ def build_ask_retrieval_trace(
         generation_status=generation_status,
         retrieval_mode=retrieval_mode,
         retrieval_method=retrieval_method,
+        fusion_method=fusion_method,
+        rrf_k=rrf_k,
         embedding_provider=embedding_provider,
         embedding_model=embedding_model,
         index_path=index_path,
@@ -377,6 +421,9 @@ def _build_search_steps(
     result_chunk_ids: list[str],
     retrieval_mode: str,
     retrieval_method: str,
+    fusion_method: str | None,
+    rrf_k: int | None,
+    candidate_limit: int | None,
     embedding_provider: str | None,
     embedding_model: str | None,
     index_path: Path | None,
@@ -431,6 +478,53 @@ def _build_search_steps(
             render_results_step,
         ]
 
+    if retrieval_mode == "hybrid":
+        return [
+            read_chunks_step,
+            TraceStep(
+                name="run_lexical_search",
+                description="Run lexical search for hybrid retrieval candidates.",
+                inputs={"query": query, "candidate_limit": candidate_limit},
+                outputs={"status": "completed"},
+            ),
+            TraceStep(
+                name="embed_query",
+                description=(
+                    "Embed the search query with the configured embedding provider."
+                ),
+                inputs={
+                    "query": query,
+                    "embedding_provider": embedding_provider,
+                    "embedding_model": embedding_model,
+                },
+                outputs={"query_embedding": "computed"},
+            ),
+            TraceStep(
+                name="load_vector_index",
+                description="Load local semantic vector index records.",
+                inputs={"index_path": str(index_path) if index_path else ""},
+                outputs={"status": "loaded"},
+            ),
+            TraceStep(
+                name="run_semantic_search",
+                description="Run semantic search for hybrid retrieval candidates.",
+                inputs={"candidate_limit": candidate_limit},
+                outputs={"status": "completed"},
+            ),
+            TraceStep(
+                name="fuse_results",
+                description="Fuse lexical and semantic candidates with RRF.",
+                inputs={
+                    "retrieval_method": retrieval_method,
+                    "fusion_method": fusion_method,
+                    "rrf_k": rrf_k,
+                },
+                outputs={"matched_chunks": len(result_chunk_ids)},
+            ),
+            rank_results_step,
+            render_results_step,
+        ]
+
     return [
         read_chunks_step,
         TraceStep(
@@ -460,6 +554,8 @@ def _build_ask_retrieval_steps(
     generation_status: str,
     retrieval_mode: str,
     retrieval_method: str,
+    fusion_method: str | None,
+    rrf_k: int | None,
     embedding_provider: str | None,
     embedding_model: str | None,
     index_path: Path | None,
@@ -479,6 +575,8 @@ def _build_ask_retrieval_steps(
                 limit=limit,
                 retrieval_mode=retrieval_mode,
                 retrieval_method=retrieval_method,
+                fusion_method=fusion_method,
+                rrf_k=rrf_k,
                 embedding_provider=embedding_provider,
                 embedding_model=embedding_model,
                 index_path=index_path,
@@ -514,12 +612,16 @@ def _build_ask_retrieval_steps(
 
 
 def _search_rank_description(retrieval_mode: str) -> str:
+    if retrieval_mode == "hybrid":
+        return "Sort hybrid RRF results by fused score, best rank, and chunk id."
     if retrieval_mode == "semantic":
         return "Sort semantic search results by score and deterministic chunk id."
     return "Sort results by score and deterministic chunk id."
 
 
 def _ask_retrieval_description(retrieval_mode: str) -> str:
+    if retrieval_mode == "hybrid":
+        return "Retrieve context chunks with hybrid lexical and semantic search."
     if retrieval_mode == "semantic":
         return "Retrieve context chunks with semantic vector search."
     return "Retrieve context chunks with lexical search."
@@ -530,6 +632,8 @@ def _ask_retrieval_inputs(
     limit: int,
     retrieval_mode: str,
     retrieval_method: str,
+    fusion_method: str | None,
+    rrf_k: int | None,
     embedding_provider: str | None,
     embedding_model: str | None,
     index_path: Path | None,
@@ -539,6 +643,17 @@ def _ask_retrieval_inputs(
         inputs.update(
             {
                 "retrieval_method": retrieval_method,
+                "embedding_provider": embedding_provider,
+                "embedding_model": embedding_model,
+                "index_path": str(index_path) if index_path is not None else None,
+            }
+        )
+    if retrieval_mode == "hybrid":
+        inputs.update(
+            {
+                "retrieval_method": retrieval_method,
+                "fusion_method": fusion_method,
+                "rrf_k": rrf_k,
                 "embedding_provider": embedding_provider,
                 "embedding_model": embedding_model,
                 "index_path": str(index_path) if index_path is not None else None,

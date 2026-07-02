@@ -328,3 +328,44 @@ def test_report_excludes_full_text_api_keys_and_embeddings() -> None:
     assert report.embedding_provider == "openai_embeddings"
     assert report.embedding_model == "text-embedding-3-small"
     assert report.index_path == str(Path(".ragent/index/vector_index.jsonl"))
+
+
+def test_hybrid_report_records_fusion_metadata() -> None:
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="agent",
+            expected_chunk_ids=["rag.md::chunk-0000"],
+        )
+    ]
+    search = FakeSearchService(
+        {"agent": [make_result("rag.md::chunk-0000", "rag.md")]}
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="hybrid",
+        retrieval_method="hybrid_rrf",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+        embedding_provider="openai_embeddings",
+        embedding_model="text-embedding-3-small",
+        index_path=Path(".ragent/index/vector_index.jsonl"),
+        fusion_method="reciprocal_rank_fusion",
+        rrf_k=60,
+        lexical_weight=1.0,
+        semantic_weight=1.0,
+    )
+
+    report_json = report.model_dump_json(exclude_none=True)
+    assert report.retrieval_mode == "hybrid"
+    assert report.retrieval_method == "hybrid_rrf"
+    assert report.fusion_method == "reciprocal_rank_fusion"
+    assert report.rrf_k == 60
+    assert report.lexical_weight == 1.0
+    assert report.semantic_weight == 1.0
+    assert "full chunk text must stay out" not in report_json
+    assert "embedding-secret-key" not in report_json
+    assert '"embedding"' not in report_json

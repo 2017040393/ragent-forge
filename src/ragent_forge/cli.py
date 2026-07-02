@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -18,6 +19,10 @@ from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.context_service import build_generation_prompt
 from ragent_forge.app.services.embedding_service import EmbeddingService
 from ragent_forge.app.services.generation_service import GenerationService
+from ragent_forge.app.services.hybrid_search_service import (
+    HybridSearchConfig,
+    HybridSearchService,
+)
 from ragent_forge.app.services.index_service import IndexBuildService
 from ragent_forge.app.services.ingest_service import IngestService
 from ragent_forge.app.services.retrieval_eval_service import (
@@ -37,6 +42,22 @@ from ragent_forge.app.services.trace_service import (
 from ragent_forge.app.services.vector_index_service import VectorIndexService
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
+
+RETRIEVAL_CHOICES = ["lexical", "semantic", "hybrid"]
+
+
+@dataclass(frozen=True)
+class BuiltSearchService:
+    search_service: LexicalSearchService | SemanticSearchService | HybridSearchService
+    retrieval_method: str
+    embedding_provider: str | None = None
+    embedding_model: str | None = None
+    index_path: Path | None = None
+    fusion_method: str | None = None
+    rrf_k: int | None = None
+    lexical_weight: float | None = None
+    semantic_weight: float | None = None
+    candidate_limit: int | None = None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -209,7 +230,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     retrieval_eval_parser.add_argument(
         "--retrieval",
-        choices=["lexical", "semantic"],
+        choices=RETRIEVAL_CHOICES,
         default="lexical",
         help="Retrieval mode to evaluate.",
     )
@@ -263,7 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     search_parser.add_argument(
         "--retrieval",
-        choices=["lexical", "semantic"],
+        choices=RETRIEVAL_CHOICES,
         default="lexical",
         help="Retrieval mode to use.",
     )
@@ -286,7 +307,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ask_parser.add_argument(
         "--retrieval",
-        choices=["lexical", "semantic"],
+        choices=RETRIEVAL_CHOICES,
         default="lexical",
         help="Retrieval mode to use.",
     )
@@ -750,6 +771,52 @@ def _handle_index_status(console: Console, workspace_path: str) -> int:
     return 0
 
 
+def _build_search_service_for_retrieval(
+    workspace: LocalWorkspace,
+    retrieval: str,
+    limit: int,
+    config=None,
+) -> BuiltSearchService:
+    if retrieval == "semantic":
+        config = config or ConfigService(workspace).load()
+        embedding_service = EmbeddingService.from_config(config)
+        return BuiltSearchService(
+            search_service=SemanticSearchService(workspace, embedding_service),
+            retrieval_method="semantic_cosine_similarity",
+            embedding_provider=config.embedding.provider,
+            embedding_model=config.embedding.model,
+            index_path=workspace.vector_index_path,
+        )
+
+    if retrieval == "hybrid":
+        config = config or ConfigService(workspace).load()
+        embedding_service = EmbeddingService.from_config(config)
+        semantic_search_service = SemanticSearchService(workspace, embedding_service)
+        hybrid_config = HybridSearchConfig()
+        hybrid_search_service = HybridSearchService(
+            lexical_search_service=LexicalSearchService(workspace),
+            semantic_search_service=semantic_search_service,
+            config=hybrid_config,
+        )
+        return BuiltSearchService(
+            search_service=hybrid_search_service,
+            retrieval_method="hybrid_rrf",
+            embedding_provider=config.embedding.provider,
+            embedding_model=config.embedding.model,
+            index_path=workspace.vector_index_path,
+            fusion_method="reciprocal_rank_fusion",
+            rrf_k=hybrid_config.rrf_k,
+            lexical_weight=hybrid_config.lexical_weight,
+            semantic_weight=hybrid_config.semantic_weight,
+            candidate_limit=hybrid_search_service.candidate_limit_for(limit),
+        )
+
+    return BuiltSearchService(
+        search_service=LexicalSearchService(workspace),
+        retrieval_method="lexical_token_overlap",
+    )
+
+
 def _handle_eval_retrieval(
     console: Console,
     workspace_path: str,
@@ -775,40 +842,35 @@ def _handle_eval_retrieval(
             )
             return 1
 
-        retrieval_method = "lexical_token_overlap"
-        embedding_provider: str | None = None
-        embedding_model: str | None = None
-        index_path: Path | None = None
-        if retrieval == "semantic":
-            if not workspace.has_vector_index():
-                console.print(
-                    "Retrieval eval failed: vector index not found. "
-                    "Run `ragent index build` first.",
-                    markup=False,
-                    soft_wrap=True,
-                )
-                return 1
-            config = ConfigService(workspace).load()
-            embedding_service = EmbeddingService.from_config(config)
-            search_service = SemanticSearchService(workspace, embedding_service)
-            retrieval_method = "semantic_cosine_similarity"
-            embedding_provider = config.embedding.provider
-            embedding_model = config.embedding.model
-            index_path = workspace.vector_index_path
-        else:
-            search_service = LexicalSearchService(workspace)
+        if retrieval in {"semantic", "hybrid"} and not workspace.has_vector_index():
+            console.print(
+                "Retrieval eval failed: vector index not found. "
+                "Run `ragent index build` first.",
+                markup=False,
+                soft_wrap=True,
+            )
+            return 1
+        built_search = _build_search_service_for_retrieval(
+            workspace,
+            retrieval,
+            limit,
+        )
 
         report = eval_service.evaluate(
             cases=cases,
-            search_service=search_service,
+            search_service=built_search.search_service,
             limit=limit,
             retrieval_mode=retrieval,
-            retrieval_method=retrieval_method,
+            retrieval_method=built_search.retrieval_method,
             cases_path=cases_path,
             workspace_path=workspace.root_path,
-            embedding_provider=embedding_provider,
-            embedding_model=embedding_model,
-            index_path=index_path,
+            embedding_provider=built_search.embedding_provider,
+            embedding_model=built_search.embedding_model,
+            index_path=built_search.index_path,
+            fusion_method=built_search.fusion_method,
+            rrf_k=built_search.rrf_k,
+            lexical_weight=built_search.lexical_weight,
+            semantic_weight=built_search.semantic_weight,
         )
         report_payload = report.model_dump(mode="json", exclude_none=True)
         written_report_path = workspace.write_retrieval_eval_report(
@@ -836,9 +898,13 @@ def _handle_eval_retrieval(
         report_path=written_report_path,
         started_at=started_at,
         finished_at=finished_at,
-        embedding_provider=embedding_provider,
-        embedding_model=embedding_model,
-        index_path=index_path,
+        embedding_provider=built_search.embedding_provider,
+        embedding_model=built_search.embedding_model,
+        index_path=built_search.index_path,
+        fusion_method=built_search.fusion_method,
+        rrf_k=built_search.rrf_k,
+        lexical_weight=built_search.lexical_weight,
+        semantic_weight=built_search.semantic_weight,
     )
     trace_path = workspace.write_trace(trace)
     _print_retrieval_eval_summary(
@@ -935,35 +1001,33 @@ def _handle_search(
         return 0
 
     started_at = datetime.now(UTC)
-    retrieval_method = "lexical_token_overlap"
-    embedding_provider: str | None = None
-    embedding_model: str | None = None
-    index_path = None
     try:
-        if retrieval == "semantic":
-            if not workspace.has_vector_index():
-                console.print(
-                    "Semantic search failed: vector index not found. "
-                    "Run `ragent index build` first.",
-                    markup=False,
-                    soft_wrap=True,
-                )
-                return 1
-            config = ConfigService(workspace).load()
-            embedding_service = EmbeddingService.from_config(config)
-            search_service = SemanticSearchService(workspace, embedding_service)
-            retrieval_method = "semantic_cosine_similarity"
-            embedding_provider = config.embedding.provider
-            embedding_model = config.embedding.model
-            index_path = workspace.vector_index_path
-        else:
-            search_service = LexicalSearchService(workspace)
+        if retrieval in {"semantic", "hybrid"} and not workspace.has_vector_index():
+            failure_label = (
+                "Hybrid search failed"
+                if retrieval == "hybrid"
+                else "Semantic search failed"
+            )
+            console.print(
+                f"{failure_label}: vector index not found. "
+                "Run `ragent index build` first.",
+                markup=False,
+                soft_wrap=True,
+            )
+            return 1
+        built_search = _build_search_service_for_retrieval(
+            workspace,
+            retrieval,
+            limit,
+        )
 
-        results = search_service.search(query, limit)
-        total_chunks = search_service.count_chunks()
+        results = built_search.search_service.search(query, limit)
+        total_chunks = built_search.search_service.count_chunks()
     except (OSError, RuntimeError, ValueError) as exc:
         failure_label = (
-            "Semantic search failed"
+            "Hybrid search failed"
+            if retrieval == "hybrid"
+            else "Semantic search failed"
             if retrieval == "semantic"
             else "Search failed"
         )
@@ -979,10 +1043,15 @@ def _handle_search(
         started_at=started_at,
         finished_at=finished_at,
         retrieval_mode=retrieval,
-        retrieval_method=retrieval_method,
-        embedding_provider=embedding_provider,
-        embedding_model=embedding_model,
-        index_path=index_path,
+        retrieval_method=built_search.retrieval_method,
+        fusion_method=built_search.fusion_method,
+        rrf_k=built_search.rrf_k,
+        lexical_weight=built_search.lexical_weight,
+        semantic_weight=built_search.semantic_weight,
+        candidate_limit=built_search.candidate_limit,
+        embedding_provider=built_search.embedding_provider,
+        embedding_model=built_search.embedding_model,
+        index_path=built_search.index_path,
     )
     trace_path = workspace.write_trace(trace)
 
@@ -1028,34 +1097,28 @@ def _handle_ask(
         return 0
 
     started_at = datetime.now(UTC)
-    retrieval_method = "lexical_token_overlap"
-    embedding_provider: str | None = None
-    embedding_model: str | None = None
-    index_path = None
     try:
         config = ConfigService(workspace).load()
         generation_service = GenerationService.from_config(config)
-        search_service = None
-        if retrieval == "semantic":
-            if not workspace.has_vector_index():
-                console.print(
-                    "Ask failed: vector index not found. "
-                    "Run `ragent index build` first.",
-                    markup=False,
-                    soft_wrap=True,
-                )
-                return 1
-            embedding_service = EmbeddingService.from_config(config)
-            search_service = SemanticSearchService(workspace, embedding_service)
-            retrieval_method = "semantic_cosine_similarity"
-            embedding_provider = config.embedding.provider
-            embedding_model = config.embedding.model
-            index_path = workspace.vector_index_path
+        if retrieval in {"semantic", "hybrid"} and not workspace.has_vector_index():
+            console.print(
+                "Ask failed: vector index not found. "
+                "Run `ragent index build` first.",
+                markup=False,
+                soft_wrap=True,
+            )
+            return 1
+        built_search = _build_search_service_for_retrieval(
+            workspace,
+            retrieval,
+            limit,
+            config=config,
+        )
         ask_service = AskService(
             workspace,
             generation_service=generation_service,
-            search_service=search_service,
-            retrieval_method=retrieval_method,
+            search_service=built_search.search_service,
+            retrieval_method=built_search.retrieval_method,
         )
         result = ask_service.ask(question, limit, max_context_chars)
         total_chunks = ask_service.count_chunks()
@@ -1079,10 +1142,14 @@ def _handle_ask(
         started_at=started_at,
         finished_at=finished_at,
         retrieval_mode=retrieval,
-        retrieval_method=retrieval_method,
-        embedding_provider=embedding_provider,
-        embedding_model=embedding_model,
-        index_path=index_path,
+        retrieval_method=built_search.retrieval_method,
+        fusion_method=built_search.fusion_method,
+        rrf_k=built_search.rrf_k,
+        lexical_weight=built_search.lexical_weight,
+        semantic_weight=built_search.semantic_weight,
+        embedding_provider=built_search.embedding_provider,
+        embedding_model=built_search.embedding_model,
+        index_path=built_search.index_path,
     )
     trace_path = workspace.write_trace(trace)
 

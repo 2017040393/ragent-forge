@@ -75,7 +75,7 @@ class RetrievalEvalCaseResult(BaseModel):
 
 class RetrievalEvalReport(BaseModel):
     evaluation_type: Literal["retrieval"] = "retrieval"
-    retrieval_mode: Literal["lexical", "semantic"]
+    retrieval_mode: Literal["lexical", "semantic", "hybrid"]
     retrieval_method: str
     limit: int
     case_count: int
@@ -88,6 +88,10 @@ class RetrievalEvalReport(BaseModel):
     embedding_provider: str | None = None
     embedding_model: str | None = None
     index_path: str | None = None
+    fusion_method: str | None = None
+    rrf_k: int | None = None
+    lexical_weight: float | None = None
+    semantic_weight: float | None = None
 
 
 class RetrievalEvalService:
@@ -126,13 +130,17 @@ class RetrievalEvalService:
         cases: list[RetrievalEvalCase],
         search_service: SearchServiceProtocol,
         limit: int,
-        retrieval_mode: Literal["lexical", "semantic"],
+        retrieval_mode: Literal["lexical", "semantic", "hybrid"],
         retrieval_method: str,
         cases_path: str | Path,
         workspace_path: str | Path,
         embedding_provider: str | None = None,
         embedding_model: str | None = None,
         index_path: str | Path | None = None,
+        fusion_method: str | None = None,
+        rrf_k: int | None = None,
+        lexical_weight: float | None = None,
+        semantic_weight: float | None = None,
     ) -> RetrievalEvalReport:
         if limit < 1:
             raise ValueError("limit must be greater than 0")
@@ -161,6 +169,10 @@ class RetrievalEvalService:
             embedding_provider=embedding_provider,
             embedding_model=embedding_model,
             index_path=str(Path(index_path)) if index_path is not None else None,
+            fusion_method=fusion_method,
+            rrf_k=rrf_k,
+            lexical_weight=lexical_weight,
+            semantic_weight=semantic_weight,
             results=results,
         )
 

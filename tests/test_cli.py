@@ -1205,6 +1205,118 @@ def test_search_command_semantic_mode_missing_index_fails_without_new_trace(
     assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
 
 
+def test_search_command_hybrid_mode_works_after_index_build(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    write_embedding_config(workspace_dir)
+    install_fake_embedding_post(monkeypatch)
+    assert main(["index", "build", "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "search",
+            "retrieval",
+            "--retrieval",
+            "hybrid",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert exit_code == 0
+    assert "Search query: retrieval" in captured.out
+    assert "Retrieval mode: hybrid" in captured.out
+    assert "Results:" in captured.out
+    assert "Saved trace to:" in captured.out
+    assert "rag.md::chunk-0001" in captured.out
+    assert "embedding-secret-key" not in captured.out
+    assert latest_trace["operation"] == "search"
+    assert latest_trace["metadata"]["retrieval_mode"] == "hybrid"
+    assert latest_trace["metadata"]["retrieval_method"] == "hybrid_rrf"
+    assert latest_trace["metadata"]["fusion_method"] == "reciprocal_rank_fusion"
+    assert latest_trace["metadata"]["rrf_k"] == 60
+    assert latest_trace["metadata"]["lexical_weight"] == 1.0
+    assert latest_trace["metadata"]["semantic_weight"] == 1.0
+    assert latest_trace["metadata"]["candidate_limit"] == 40
+    assert latest_trace["metadata"]["embedding_provider"] == "openai_embeddings"
+    assert latest_trace["metadata"]["embedding_model"] == "text-embedding-3-small"
+    assert latest_trace["metadata"]["index_path"].endswith("vector_index.jsonl")
+    assert [step["name"] for step in latest_trace["steps"]] == [
+        "read_chunks",
+        "run_lexical_search",
+        "embed_query",
+        "load_vector_index",
+        "run_semantic_search",
+        "fuse_results",
+        "rank_results",
+        "render_results",
+    ]
+    assert "embedding-secret-key" not in json.dumps(latest_trace)
+    assert "retrieval basics" not in json.dumps(latest_trace)
+
+
+def test_search_command_hybrid_mode_missing_index_fails_without_new_trace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    write_embedding_config(workspace_dir)
+    latest_trace_path = workspace_dir / "traces" / "latest_trace.json"
+    ingest_trace = latest_trace_path.read_text(encoding="utf-8")
+
+    exit_code = main(
+        [
+            "search",
+            "agent",
+            "--retrieval",
+            "hybrid",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert (
+        "Hybrid search failed: vector index not found. "
+        "Run `ragent index build` first."
+    ) in captured.out
+    assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
+
+
 def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
     tmp_path: Path,
     capsys,
@@ -1424,6 +1536,152 @@ def test_eval_retrieval_semantic_missing_index_fails_without_new_trace(
             str(cases_path),
             "--retrieval",
             "semantic",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert (
+        "Retrieval eval failed: vector index not found. "
+        "Run `ragent index build` first."
+    ) in captured.out
+    assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
+    assert not (workspace_dir / "eval" / "latest_retrieval_eval.json").exists()
+
+
+def test_eval_retrieval_hybrid_succeeds_after_index_build(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    write_embedding_config(workspace_dir)
+    install_fake_embedding_post(monkeypatch)
+    assert main(["index", "build", "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    chunks = [
+        json.loads(line)
+        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "retrieval",
+                "expected_chunk_ids": [chunks[1]["chunk_id"]],
+            }
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(cases_path),
+            "--retrieval",
+            "hybrid",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    report_text = (workspace_dir / "eval" / "latest_retrieval_eval.json").read_text(
+        encoding="utf-8"
+    )
+    report = json.loads(report_text)
+    assert exit_code == 0
+    assert "Retrieval mode: hybrid" in captured.out
+    assert "Failed cases: none" in captured.out
+    assert "embedding-secret-key" not in captured.out
+    assert report["retrieval_mode"] == "hybrid"
+    assert report["retrieval_method"] == "hybrid_rrf"
+    assert report["fusion_method"] == "reciprocal_rank_fusion"
+    assert report["rrf_k"] == 60
+    assert report["lexical_weight"] == 1.0
+    assert report["semantic_weight"] == 1.0
+    assert report["embedding_provider"] == "openai_embeddings"
+    assert report["embedding_model"] == "text-embedding-3-small"
+    assert report["index_path"].endswith("vector_index.jsonl")
+    assert report["metrics"]["hit@k"] == 1.0
+    assert latest_trace["operation"] == "retrieval_eval"
+    assert latest_trace["metadata"]["retrieval_mode"] == "hybrid"
+    assert latest_trace["metadata"]["retrieval_method"] == "hybrid_rrf"
+    assert latest_trace["metadata"]["fusion_method"] == "reciprocal_rank_fusion"
+    assert latest_trace["metadata"]["rrf_k"] == 60
+    assert latest_trace["metadata"]["embedding_provider"] == "openai_embeddings"
+    assert latest_trace["metadata"]["embedding_model"] == "text-embedding-3-small"
+    assert latest_trace["metadata"]["index_path"].endswith("vector_index.jsonl")
+    assert "embedding-secret-key" not in report_text
+    assert '"embedding": [' not in report_text
+    assert "retrieval basics" not in report_text
+    assert "embedding-secret-key" not in json.dumps(latest_trace)
+    assert '"embedding": [' not in json.dumps(latest_trace)
+
+
+def test_eval_retrieval_hybrid_missing_index_fails_without_new_trace_or_report(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    write_embedding_config(workspace_dir)
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "agent",
+                "expected_source_paths": ["rag.md"],
+            }
+        ],
+    )
+    latest_trace_path = workspace_dir / "traces" / "latest_trace.json"
+    ingest_trace = latest_trace_path.read_text(encoding="utf-8")
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(cases_path),
+            "--retrieval",
+            "hybrid",
             "--workspace",
             str(workspace_dir),
         ]
@@ -1819,6 +2077,117 @@ def test_ask_command_semantic_mode_missing_index_fails_without_new_trace(
             "agent",
             "--retrieval",
             "semantic",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert (
+        "Ask failed: vector index not found. Run `ragent index build` first."
+    ) in captured.out
+    assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
+
+
+def test_ask_command_hybrid_mode_uses_hybrid_results_after_index_build(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    write_embedding_config(workspace_dir)
+    install_fake_embedding_post(monkeypatch)
+    assert main(["index", "build", "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "ask",
+            "retrieval",
+            "--retrieval",
+            "hybrid",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert exit_code == 0
+    assert "Ask pipeline: retrieval-only mode" in captured.out
+    assert "Question: retrieval" in captured.out
+    assert "Retrieval mode: hybrid" in captured.out
+    assert "rag.md::chunk-0001" in captured.out
+    assert "Generation: not configured." in captured.out
+    assert "embedding-secret-key" not in captured.out
+    assert latest_trace["operation"] == "ask_retrieval"
+    assert latest_trace["metadata"]["retrieval_mode"] == "hybrid"
+    assert latest_trace["metadata"]["retrieval_method"] == "hybrid_rrf"
+    assert latest_trace["metadata"]["fusion_method"] == "reciprocal_rank_fusion"
+    assert latest_trace["metadata"]["rrf_k"] == 60
+    assert latest_trace["metadata"]["lexical_weight"] == 1.0
+    assert latest_trace["metadata"]["semantic_weight"] == 1.0
+    assert latest_trace["metadata"]["embedding_provider"] == "openai_embeddings"
+    assert latest_trace["metadata"]["embedding_model"] == "text-embedding-3-small"
+    assert latest_trace["metadata"]["index_path"].endswith("vector_index.jsonl")
+    assert latest_trace["metadata"]["retrieved_chunk_ids"][0].endswith(
+        "rag.md::chunk-0001"
+    )
+    retrieve_step = latest_trace["steps"][1]
+    assert retrieve_step["name"] == "retrieve_context"
+    assert retrieve_step["description"] == (
+        "Retrieve context chunks with hybrid lexical and semantic search."
+    )
+    assert retrieve_step["inputs"]["retrieval_method"] == "hybrid_rrf"
+    assert retrieve_step["inputs"]["fusion_method"] == "reciprocal_rank_fusion"
+    assert retrieve_step["inputs"]["rrf_k"] == 60
+    assert "embedding-secret-key" not in json.dumps(latest_trace)
+    assert "retrieval basics" not in json.dumps(latest_trace)
+
+
+def test_ask_command_hybrid_mode_missing_index_fails_without_new_trace(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text("agent memory", encoding="utf-8")
+    workspace_dir = tmp_path / ".ragent"
+    assert main(["ingest", str(knowledge_dir), "--workspace", str(workspace_dir)]) == 0
+    capsys.readouterr()
+    write_embedding_config(workspace_dir)
+    latest_trace_path = workspace_dir / "traces" / "latest_trace.json"
+    ingest_trace = latest_trace_path.read_text(encoding="utf-8")
+
+    exit_code = main(
+        [
+            "ask",
+            "agent",
+            "--retrieval",
+            "hybrid",
             "--workspace",
             str(workspace_dir),
         ]
