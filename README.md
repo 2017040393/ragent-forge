@@ -92,8 +92,8 @@ Implemented so far:
   real generation is not configured.
 - `ragent traces latest`, `ragent traces list`, and
   `ragent traces show <trace_id>` inspect local operation traces.
-- `ragent tui` shows Documents workspace status, recent chunk previews, and
-  the latest trace summary plus a read-only recent trace history summary.
+- `ragent tui` opens a local Textual workbench with Documents, Search, Trace,
+  Settings, and a contextual Inspector panel.
 
 Reranking, vector databases, and agent workflows are intentionally not
 implemented yet.
@@ -407,7 +407,15 @@ ragent ask "What is Agentic RAG?" --show-prompt
 ragent ask "What is Agentic RAG?" --show-prompt --limit 5
 ```
 
-`ragent tui` launches the minimal Textual application. `ragent ingest` loads and
+`ragent tui` launches the Textual workbench. It provides a Documents page with
+compact workspace and chunk rows, a Search page for lexical, semantic, or
+hybrid retrieval over existing chunks, a Trace page for recent operation traces,
+a read-only Settings page, and an Inspector panel for the selected chunk,
+search result, trace, or status item. The TUI does not run ingest, build the
+semantic index, run retrieval eval, execute ask generation, or edit config yet;
+use the CLI commands for those workflows.
+
+`ragent ingest` loads and
 chunks local Markdown/TXT files without creating embeddings or a vector index.
 It writes `.ragent/chunks/chunks.jsonl` and
 `.ragent/ingest/latest_summary.json` by default.
@@ -486,12 +494,10 @@ for the latest trace, `ragent traces list` for historical trace files, and
 observability service is used. The retrieval eval trace operation is
 `retrieval_eval` and stores only compact metadata such as case counts, hit
 metrics, report path, semantic index metadata, and hybrid RRF metadata when
-relevant. The TUI displays the same local
-workspace status, a small recent-chunks preview when chunks exist, and a
-read-only latest trace summary from `.ragent/traces/latest_trace.json`,
-including the latest search or ask retrieval trace after those commands. The
-TUI Trace view also shows a read-only recent trace history summary; use
-`ragent traces show <trace_id>` for full trace details. Interactive TUI trace
-history browsing is not implemented yet.
+relevant. The TUI displays the same local workspace status, compact recent
+chunk rows, interactive retrieval search over existing workspace data,
+read-only trace history, and read-only provider/config status. Use
+`ragent traces show <trace_id>` for full trace details outside the compact TUI
+Inspector.
 Default retrieval remains lexical; reranking, vector database integration, and
 agent workflows are still not implemented.
