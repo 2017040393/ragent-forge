@@ -283,6 +283,42 @@ def test_format_transcript_message_indents_multiline_text() -> None:
     assert text == "Assistant:\n  line 1\n  line 2"
 
 
+def test_format_transcript_message_preserves_normal_token_terms() -> None:
+    message = TranscriptMessage(
+        role="assistant",
+        text=(
+            "Tokenization splits context tokens.\n"
+            "Embedding token counts are estimates."
+        ),
+    )
+
+    text = format_transcript_message(message)
+
+    assert "Tokenization splits context tokens." in text
+    assert "Embedding token counts are estimates." in text
+    assert "<hidden>" not in text
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "api_key=abc123",
+        "api_key: abc123",
+        "authorization: Bearer abc123",
+        "bearer abc123",
+        "secret=abc123",
+        "secret: abc123",
+        "token=abc123",
+        "token: abc123",
+    ],
+)
+def test_format_transcript_message_hides_credential_shaped_lines(line: str) -> None:
+    text = format_transcript_message(TranscriptMessage(role="assistant", text=line))
+
+    assert text == "Assistant:\n  <hidden>"
+    assert "abc123" not in text
+
+
 def test_format_transcript_joins_messages_with_blank_lines() -> None:
     messages = (
         TranscriptMessage(role="user", text="question"),

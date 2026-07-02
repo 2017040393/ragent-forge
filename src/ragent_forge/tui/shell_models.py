@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal, cast
 
@@ -17,6 +18,14 @@ RetrievalMode = Literal["lexical", "semantic", "hybrid"]
 WELCOME_MESSAGE = (
     "RAGentForge command shell.\n"
     "Type a question to ask your local knowledge base, or type /help for commands."
+)
+
+_SENSITIVE_TEXT_PATTERNS = (
+    re.compile(r"\bapi_key\s*[:=]", re.IGNORECASE),
+    re.compile(r"\bauthorization\s*:", re.IGNORECASE),
+    re.compile(r"^\s*bearer\s+\S+", re.IGNORECASE),
+    re.compile(r"\bsecret\s*[:=]", re.IGNORECASE),
+    re.compile(r"\btoken\s*[:=]", re.IGNORECASE),
 )
 
 
@@ -274,15 +283,15 @@ def _ask_metadata(state: AskPageState) -> dict[str, Any]:
 def _safe_display_text(text: str) -> str:
     sanitized_lines: list[str] = []
     for line in text.splitlines():
-        lowered = line.lower()
-        if any(
-            sensitive in lowered
-            for sensitive in ("api_key", "secret", "token", "authorization")
-        ):
+        if _looks_like_sensitive_text(line):
             sanitized_lines.append("<hidden>")
         else:
             sanitized_lines.append(line)
     return "\n".join(sanitized_lines)
+
+
+def _looks_like_sensitive_text(line: str) -> bool:
+    return any(pattern.search(line) for pattern in _SENSITIVE_TEXT_PATTERNS)
 
 
 def _safe_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
