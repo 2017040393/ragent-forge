@@ -94,22 +94,27 @@ class SettingsPageModel:
 
 
 def compact_source_label(source_path: str) -> str:
-    name = Path(source_path).name
+    normalized = source_path.replace("\\", "/")
+    name = normalized.rstrip("/").rsplit("/", 1)[-1]
     return name or source_path
 
 
 def compact_path_label(path: str | Path, *, max_parts: int = 2) -> str:
-    path_obj = Path(path)
-    parts = path_obj.parts
+    raw = str(path)
+    if not raw:
+        return ""
+
+    normalized = raw.replace("\\", "/")
+    parts = [part for part in normalized.split("/") if part]
+    if not parts:
+        return normalized
+
     if ".ragent" in parts:
         ragent_index = parts.index(".ragent")
-        return str(Path(".ragent", *parts[ragent_index + 1 :]))
-    if not path_obj.is_absolute():
-        return str(path_obj)
-
-    if len(parts) <= max_parts + 1:
-        return str(path_obj)
-    return str(Path("...", *parts[-max_parts:]))
+        return "/".join([".ragent", *parts[ragent_index + 1 :]])
+    if len(parts) <= max_parts:
+        return "/".join(parts)
+    return "/".join(["...", *parts[-max_parts:]])
 
 
 def compact_chunk_label(chunk_id: str) -> str:
@@ -674,7 +679,10 @@ def format_settings_page(model: SettingsPageModel) -> str:
         ]
     )
     if model.vector_index_path:
-        lines.append(f"vector index path: {model.vector_index_path}")
+        lines.append(
+            "vector index path: "
+            f"{compact_path_label(model.vector_index_path, max_parts=3)}"
+        )
     return "\n".join(lines)
 
 

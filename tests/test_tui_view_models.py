@@ -54,17 +54,44 @@ def test_compact_source_label_returns_file_name_for_long_path() -> None:
 
 
 def test_compact_path_label_shortens_long_absolute_path() -> None:
-    path = Path(
-        "C:/Users/MKS/Desktop/code/python/ragent-forge/examples/knowledge"
+    assert (
+        compact_path_label(
+            "C:/Users/MKS/Desktop/code/python/ragent-forge/examples/knowledge"
+        )
+        == ".../examples/knowledge"
     )
 
-    assert compact_path_label(path) == "...\\examples\\knowledge"
+
+def test_compact_path_label_shortens_windows_backslash_path() -> None:
+    assert (
+        compact_path_label(
+            r"C:\Users\MKS\Desktop\code\python\ragent-forge\examples\knowledge"
+        )
+        == ".../examples/knowledge"
+    )
+
+
+def test_compact_path_label_shortens_posix_absolute_path() -> None:
+    assert (
+        compact_path_label("/home/user/code/ragent-forge/examples/knowledge")
+        == ".../examples/knowledge"
+    )
 
 
 def test_compact_path_label_preserves_short_relative_path() -> None:
-    assert compact_path_label(Path(".ragent/chunks/chunks.jsonl")) == (
-        ".ragent\\chunks\\chunks.jsonl"
+    assert compact_path_label(".ragent/chunks/chunks.jsonl", max_parts=3) == (
+        ".ragent/chunks/chunks.jsonl"
     )
+
+
+def test_compact_path_label_normalizes_ragent_backslash_path() -> None:
+    assert compact_path_label(r".ragent\chunks\chunks.jsonl", max_parts=3) == (
+        ".ragent/chunks/chunks.jsonl"
+    )
+
+
+def test_compact_path_label_preserves_short_file_name() -> None:
+    assert compact_path_label("rag.md") == "rag.md"
 
 
 def test_documents_page_omits_duplicate_title_when_layout_owns_title(
@@ -89,10 +116,10 @@ def test_documents_page_model_uses_compact_summary_paths_and_rows(
     assert "Workspace" in page_text
     assert "  status: ready" in page_text
     assert "Ingest" in page_text
-    assert "  source: ...\\examples\\knowledge" in page_text
+    assert "  source: .../examples/knowledge" in page_text
     assert "Files" in page_text
-    assert "  chunks: .ragent\\chunks\\chunks.jsonl" in page_text
-    assert "  summary: .ragent\\ingest\\latest_summary.json" in page_text
+    assert "  chunks: .ragent/chunks/chunks.jsonl" in page_text
+    assert "  summary: .ragent/ingest/latest_summary.json" in page_text
     assert "Semantic index" in page_text
     assert "  status: missing" in page_text
     assert "Recent chunks" in page_text
@@ -144,6 +171,18 @@ def test_settings_page_hides_configured_api_keys(tmp_path: Path) -> None:
     assert "embedding api_key: <hidden>" in text
     assert "generation-secret" not in text
     assert "embedding-secret" not in text
+
+
+def test_settings_page_compacts_vector_index_path(tmp_path: Path) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.ensure_exists()
+    workspace.vector_index_path.write_text("", encoding="utf-8")
+
+    text = format_settings_page(load_settings_page_model(workspace.root_path))
+
+    assert "vector index status: ready" in text
+    assert "vector index path: .ragent/index/vector_index.jsonl" in text
+    assert str(workspace.root_path) not in text
 
 
 def test_settings_page_config_error_does_not_display_api_key(
