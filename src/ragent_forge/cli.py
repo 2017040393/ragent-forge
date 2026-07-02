@@ -216,7 +216,10 @@ def build_parser() -> argparse.ArgumentParser:
     eval_subparsers = eval_parser.add_subparsers(dest="eval_command")
     retrieval_eval_parser = eval_subparsers.add_parser(
         "retrieval",
-        help="Evaluate lexical or semantic retrieval quality with JSONL cases.",
+        help=(
+            "Evaluate lexical, semantic, or hybrid retrieval quality "
+            "with JSONL cases."
+        ),
     )
     retrieval_eval_parser.add_argument(
         "--workspace",
@@ -274,7 +277,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     search_parser = subparsers.add_parser(
         "search",
-        help="Search generated chunks with lexical or semantic retrieval.",
+        help="Search generated chunks with lexical, semantic, or hybrid retrieval.",
     )
     search_parser.add_argument("query", help="Query to search for.")
     search_parser.add_argument(
