@@ -420,8 +420,12 @@ for the currently selected source. Interactive source navigation is not
 implemented yet.
 
 The Shell is composer-first. Use slash commands such as `/help`, `/clear`,
-`/exit`, `/mode`, `/search`, and `/ask`; the TUI intentionally avoids global
-single-key shortcuts such as `q` to quit.
+`/exit`, `/mode`, `/search`, and `/ask`. The TUI intentionally avoids global
+single-key shortcuts such as `q` to quit; use `/exit`, `/quit`, or `/q` from the
+composer.
+
+Typing `/` in the Shell composer shows lightweight inline command suggestions.
+Suggestions are read-only; commands still run only after pressing Enter.
 
 Use `/mode`, `/limit`, `/context`, and `/prompt` to control Shell behavior. Use
 `/help` for the command list. The TUI does not run ingest, build the semantic

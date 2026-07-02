@@ -7,6 +7,7 @@ from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.widgets import Header, Input, Label, Static
 from textual.worker import Worker, WorkerState
 
+from ragent_forge.tui.commands import format_tui_command_suggestions
 from ragent_forge.tui.shell_dispatch import ShellReadOnlyHandlers, apply_shell_input
 from ragent_forge.tui.shell_models import (
     ShellState,
@@ -78,6 +79,12 @@ class RagentForgeApp(App[None]):
         height: auto;
     }
 
+    #shell-suggestions {
+        height: auto;
+        margin-bottom: 1;
+        color: $text-muted;
+    }
+
     Static {
         width: 100%;
     }
@@ -98,6 +105,7 @@ class RagentForgeApp(App[None]):
                 yield Static("", id="shell-status")
                 with ScrollableContainer(id="shell-transcript-container"):
                     yield Static("", id="shell-transcript")
+                yield Static("", id="shell-suggestions")
                 yield Input(
                     placeholder="Ask a question or type /help",
                     id="shell-input",
@@ -115,6 +123,10 @@ class RagentForgeApp(App[None]):
         if event.input.id == "shell-input":
             self._submit_shell_input()
 
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "shell-input":
+            self._render_shell_suggestions(event.value)
+
     def _render_shell(self) -> None:
         self.query_one("#shell-status", Static).update(
             format_shell_status(self.shell_state)
@@ -130,6 +142,7 @@ class RagentForgeApp(App[None]):
         if self.shell_state.running:
             return
         shell_input.value = ""
+        self._render_shell_suggestions("")
 
         result = apply_shell_input(
             self.shell_state,
@@ -328,6 +341,13 @@ class RagentForgeApp(App[None]):
     def _render_inspector(self) -> None:
         self.query_one("#inspector-content", Static).update(
             format_shell_inspector(self.shell_state)
+        )
+
+    def _render_shell_suggestions(self, text: str | None = None) -> None:
+        if text is None:
+            text = self.query_one("#shell-input", Input).value
+        self.query_one("#shell-suggestions", Static).update(
+            format_tui_command_suggestions(text)
         )
 
     def _focus_shell_input(self) -> None:

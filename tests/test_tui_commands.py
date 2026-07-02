@@ -2,6 +2,7 @@ import pytest
 
 from ragent_forge.tui.commands import (
     format_tui_command_help,
+    format_tui_command_suggestions,
     list_tui_commands,
     match_tui_commands,
     parse_tui_input,
@@ -172,6 +173,109 @@ def test_format_tui_command_help_includes_major_commands() -> None:
         assert usage in text
 
 
+@pytest.mark.parametrize("text", ["", "   "])
+def test_format_tui_command_suggestions_empty_input_returns_empty(
+    text: str,
+) -> None:
+    assert format_tui_command_suggestions(text) == ""
+
+
+def test_format_tui_command_suggestions_normal_text_returns_empty() -> None:
+    assert format_tui_command_suggestions("What is Agentic RAG?") == ""
+
+
+def test_format_tui_command_suggestions_slash_returns_limited_suggestions() -> None:
+    text = format_tui_command_suggestions("/", limit=6)
+
+    assert text.startswith("Suggestions:\n")
+    assert "/ask <question>" in text
+    assert "/search <query>" in text
+    assert "/docs" in text
+    assert "/trace" in text
+    assert _suggestion_command_count(text) == 6
+
+
+def test_format_tui_command_suggestions_prefix_matches_names() -> None:
+    text = format_tui_command_suggestions("/se")
+
+    assert "/search <query>" in text
+    assert "Search chunks." in text
+    assert "/settings" in text
+    assert "Show read-only config." in text
+    assert "/trace" not in text
+
+
+def test_format_tui_command_suggestions_prefix_matches_trace() -> None:
+    text = format_tui_command_suggestions("/tr")
+
+    assert text == "Suggestions:\n  /trace  Show latest trace."
+
+
+def test_format_tui_command_suggestions_alias_uses_canonical_usage() -> None:
+    text = format_tui_command_suggestions("/config")
+
+    assert "/settings" in text
+    assert "Show read-only config." in text
+    assert "/config" not in text
+
+
+def test_format_tui_command_suggestions_q_alias_uses_canonical_exit_usage() -> None:
+    text = format_tui_command_suggestions("/q")
+
+    assert text == "Suggestions:\n  /exit  Exit the TUI."
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "/search rag",
+        "/ask what is RAG",
+    ],
+)
+def test_format_tui_command_suggestions_command_with_args_returns_empty(
+    text: str,
+) -> None:
+    assert format_tui_command_suggestions(text) == ""
+
+
+def test_format_tui_command_suggestions_unknown_prefix_is_friendly() -> None:
+    assert format_tui_command_suggestions("/unknown") == (
+        "No matching commands. Type /help for the command list."
+    )
+
+
+def test_format_tui_command_suggestions_limit_is_respected() -> None:
+    text = format_tui_command_suggestions("/", limit=2)
+
+    assert _suggestion_command_count(text) == 2
+    assert "type more to narrow results" in text
+
+
+def test_format_tui_command_suggestions_is_deterministic() -> None:
+    first = format_tui_command_suggestions("/s")
+    second = format_tui_command_suggestions("/s")
+
+    assert first == second
+
+
+def test_format_tui_command_suggestions_include_usage_and_description() -> None:
+    text = format_tui_command_suggestions("/mode")
+
+    assert text == (
+        "Suggestions:\n"
+        "  /mode lexical|semantic|hybrid  "
+        "Set retrieval mode: lexical, semantic, hybrid."
+    )
+
+
+def test_format_tui_command_suggestions_does_not_mutate_command_registry() -> None:
+    before = list_tui_commands()
+
+    _ = format_tui_command_suggestions("/se")
+
+    assert list_tui_commands() == before
+
+
 @pytest.mark.parametrize(
     "text",
     [
@@ -186,3 +290,7 @@ def test_parser_handles_weird_input_without_raising(text: str) -> None:
     parsed = parse_tui_input(text)
 
     assert parsed.raw == text
+
+
+def _suggestion_command_count(text: str) -> int:
+    return sum(1 for line in text.splitlines() if line.startswith("  /"))

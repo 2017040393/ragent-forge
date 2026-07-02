@@ -79,6 +79,7 @@ async def test_tui_app_opens_as_single_shell_without_old_pages(
         assert app.query_one("#shell-input", Input).placeholder == (
             "Ask a question or type /help"
         )
+        assert app.query_one("#shell-suggestions", Static).renderable == ""
         assert app.focused == app.query_one("#shell-input", Input)
         assert "Shell details" in str(
             app.query_one("#inspector-content", Static).renderable
@@ -166,6 +167,37 @@ async def test_tui_app_shell_running_submission_preserves_input_text(
 
         assert shell_input.value == "Do not lose this"
         assert app.shell_state.messages[-1].text == WELCOME_MESSAGE
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_suggestions_render_for_slash_prefix(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        app._render_shell_suggestions("/se")
+
+        suggestions = str(app.query_one("#shell-suggestions", Static).renderable)
+        assert "/search <query>" in suggestions
+        assert "/settings" in suggestions
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_submission_clears_suggestions(tmp_path: Path) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        app._render_shell_suggestions("/se")
+        shell_input.value = "/help"
+
+        app._submit_shell_input()
+
+        assert app.query_one("#shell-suggestions", Static).renderable == ""
+        assert shell_input.value == ""
 
 
 @pytest.mark.anyio

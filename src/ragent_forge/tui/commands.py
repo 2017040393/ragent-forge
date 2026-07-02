@@ -190,15 +190,14 @@ def match_tui_commands(prefix: str) -> list[SlashCommandSpec]:
 
     commands = list_tui_commands()
     if not normalized:
-        return sorted(commands, key=lambda command: command.name)
+        return commands
 
-    matches = [
+    return [
         command
         for command in commands
         if command.name.startswith(normalized)
         or any(alias.startswith(normalized) for alias in command.aliases)
     ]
-    return sorted(matches, key=lambda command: command.name)
 
 
 def format_tui_command_help(
@@ -211,6 +210,34 @@ def format_tui_command_help(
         f"{command.usage.ljust(usage_width)}  {command.description}"
         for command in command_specs
     )
+    return "\n".join(lines)
+
+
+def format_tui_command_suggestions(text: str, *, limit: int = 6) -> str:
+    if limit <= 0:
+        return ""
+
+    raw = text.lstrip()
+    if not raw or not raw.startswith("/"):
+        return ""
+
+    command_fragment = raw[1:]
+    if any(character.isspace() for character in command_fragment):
+        return ""
+
+    matches = match_tui_commands(command_fragment)
+    if not matches:
+        return "No matching commands. Type /help for the command list."
+
+    visible_matches = matches[:limit]
+    usage_width = max(len(command.usage) for command in visible_matches)
+    lines = ["Suggestions:"]
+    lines.extend(
+        f"  {command.usage.ljust(usage_width)}  {command.description}"
+        for command in visible_matches
+    )
+    if len(matches) > limit:
+        lines.append("  ... type more to narrow results")
     return "\n".join(lines)
 
 

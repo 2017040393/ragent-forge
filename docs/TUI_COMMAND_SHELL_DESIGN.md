@@ -191,6 +191,8 @@ Current implementation status:
 - Shell Inspector shows selected-source details.
 - Shell ordinary questions and `/ask <question>` are wired through a background
   worker.
+- Lightweight inline command suggestions are available while typing slash
+  commands.
 
 ## Migration Plan
 
@@ -200,7 +202,9 @@ suggestions, transcript polish, and optional richer status panels.
 
 ## Non-goals
 
-- No autocomplete popup in the first shell MVP.
+- No command palette.
+- No popup autocomplete.
+- No Tab completion or suggestion selection.
 - No session persistence.
 - No agent tool loop.
 - No TUI ingest execution.
