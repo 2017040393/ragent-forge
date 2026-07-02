@@ -256,6 +256,111 @@ python -m pytest
 python -m ruff check .
 ```
 
+## End-to-End Demo
+
+This demo starts from the checked-in example knowledge base and walks through
+the local RAG workflow: ingest, inspect, index, retrieve, ask, trace, and
+evaluate.
+
+Start by ingesting the sample Markdown files:
+
+```bash
+ragent ingest examples/knowledge --workspace .ragent
+ragent status --workspace .ragent
+ragent chunks list --workspace .ragent
+ragent chunks show "<chunk_id>" --workspace .ragent
+```
+
+Ingestion proves local Markdown/TXT documents can be loaded and chunked. Chunk
+inspection proves the workspace is inspectable rather than a black box.
+
+Configure providers in `.ragent/config.toml` when you want semantic retrieval
+or generated answers. Generation and embeddings can use different
+OpenAI-compatible providers:
+
+```toml
+[generation]
+provider = "openai_responses"
+base_url = "https://your-chat-provider.example/v1"
+model = "your-chat-model"
+api_key = "..."
+
+[embedding]
+provider = "openai_embeddings"
+base_url = "https://your-embedding-provider.example/v1"
+model = "your-embedding-model"
+api_key = "..."
+timeout_seconds = 60
+batch_size = 32
+```
+
+API keys are stored in the local `.ragent/config.toml`, so treat that file as
+sensitive. `ragent config show` hides API keys. Reports and traces should not
+contain API keys. The vector index stores vectors and metadata, but not the
+original full chunk text.
+
+Semantic and hybrid retrieval require a semantic vector index:
+
+```bash
+ragent index build --workspace .ragent
+ragent index status --workspace .ragent
+```
+
+The index build proves semantic retrieval is backed by a local JSONL vector
+index under `.ragent/index/`.
+
+Try the three retrieval modes:
+
+```bash
+ragent search "How does hybrid retrieval work?" --retrieval lexical --workspace .ragent
+ragent search "How does hybrid retrieval work?" --retrieval semantic --workspace .ragent
+ragent search "How does hybrid retrieval work?" --retrieval hybrid --workspace .ragent
+```
+
+Lexical search is useful for exact terms, commands, file names, and config
+fields. Semantic search is useful for paraphrases and concept-level queries.
+Hybrid search combines lexical and semantic candidates with Reciprocal Rank
+Fusion.
+
+Ask a question with hybrid retrieval:
+
+```bash
+ragent ask "How does RAGentForge perform hybrid retrieval?" --retrieval hybrid --workspace .ragent
+ragent ask "How does RAGentForge perform hybrid retrieval?" --retrieval hybrid --show-prompt --workspace .ragent
+```
+
+`ragent ask` uses retrieved context and can optionally generate source-grounded
+answers when a generation provider is configured. `--show-prompt` shows the
+deterministic prompt preview used for generation.
+
+Inspect traces after any operation:
+
+```bash
+ragent traces latest --workspace .ragent
+ragent traces list --workspace .ragent
+```
+
+Trace inspection shows operation steps and compact metadata. Trace files are
+written under `.ragent/traces/`.
+
+Run retrieval evaluation against the included example cases:
+
+```bash
+ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
+ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval semantic --workspace .ragent
+ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval hybrid --workspace .ragent
+```
+
+Retrieval eval reports `hit@1`, `hit@3`, `hit@5`, requested `hit@k`, MRR, and
+failed cases. Reports are written under `.ragent/eval/`. The example cases use
+repo-relative source paths from `examples/knowledge`; if your local report does
+not match because the workspace stores resolved absolute paths, copy the exact
+`Source` values from `ragent chunks list` into the JSONL file.
+
+Retrieval eval is retrieval-only. It does not run answer evaluation or
+LLM-as-judge. Reranking, dashboards, vector database integration, web UI, and
+agent workflows are intentionally not implemented yet.
+
 ## Basic Usage
 
 These commands are available now. Ingestion scans local Markdown/TXT files and
