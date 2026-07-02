@@ -92,8 +92,8 @@ Implemented so far:
   real generation is not configured.
 - `ragent traces latest`, `ragent traces list`, and
   `ragent traces show <trace_id>` inspect local operation traces.
-- `ragent tui` opens a local Textual workbench with Documents, Search, Trace,
-  Settings, and a contextual Inspector panel.
+- `ragent tui` opens a local Textual workbench with Documents, Search, Ask,
+  Trace, Settings, and a contextual Inspector panel.
 
 Reranking, vector databases, and agent workflows are intentionally not
 implemented yet.
@@ -220,11 +220,13 @@ keys. Traces and the vector index do not store API keys. The vector index stores
 embedding vectors and metadata but not original full chunk text; full text
 remains in `.ragent/chunks/chunks.jsonl`.
 
-The TUI Documents view reads the same workspace files. The TUI Trace view reads
-`.ragent/traces/latest_trace.json` and recent trace files under
-`.ragent/traces/<trace_id>.json`. TUI trace history is read-only and not
-interactive yet; use `ragent traces show <trace_id>` to inspect a specific trace.
-TUI trace selection and TUI ingestion interactions are not implemented yet.
+The TUI Documents view reads the same workspace files. The TUI Search and Ask
+pages run over existing chunks and indexes but do not run ingest or build the
+semantic index. The TUI Trace view reads `.ragent/traces/latest_trace.json` and
+recent trace files under `.ragent/traces/<trace_id>.json`. TUI trace history is
+read-only; use `ragent traces show <trace_id>` to inspect a specific trace. TUI
+Ask does not write new traces in this MVP; the CLI `ragent ask` command remains
+the trace-producing ask workflow.
 
 ## Development Setup
 
@@ -409,14 +411,16 @@ ragent ask "What is Agentic RAG?" --show-prompt --limit 5
 
 `ragent tui` launches the Textual workbench. It provides a Documents page with
 compact workspace and chunk rows, a Search page for lexical, semantic, or
-hybrid retrieval over existing chunks, a Trace page for recent operation traces,
-a read-only Settings page, and an Inspector panel for the selected chunk,
-search result, trace, or status item. The TUI uses compact paths in main views,
-keeps full paths separated in the Inspector, highlights the active navigation
-page, and shows clearer Search status plus Documents/Trace/Settings empty
-states. The TUI does not run ingest, build the semantic index, run retrieval
-eval, execute ask generation, or edit config yet; use the CLI commands for
-those workflows.
+hybrid retrieval over existing chunks, an Ask page that reuses the same RAG ask
+pipeline with optional generation, a Trace page for recent operation traces, a
+read-only Settings page, and an Inspector panel for the selected chunk, search
+result, ask source, trace, or status item. The TUI uses compact paths in main
+views, keeps full paths separated in the Inspector, highlights the active
+navigation page, and shows clearer Search/Ask status plus
+Documents/Trace/Settings empty states. The TUI can run Search and Ask, but it
+does not run ingest, build the semantic index, run retrieval eval, or edit
+config; use the CLI commands for those workflows. TUI Ask does not write new
+traces yet, so CLI `ragent ask` remains the trace-producing ask workflow.
 
 `ragent ingest` loads and
 chunks local Markdown/TXT files without creating embeddings or a vector index.

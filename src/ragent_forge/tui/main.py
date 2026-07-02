@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from textual.app import App, ComposeResult
@@ -17,6 +18,7 @@ from textual.widgets import (
 
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.tui.view_models import (
+    AskPageState,
     ChunkRow,
     DocumentsPageModel,
     PageName,
@@ -24,6 +26,9 @@ from ragent_forge.tui.view_models import (
     TracePageModel,
     compact_chunk_label,
     compact_source_label,
+    format_ask_response_panel,
+    format_ask_source_inspector,
+    format_ask_status,
     format_chunk_inspector,
     format_documents_page,
     format_search_result_inspector,
@@ -36,6 +41,7 @@ from ragent_forge.tui.view_models import (
     load_settings_page_model,
     load_trace_page_model,
     page_for_key,
+    run_tui_ask,
     run_tui_search,
 )
 
@@ -113,12 +119,14 @@ class RagentForgeApp(App[None]):
         ("1", "switch_page('documents')", "Documents"),
         ("s", "switch_page('search')", "Search"),
         ("2", "switch_page('search')", "Search"),
+        ("a", "switch_page('ask')", "Ask"),
+        ("3", "switch_page('ask')", "Ask"),
         ("t", "switch_page('trace')", "Trace"),
-        ("3", "switch_page('trace')", "Trace"),
+        ("4", "switch_page('trace')", "Trace"),
         ("g", "switch_page('settings')", "Settings"),
-        ("4", "switch_page('settings')", "Settings"),
+        ("5", "switch_page('settings')", "Settings"),
         ("r", "refresh_page", "Refresh"),
-        ("/", "focus_search", "Search query"),
+        ("/", "focus_search", "Query/question"),
         ("q", "quit", "Quit"),
     ]
 
@@ -128,9 +136,11 @@ class RagentForgeApp(App[None]):
         self.current_page: PageName = "documents"
         self.documents_model: DocumentsPageModel | None = None
         self.search_state = SearchPageState()
+        self.ask_state = AskPageState()
         self.trace_model: TracePageModel | None = None
         self.selected_chunk: ChunkRow | None = None
         self.selected_search_result: SearchResult | None = None
+        self.selected_ask_source: SearchResult | None = None
         self.selected_trace: dict[str, object] | None = None
 
     def compose(self) -> ComposeResult:
@@ -140,9 +150,9 @@ class RagentForgeApp(App[None]):
                 yield Label("Navigation")
                 yield Button("1 Documents", id="nav-documents", classes="nav-button")
                 yield Button("2 Search", id="nav-search", classes="nav-button")
-                yield Button("3 Trace", id="nav-trace", classes="nav-button")
-                yield Button("4 Settings", id="nav-settings", classes="nav-button")
-                yield Static("Ask", classes="nav-placeholder")
+                yield Button("3 Ask", id="nav-ask", classes="nav-button")
+                yield Button("4 Trace", id="nav-trace", classes="nav-button")
+                yield Button("5 Settings", id="nav-settings", classes="nav-button")
                 yield Static("Eval", classes="nav-placeholder")
             with Vertical(id="main-panel"):
                 with Vertical(id="documents-page", classes="page"):
@@ -170,6 +180,43 @@ class RagentForgeApp(App[None]):
                         yield Button("Run Search", id="run-search")
                     yield Static("", id="search-message")
                     yield DataTable(id="search-results-table", cursor_type="row")
+                with Vertical(id="ask-page", classes="page hidden"):
+                    yield Label("Ask")
+                    with Vertical(id="ask-controls"):
+                        yield Input(
+                            placeholder="Ask about generated chunks",
+                            id="ask-question-input",
+                        )
+                        yield Select(
+                            [
+                                ("lexical", "lexical"),
+                                ("semantic", "semantic"),
+                                ("hybrid", "hybrid"),
+                            ],
+                            value="lexical",
+                            allow_blank=False,
+                            id="ask-retrieval-mode",
+                        )
+                        yield Input(
+                            value="5",
+                            placeholder="Limit",
+                            id="ask-limit-input",
+                        )
+                        yield Input(
+                            value="4000",
+                            placeholder="Max context chars",
+                            id="ask-max-context-input",
+                        )
+                        yield Select(
+                            [("false", "false"), ("true", "true")],
+                            value="false",
+                            allow_blank=False,
+                            id="ask-show-prompt",
+                        )
+                        yield Button("Run Ask", id="run-ask")
+                    yield Static("", id="ask-message")
+                    yield Static("", id="ask-answer")
+                    yield DataTable(id="ask-sources-table", cursor_type="row")
                 with Vertical(id="trace-page", classes="page hidden"):
                     yield Label("Trace")
                     yield Static("", id="trace-summary")
@@ -182,8 +229,8 @@ class RagentForgeApp(App[None]):
                 yield Label("Inspector")
                 yield Static("", id="inspector-content")
         yield Static(
-            "Keys: 1/d Documents | 2/s Search | 3/t Trace | 4/g Settings | "
-            "/ query | Enter run/select | r refresh | q quit",
+            "Keys: 1/d Documents | 2/s Search | 3/a Ask | 4/t Trace | "
+            "5/g Settings | / query/question | Enter run/select | r refresh | q quit",
             id="help",
         )
         yield Footer()
@@ -198,6 +245,8 @@ class RagentForgeApp(App[None]):
         documents_table.add_columns("#", "Source", "Range", "Preview")
         search_table = self.query_one("#search-results-table", DataTable)
         search_table.add_columns("#", "Score", "Source", "Chunk")
+        ask_table = self.query_one("#ask-sources-table", DataTable)
+        ask_table.add_columns("#", "Score", "Source", "Chunk")
         trace_table = self.query_one("#trace-table", DataTable)
         trace_table.add_columns("#", "Operation", "Status", "Started at")
 
@@ -206,11 +255,12 @@ class RagentForgeApp(App[None]):
         self._load_trace()
         self._render_settings()
         self._render_search()
+        self._render_ask()
         self._render_inspector()
 
     def action_switch_page(self, page: str) -> None:
         resolved_page = page_for_key(page) or page
-        if resolved_page in {"documents", "search", "trace", "settings"}:
+        if resolved_page in {"documents", "search", "ask", "trace", "settings"}:
             self._show_page(resolved_page)
 
     def action_refresh_page(self) -> None:
@@ -222,11 +272,15 @@ class RagentForgeApp(App[None]):
             self._render_settings()
         elif self.current_page == "search":
             self._render_search()
+        elif self.current_page == "ask":
+            self._render_ask()
         self._render_inspector()
 
     def action_focus_search(self) -> None:
         if self.current_page == "search":
             self.set_focus(self.query_one("#query-input", Input))
+        elif self.current_page == "ask":
+            self.set_focus(self.query_one("#ask-question-input", Input))
         else:
             self._show_page("search")
             self.set_focus(self.query_one("#query-input", Input))
@@ -236,6 +290,7 @@ class RagentForgeApp(App[None]):
         page_by_button = {
             "nav-documents": "documents",
             "nav-search": "search",
+            "nav-ask": "ask",
             "nav-trace": "trace",
             "nav-settings": "settings",
         }
@@ -244,10 +299,18 @@ class RagentForgeApp(App[None]):
             return
         if button_id == "run-search":
             self._run_search_from_inputs()
+        elif button_id == "run-ask":
+            self._run_ask_from_inputs()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id in {"query-input", "limit-input"}:
             self._run_search_from_inputs()
+        elif event.input.id in {
+            "ask-question-input",
+            "ask-limit-input",
+            "ask-max-context-input",
+        }:
+            self._run_ask_from_inputs()
 
     def on_select_changed(self, event: Select.Changed) -> None:
         if event.select.id == "retrieval-mode":
@@ -261,6 +324,18 @@ class RagentForgeApp(App[None]):
                 has_searched=self.search_state.has_searched,
             )
             self._render_search()
+        elif event.select.id == "ask-retrieval-mode":
+            mode = str(event.value)
+            if mode not in {"lexical", "semantic", "hybrid"}:
+                mode = "lexical"
+            self.ask_state = replace(self.ask_state, retrieval_mode=mode)
+            self._render_ask()
+        elif event.select.id == "ask-show-prompt":
+            self.ask_state = replace(
+                self.ask_state,
+                show_prompt=str(event.value) == "true",
+            )
+            self._render_ask()
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         table_id = event.data_table.id
@@ -269,12 +344,16 @@ class RagentForgeApp(App[None]):
             self._select_chunk(row_index)
         elif table_id == "search-results-table":
             self._select_search_result(row_index)
+        elif table_id == "ask-sources-table":
+            self._select_ask_source(row_index)
         elif table_id == "trace-table":
             self._select_trace(row_index)
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         if event.data_table.id == "search-results-table":
             self._select_search_result(event.cursor_row)
+        elif event.data_table.id == "ask-sources-table":
+            self._select_ask_source(event.cursor_row)
         elif event.data_table.id == "documents-table":
             self._select_chunk(event.cursor_row)
         elif event.data_table.id == "trace-table":
@@ -282,11 +361,13 @@ class RagentForgeApp(App[None]):
 
     def _show_page(self, page: PageName) -> None:
         self.current_page = page
-        for page_name in ("documents", "search", "trace", "settings"):
+        for page_name in ("documents", "search", "ask", "trace", "settings"):
             widget = self.query_one(f"#{page_name}-page")
             widget.set_class(page_name != page, "hidden")
         if page == "search":
             self.set_focus(self.query_one("#query-input", Input))
+        elif page == "ask":
+            self.set_focus(self.query_one("#ask-question-input", Input))
         self._render_navigation()
         self._render_inspector()
 
@@ -294,8 +375,9 @@ class RagentForgeApp(App[None]):
         labels = {
             "documents": "1 Documents",
             "search": "2 Search",
-            "trace": "3 Trace",
-            "settings": "4 Settings",
+            "ask": "3 Ask",
+            "trace": "4 Trace",
+            "settings": "5 Settings",
         }
         for page_name, label in labels.items():
             button = self.query_one(f"#nav-{page_name}", Button)
@@ -337,6 +419,70 @@ class RagentForgeApp(App[None]):
                 compact_source_label(result.source_path),
                 compact_chunk_label(result.chunk_id),
             )
+
+    def _render_ask(self) -> None:
+        self.selected_ask_source = self.ask_state.selected_source
+        self.query_one("#ask-question-input", Input).value = self.ask_state.question
+        self.query_one("#ask-limit-input", Input).value = str(self.ask_state.limit)
+        self.query_one("#ask-max-context-input", Input).value = str(
+            self.ask_state.max_context_chars
+        )
+        mode_select = self.query_one("#ask-retrieval-mode", Select)
+        if mode_select.value != self.ask_state.retrieval_mode:
+            mode_select.value = self.ask_state.retrieval_mode
+        show_prompt_select = self.query_one("#ask-show-prompt", Select)
+        show_prompt_value = "true" if self.ask_state.show_prompt else "false"
+        if show_prompt_select.value != show_prompt_value:
+            show_prompt_select.value = show_prompt_value
+
+        self.query_one("#ask-message", Static).update(
+            format_ask_status(self.ask_state)
+        )
+        self.query_one("#ask-answer", Static).update(
+            format_ask_response_panel(self.ask_state)
+        )
+        table = self.query_one("#ask-sources-table", DataTable)
+        table.clear()
+        for index, result in enumerate(self.ask_state.sources, start=1):
+            table.add_row(
+                index,
+                f"{result.score:.4g}",
+                compact_source_label(result.source_path),
+                compact_chunk_label(result.chunk_id),
+            )
+
+    def _run_ask_from_inputs(self) -> None:
+        question = self.query_one("#ask-question-input", Input).value
+        mode_value = self.query_one("#ask-retrieval-mode", Select).value
+        mode = (
+            str(mode_value)
+            if mode_value in {"lexical", "semantic", "hybrid"}
+            else "lexical"
+        )
+        limit_value = self.query_one("#ask-limit-input", Input).value.strip()
+        try:
+            limit = int(limit_value)
+        except ValueError:
+            limit = 5
+        max_context_value = self.query_one(
+            "#ask-max-context-input",
+            Input,
+        ).value.strip()
+        try:
+            max_context_chars = int(max_context_value)
+        except ValueError:
+            max_context_chars = 4000
+        show_prompt = self.query_one("#ask-show-prompt", Select).value == "true"
+        self.ask_state = run_tui_ask(
+            self.workspace_path,
+            question,
+            mode,
+            limit,
+            max_context_chars,
+            show_prompt,
+        )
+        self._render_ask()
+        self._render_inspector()
 
     def _run_search_from_inputs(self) -> None:
         query = self.query_one("#query-input", Input).value
@@ -400,6 +546,15 @@ class RagentForgeApp(App[None]):
             )
             self._render_inspector()
 
+    def _select_ask_source(self, row_index: int) -> None:
+        if 0 <= row_index < len(self.ask_state.sources):
+            self.selected_ask_source = self.ask_state.sources[row_index]
+            self.ask_state = replace(
+                self.ask_state,
+                selected_source=self.selected_ask_source,
+            )
+            self._render_inspector()
+
     def _select_trace(self, row_index: int) -> None:
         if self.trace_model is None:
             return
@@ -422,6 +577,8 @@ class RagentForgeApp(App[None]):
                 self.selected_search_result,
                 self.search_state.retrieval_mode,
             )
+        elif self.current_page == "ask":
+            content = format_ask_source_inspector(self.selected_ask_source)
         elif self.current_page == "trace":
             content = format_trace_inspector(self.selected_trace)
         elif self.current_page == "settings":

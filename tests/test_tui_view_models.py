@@ -9,6 +9,7 @@ from ragent_forge.app.models import (
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
+from ragent_forge.tui import view_models as vm
 from ragent_forge.tui.view_models import (
     SearchPageState,
     compact_path_label,
@@ -220,6 +221,281 @@ def test_search_page_defaults_to_lexical_and_limit_five() -> None:
     assert "Enter a query and press Enter or Run Search." in format_search_page(state)
 
 
+def test_ask_page_defaults_to_lexical_limit_and_initial_status() -> None:
+    state = vm.AskPageState()
+
+    assert state.question == ""
+    assert state.retrieval_mode == "lexical"
+    assert state.limit == 5
+    assert state.max_context_chars == 4000
+    assert state.show_prompt is False
+    assert "Enter a question and press Enter or Run Ask." in vm.format_ask_page(state)
+
+
+def test_tui_ask_rejects_empty_question(tmp_path: Path) -> None:
+    state = vm.run_tui_ask(tmp_path / ".ragent", "   ", "lexical", 5, 4000, False)
+
+    assert state.error == "Enter a question."
+    assert state.sources == []
+
+
+def test_tui_ask_missing_chunks_is_friendly(tmp_path: Path) -> None:
+    state = vm.run_tui_ask(
+        tmp_path / ".ragent",
+        "What is RAG?",
+        "lexical",
+        5,
+        4000,
+        False,
+    )
+
+    assert state.error == vm.NO_CHUNKS_MESSAGE
+    assert "ragent ingest examples/knowledge --workspace .ragent" in (
+        vm.format_ask_page(state)
+    )
+
+
+def test_tui_semantic_ask_missing_vector_index_is_friendly(
+    tmp_path: Path,
+) -> None:
+    workspace = make_workspace(tmp_path)
+
+    state = vm.run_tui_ask(
+        workspace.root_path,
+        "What adds planning?",
+        "semantic",
+        5,
+        4000,
+        False,
+    )
+
+    assert state.error == "Vector index not found. Run `ragent index build` first."
+    assert state.sources == []
+
+
+def test_tui_hybrid_ask_missing_vector_index_is_friendly(
+    tmp_path: Path,
+) -> None:
+    workspace = make_workspace(tmp_path)
+
+    state = vm.run_tui_ask(
+        workspace.root_path,
+        "What adds planning?",
+        "hybrid",
+        5,
+        4000,
+        False,
+    )
+
+    assert state.error == "Vector index not found. Run `ragent index build` first."
+    assert state.sources == []
+
+
+def test_tui_lexical_ask_retrieval_only_works_without_generation_config(
+    tmp_path: Path,
+) -> None:
+    workspace = make_workspace(tmp_path)
+
+    state = vm.run_tui_ask(
+        workspace.root_path,
+        "What adds planning?",
+        "lexical",
+        5,
+        4000,
+        False,
+    )
+    page_text = vm.format_ask_page(state)
+
+    assert state.error is None
+    assert state.generation_provider == "null"
+    assert state.generation_status == "not_configured"
+    assert state.status == "Generation: not configured. Showing retrieved context only."
+    assert "Generation: not configured. Showing retrieved context only." in page_text
+    assert "rag.md" in page_text
+    assert str(workspace.root_path) not in page_text
+
+
+def test_tui_lexical_ask_returns_sources_and_selects_first_source(
+    tmp_path: Path,
+) -> None:
+    workspace = make_workspace(tmp_path)
+
+    state = vm.run_tui_ask(
+        workspace.root_path,
+        "Agentic",
+        "lexical",
+        5,
+        4000,
+        False,
+    )
+
+    assert len(state.sources) == 1
+    assert state.selected_source == state.sources[0]
+
+
+def test_ask_source_inspector_includes_source_details(tmp_path: Path) -> None:
+    workspace = make_workspace(tmp_path)
+    state = vm.run_tui_ask(
+        workspace.root_path,
+        "Agentic",
+        "lexical",
+        5,
+        4000,
+        False,
+    )
+
+    text = vm.format_ask_source_inspector(state.selected_source)
+
+    assert "Ask source" in text
+    assert "source: rag.md" in text
+    assert "score: 1" in text
+    assert "method: lexical_token_overlap" in text
+    assert "full source_path:" in text
+    assert str(Path(state.selected_source.source_path)) in text
+    assert "preview:" in text
+    assert "Agentic RAG" in text
+
+
+def test_ask_source_inspector_includes_hybrid_metadata_when_present() -> None:
+    result = SearchResult(
+        chunk_id="chunk-0000",
+        document_id="doc",
+        source_path="/knowledge/rag.md",
+        start_char=0,
+        end_char=42,
+        score=0.0325,
+        text="Agentic RAG adds planning.",
+        metadata={
+            "retrieval_method": "hybrid_rrf",
+            "fusion_method": "reciprocal_rank_fusion",
+            "matched_modes": ["lexical", "semantic"],
+            "lexical_rank": 1,
+            "semantic_rank": 2,
+        },
+    )
+
+    text = vm.format_ask_source_inspector(result)
+
+    assert "method: hybrid_rrf" in text
+    assert "RRF:" in text
+    assert "  fusion: reciprocal_rank_fusion" in text
+    assert "  matched: lexical, semantic" in text
+    assert "lexical_rank: 1" in text
+    assert "semantic_rank: 2" in text
+
+
+def test_ask_source_inspector_omits_hybrid_fields_for_lexical_result() -> None:
+    result = SearchResult(
+        chunk_id="chunk-0000",
+        document_id="doc",
+        source_path="/knowledge/rag.md",
+        start_char=0,
+        end_char=42,
+        score=1.0,
+        text="Agentic RAG adds planning.",
+        metadata={"retrieval_method": "lexical_token_overlap"},
+    )
+
+    text = vm.format_ask_source_inspector(result)
+
+    assert "method: lexical_token_overlap" in text
+    assert "RRF:" not in text
+    assert "lexical_rank" not in text
+    assert "semantic_rank" not in text
+
+
+def test_tui_ask_hides_prompt_preview_by_default(tmp_path: Path) -> None:
+    workspace = make_workspace(tmp_path)
+
+    state = vm.run_tui_ask(
+        workspace.root_path,
+        "Agentic",
+        "lexical",
+        5,
+        4000,
+        False,
+    )
+    text = vm.format_ask_page(state)
+
+    assert state.prompt_preview is None
+    assert "Prompt preview:" not in text
+    assert "Retrieved context:" not in text
+
+
+def test_tui_ask_show_prompt_includes_bounded_prompt_preview(
+    tmp_path: Path,
+) -> None:
+    workspace = make_workspace(tmp_path)
+
+    state = vm.run_tui_ask(
+        workspace.root_path,
+        "Agentic",
+        "lexical",
+        5,
+        4000,
+        True,
+    )
+    text = vm.format_ask_page(state)
+
+    assert state.prompt_preview is not None
+    assert len(state.prompt_preview) <= 1000
+    assert "Prompt preview:" in text
+    assert "Retrieved context:" in text
+
+
+def test_tui_ask_output_does_not_display_api_keys(tmp_path: Path) -> None:
+    workspace = make_workspace(tmp_path)
+    workspace.config_path.write_text(
+        "\n".join(
+            [
+                "[generation]",
+                'provider = "openai_responses"',
+                'base_url = "https://api.example.test/v1"',
+                'model = "gpt-test"',
+                'api_key = "generation-secret"',
+                "",
+                "[embedding]",
+                'provider = "none"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    state = vm.run_tui_ask(
+        workspace.root_path,
+        "unmatched-token",
+        "lexical",
+        5,
+        4000,
+        False,
+    )
+    page_text = vm.format_ask_page(state)
+    inspector_text = vm.format_ask_source_inspector(state.selected_source)
+
+    assert "generation-secret" not in page_text
+    assert "generation-secret" not in inspector_text
+    assert "api_key" not in page_text
+    assert "api_key" not in inspector_text
+
+
+def test_ask_page_empty_results_message_is_friendly(tmp_path: Path) -> None:
+    workspace = make_workspace(tmp_path)
+
+    state = vm.run_tui_ask(
+        workspace.root_path,
+        "unmatched-token",
+        "lexical",
+        5,
+        4000,
+        False,
+    )
+    text = vm.format_ask_page(state)
+
+    assert state.error is None
+    assert "No retrieved context found. Try another question or retrieval mode." in text
+
+
 def test_tui_search_rejects_empty_query(tmp_path: Path) -> None:
     state = run_tui_search(tmp_path / ".ragent", "   ", "lexical", 5)
 
@@ -388,7 +664,9 @@ def test_navigation_keys_switch_to_required_pages() -> None:
     assert page_for_key("1") == "documents"
     assert page_for_key("s") == "search"
     assert page_for_key("2") == "search"
+    assert page_for_key("a") == "ask"
+    assert page_for_key("3") == "ask"
     assert page_for_key("t") == "trace"
-    assert page_for_key("3") == "trace"
+    assert page_for_key("4") == "trace"
     assert page_for_key("g") == "settings"
-    assert page_for_key("4") == "settings"
+    assert page_for_key("5") == "settings"

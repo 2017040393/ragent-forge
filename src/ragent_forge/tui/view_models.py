@@ -4,10 +4,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from ragent_forge.app.models import WorkspaceStatus
+from ragent_forge.app.models import GenerationResult, WorkspaceStatus
+from ragent_forge.app.services.ask_service import AskService
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.embedding_service import EmbeddingService
+from ragent_forge.app.services.generation_service import GenerationService
 from ragent_forge.app.services.hybrid_search_service import HybridSearchService
 from ragent_forge.app.services.search_service import LexicalSearchService, SearchResult
 from ragent_forge.app.services.semantic_search_service import SemanticSearchService
@@ -26,6 +28,15 @@ NO_CHUNKS_MESSAGE = "\n".join(
     ]
 )
 VECTOR_INDEX_MISSING_MESSAGE = "Vector index not found. Run `ragent index build` first."
+ASK_INITIAL_STATUS = "Enter a question and press Enter or Run Ask."
+ASK_NO_CONTEXT_STATUS = (
+    "No retrieved context found. Try another question or retrieval mode."
+)
+ASK_GENERATION_NOT_CONFIGURED_STATUS = (
+    "Generation: not configured. Showing retrieved context only."
+)
+ASK_GENERATION_FAILED_STATUS = "Generation failed. Check generation configuration."
+ASK_PROMPT_PREVIEW_LIMIT = 1000
 
 
 @dataclass(frozen=True)
@@ -68,6 +79,24 @@ class SearchPageState:
 
 
 @dataclass(frozen=True)
+class AskPageState:
+    question: str = ""
+    retrieval_mode: RetrievalMode = "lexical"
+    limit: int = 5
+    max_context_chars: int = 4000
+    show_prompt: bool = False
+    status: str | None = ASK_INITIAL_STATUS
+    answer: str | None = None
+    sources: list[SearchResult] = field(default_factory=list)
+    selected_source: SearchResult | None = None
+    generation_status: str | None = None
+    generation_provider: str | None = None
+    prompt_preview: str | None = None
+    error: str | None = None
+    has_run: bool = False
+
+
+@dataclass(frozen=True)
 class TracePageModel:
     latest_trace: dict[str, Any] | None = None
     recent_traces: list[dict[str, Any]] = field(default_factory=list)
@@ -91,6 +120,29 @@ class SettingsPageModel:
     vector_index_status: str
     vector_index_path: str | None = None
     message: str | None = None
+
+
+@dataclass(frozen=True)
+class _TuiRetrievalService:
+    search_service: Any
+    retrieval_method: str
+
+
+class _SafeTuiGenerationProvider:
+    def __init__(self, provider: Any) -> None:
+        self.provider = provider
+        self.provider_name = str(getattr(provider, "provider_name", "unknown"))
+
+    def generate(self, request: Any) -> Any:
+        try:
+            return self.provider.generate(request)
+        except Exception:
+            return GenerationResult(
+                provider_name=self.provider_name,
+                status="failed",
+                answer=None,
+                error=ASK_GENERATION_FAILED_STATUS,
+            )
 
 
 def compact_source_label(source_path: str) -> str:
@@ -326,30 +378,10 @@ def run_tui_search(
         )
 
     try:
-        if mode == "lexical":
-            search_service = LexicalSearchService(workspace)
-            retrieval_method = "lexical_token_overlap"
-        elif mode == "semantic":
-            config = ConfigService(workspace).load()
-            search_service = SemanticSearchService(
-                workspace,
-                EmbeddingService.from_config(config),
-            )
-            retrieval_method = "semantic_cosine_similarity"
-        else:
-            config = ConfigService(workspace).load()
-            semantic_search_service = SemanticSearchService(
-                workspace,
-                EmbeddingService.from_config(config),
-            )
-            search_service = HybridSearchService(
-                lexical_search_service=LexicalSearchService(workspace),
-                semantic_search_service=semantic_search_service,
-            )
-            retrieval_method = "hybrid_rrf"
+        retrieval = _build_tui_retrieval_service(workspace, mode)
         results = [
-            _with_default_retrieval_method(result, retrieval_method)
-            for result in search_service.search(normalized_query, safe_limit)
+            _with_default_retrieval_method(result, retrieval.retrieval_method)
+            for result in retrieval.search_service.search(normalized_query, safe_limit)
         ]
     except (OSError, RuntimeError, ValueError):
         return SearchPageState(
@@ -370,6 +402,144 @@ def run_tui_search(
     )
 
 
+def run_tui_ask(
+    workspace_path: str | Path,
+    question: str,
+    retrieval_mode: str,
+    limit: int,
+    max_context_chars: int,
+    show_prompt: bool,
+) -> AskPageState:
+    mode = _normalize_retrieval_mode(retrieval_mode)
+    safe_limit = max(limit, 0)
+    safe_max_context_chars = max(max_context_chars, 0)
+    normalized_question = question.strip()
+    if not normalized_question:
+        return AskPageState(
+            question=question,
+            retrieval_mode=mode,
+            limit=safe_limit,
+            max_context_chars=safe_max_context_chars,
+            show_prompt=show_prompt,
+            status="Enter a question.",
+            error="Enter a question.",
+            has_run=True,
+        )
+
+    workspace = LocalWorkspace(workspace_path)
+    if not workspace.has_chunks():
+        return AskPageState(
+            question=question,
+            retrieval_mode=mode,
+            limit=safe_limit,
+            max_context_chars=safe_max_context_chars,
+            show_prompt=show_prompt,
+            status=NO_CHUNKS_MESSAGE,
+            error=NO_CHUNKS_MESSAGE,
+            has_run=True,
+        )
+
+    if mode in {"semantic", "hybrid"} and not workspace.has_vector_index():
+        return AskPageState(
+            question=question,
+            retrieval_mode=mode,
+            limit=safe_limit,
+            max_context_chars=safe_max_context_chars,
+            show_prompt=show_prompt,
+            status=VECTOR_INDEX_MISSING_MESSAGE,
+            error=VECTOR_INDEX_MISSING_MESSAGE,
+            has_run=True,
+        )
+
+    try:
+        config = ConfigService(workspace).load()
+        retrieval = _build_tui_retrieval_service(workspace, mode, config=config)
+        generation_service = GenerationService.from_config(config)
+        safe_generation_service = GenerationService(
+            _SafeTuiGenerationProvider(generation_service.provider)
+        )
+        result = AskService(
+            workspace=workspace,
+            generation_service=safe_generation_service,
+            search_service=retrieval.search_service,
+            retrieval_method=retrieval.retrieval_method,
+        ).ask(
+            normalized_question,
+            limit=safe_limit,
+            max_context_chars=safe_max_context_chars,
+        )
+    except (OSError, RuntimeError, ValueError):
+        return AskPageState(
+            question=question,
+            retrieval_mode=mode,
+            limit=safe_limit,
+            max_context_chars=safe_max_context_chars,
+            show_prompt=show_prompt,
+            status="Ask failed. Check configuration and workspace files.",
+            error="Ask failed. Check configuration and workspace files.",
+            has_run=True,
+        )
+
+    sources = [
+        _with_default_retrieval_method(source, retrieval.retrieval_method)
+        for source in result.results
+    ]
+    generation_result = result.generation_result
+    status = _ask_status_for_generation(generation_result.status, bool(sources))
+    prompt_preview = (
+        _bounded_prompt_preview(result.context_pack.prompt_preview)
+        if show_prompt
+        else None
+    )
+    return AskPageState(
+        question=question,
+        retrieval_mode=mode,
+        limit=safe_limit,
+        max_context_chars=safe_max_context_chars,
+        show_prompt=show_prompt,
+        status=status,
+        answer=result.answer,
+        sources=sources,
+        selected_source=sources[0] if sources else None,
+        generation_status=generation_result.status,
+        generation_provider=generation_result.provider_name,
+        prompt_preview=prompt_preview,
+        has_run=True,
+    )
+
+
+def _build_tui_retrieval_service(
+    workspace: LocalWorkspace,
+    mode: RetrievalMode,
+    *,
+    config: Any | None = None,
+) -> _TuiRetrievalService:
+    if mode == "lexical":
+        return _TuiRetrievalService(
+            search_service=LexicalSearchService(workspace),
+            retrieval_method="lexical_token_overlap",
+        )
+
+    config = config or ConfigService(workspace).load()
+    semantic_search_service = SemanticSearchService(
+        workspace,
+        EmbeddingService.from_config(config),
+    )
+    if mode == "semantic":
+        return _TuiRetrievalService(
+            search_service=semantic_search_service,
+            retrieval_method="semantic_cosine_similarity",
+        )
+
+    return _TuiRetrievalService(
+        search_service=HybridSearchService(
+            lexical_search_service=LexicalSearchService(workspace),
+            semantic_search_service=semantic_search_service,
+        ),
+        retrieval_method="hybrid_rrf",
+    )
+
+
 def _normalize_retrieval_mode(retrieval_mode: str) -> RetrievalMode:
     if retrieval_mode in {"semantic", "hybrid"}:
         return retrieval_mode
@@ -383,6 +553,24 @@ def _with_default_retrieval_method(
     metadata = dict(result.metadata)
     metadata.setdefault("retrieval_method", retrieval_method)
     return result.model_copy(update={"metadata": metadata})
+
+
+def _ask_status_for_generation(status: str, has_sources: bool) -> str:
+    if not has_sources:
+        return ASK_NO_CONTEXT_STATUS
+    if status == "success":
+        return "Generation: success"
+    if status == "not_configured":
+        return ASK_GENERATION_NOT_CONFIGURED_STATUS
+    if status == "failed":
+        return ASK_GENERATION_FAILED_STATUS
+    return "Generation skipped. Showing retrieved context only."
+
+
+def _bounded_prompt_preview(prompt_preview: str) -> str:
+    if len(prompt_preview) <= ASK_PROMPT_PREVIEW_LIMIT:
+        return prompt_preview
+    return prompt_preview[: ASK_PROMPT_PREVIEW_LIMIT - 3].rstrip() + "..."
 
 
 def format_search_page(state: SearchPageState) -> str:
@@ -417,6 +605,59 @@ def format_search_status(state: SearchPageState) -> str:
     if state.has_searched:
         return "No matches found. Try another query or retrieval mode."
     return "Enter a query and press Enter or Run Search."
+
+
+def format_ask_page(state: AskPageState) -> str:
+    lines = [
+        format_ask_status(state),
+        "",
+        f"mode: {state.retrieval_mode}",
+        f"limit: {state.limit}",
+        f"max context chars: {state.max_context_chars}",
+        f"show prompt: {str(state.show_prompt).lower()}",
+        "",
+        *format_ask_response_panel(state).splitlines(),
+        "",
+        "Sources",
+        "# | Score | Source | Chunk",
+    ]
+    if state.sources:
+        for index, result in enumerate(state.sources, start=1):
+            lines.append(
+                f"{index} | {result.score:.4g} | "
+                f"{compact_source_label(result.source_path)} | "
+                f"{compact_chunk_label(result.chunk_id)}"
+            )
+    elif state.has_run:
+        lines.append("No sources.")
+    else:
+        lines.append("No sources yet.")
+    return "\n".join(lines)
+
+
+def format_ask_status(state: AskPageState) -> str:
+    if state.error:
+        return state.error
+    if state.status:
+        return state.status
+    return ASK_INITIAL_STATUS
+
+
+def format_ask_response_panel(state: AskPageState) -> str:
+    lines = ["Answer:"]
+    if state.answer:
+        lines.extend(f"  {line}" for line in state.answer.splitlines())
+    elif state.sources and state.generation_status == "not_configured":
+        lines.append("  No generated answer.")
+    elif state.has_run and not state.sources and not state.error:
+        lines.append("  No retrieved context.")
+    else:
+        lines.append("  ")
+
+    if state.prompt_preview:
+        lines.extend(["", "Prompt preview:"])
+        lines.extend(f"  {line}" for line in state.prompt_preview.splitlines())
+    return "\n".join(lines)
 
 
 def format_search_result_inspector(
@@ -462,6 +703,13 @@ def format_search_result_inspector(
         ]
     )
     return "\n".join(lines)
+
+
+def format_ask_source_inspector(result: SearchResult | None) -> str:
+    if result is None:
+        return "Inspector\n\nRun ask and select a source."
+    text = format_search_result_inspector(result, "ask")
+    return text.replace("Search result", "Ask source", 1)
 
 
 def load_trace_page_model(workspace_path: str | Path = ".ragent") -> TracePageModel:
@@ -703,8 +951,10 @@ def page_for_key(key: str) -> PageName | None:
         "1": "documents",
         "s": "search",
         "2": "search",
+        "a": "ask",
+        "3": "ask",
         "t": "trace",
-        "3": "trace",
+        "4": "trace",
         "g": "settings",
-        "4": "settings",
+        "5": "settings",
     }.get(key)

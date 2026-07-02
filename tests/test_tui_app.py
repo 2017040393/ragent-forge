@@ -70,6 +70,26 @@ async def test_tui_app_navigates_and_runs_lexical_search(tmp_path: Path) -> None
 
 
 @pytest.mark.anyio
+async def test_tui_app_navigates_and_runs_lexical_ask(tmp_path: Path) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test() as pilot:
+        await pilot.press("a")
+
+        assert app.current_page == "ask"
+
+        await pilot.click("#ask-question-input")
+        await pilot.press("A", "g", "e", "n", "t", "i", "c")
+        await pilot.press("enter")
+
+        inspector = app.query_one("#inspector-content", Static)
+        assert "Ask source" in str(inspector.renderable)
+        assert "full source_path:" in str(inspector.renderable)
+        assert "/knowledge/agentic_rag.md" in str(inspector.renderable)
+
+
+@pytest.mark.anyio
 async def test_tui_app_trace_page_shows_selected_trace_steps(
     tmp_path: Path,
 ) -> None:
