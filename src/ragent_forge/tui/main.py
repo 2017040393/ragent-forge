@@ -4,7 +4,7 @@ from pathlib import Path
 
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, ScrollableContainer, Vertical
-from textual.widgets import Footer, Header, Input, Label, Static
+from textual.widgets import Header, Input, Label, Static
 from textual.worker import Worker, WorkerState
 
 from ragent_forge.tui.shell_dispatch import ShellReadOnlyHandlers, apply_shell_input
@@ -13,7 +13,6 @@ from ragent_forge.tui.shell_models import (
     TranscriptMessage,
     append_message,
     append_messages,
-    clear_transcript,
     create_initial_shell_state,
     format_shell_inspector,
     format_shell_status,
@@ -63,11 +62,6 @@ class RagentForgeApp(App[None]):
         border: solid $secondary;
     }
 
-    #help {
-        height: 1;
-        padding-left: 1;
-    }
-
     #shell-status {
         height: auto;
         margin-bottom: 1;
@@ -89,12 +83,7 @@ class RagentForgeApp(App[None]):
     }
     """
 
-    BINDINGS = [
-        ("/", "focus_shell_input", "Focus input"),
-        ("ctrl+l", "clear_shell", "Clear"),
-        ("r", "refresh_shell", "Refresh"),
-        ("q", "quit", "Quit"),
-    ]
+    BINDINGS = []
 
     def __init__(self, workspace_path: str | Path = ".ragent") -> None:
         super().__init__()
@@ -116,29 +105,11 @@ class RagentForgeApp(App[None]):
             with Vertical(id="inspector"):
                 yield Label("Inspector")
                 yield Static("", id="inspector-content")
-        yield Static(
-            "Keys: / focus input | Ctrl+L clear | r refresh | q quit",
-            id="help",
-        )
-        yield Footer()
 
     def on_mount(self) -> None:
         self._render_shell()
         self._render_inspector()
         self.set_focus(self.query_one("#shell-input", Input))
-
-    def action_focus_shell_input(self) -> None:
-        self.set_focus(self.query_one("#shell-input", Input))
-
-    def action_refresh_shell(self) -> None:
-        self._render_shell()
-        self._render_inspector()
-
-    def action_clear_shell(self) -> None:
-        self.shell_state = clear_transcript(self.shell_state)
-        self._set_shell_running(False)
-        self._render_shell()
-        self._render_inspector()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "shell-input":

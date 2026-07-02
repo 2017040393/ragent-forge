@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 from textual.css.query import NoMatches
-from textual.widgets import Input, Static
+from textual.widgets import Footer, Input, Static
 from textual.worker import WorkerState
 
 from ragent_forge.app.models import Document, IngestResult, OperationTrace, TraceStep
@@ -92,19 +92,15 @@ async def test_tui_app_opens_as_single_shell_without_old_pages(
             "#ask-question-input",
             "#run-search",
             "#run-ask",
+            "#help",
         ):
             assert_missing_widget(app, selector)
+        with pytest.raises(NoMatches):
+            app.query_one(Footer)
 
 
-def test_tui_app_bindings_are_shell_only() -> None:
-    binding_keys = {binding[0] for binding in RagentForgeApp.BINDINGS}
-    binding_actions = {binding[1] for binding in RagentForgeApp.BINDINGS}
-
-    assert binding_keys == {"/", "ctrl+l", "r", "q"}
-    assert "focus_shell_input" in binding_actions
-    assert "clear_shell" in binding_actions
-    assert "refresh_shell" in binding_actions
-    assert all("switch_page" not in action for action in binding_actions)
+def test_tui_app_has_no_global_key_bindings() -> None:
+    assert RagentForgeApp.BINDINGS == []
 
 
 @pytest.mark.anyio
@@ -128,28 +124,6 @@ async def test_tui_app_shell_help_and_mode_commands_update_transcript(
         assert "mode: hybrid" in str(
             app.query_one("#shell-status", Static).renderable
         )
-
-
-@pytest.mark.anyio
-async def test_tui_app_clear_binding_clears_shell_transcript(tmp_path: Path) -> None:
-    workspace = make_tui_workspace(tmp_path)
-    app = RagentForgeApp(workspace.root_path)
-
-    async with app.run_test():
-        app.shell_state = replace(
-            app.shell_state,
-            messages=(
-                *app.shell_state.messages,
-                tui_main.TranscriptMessage(role="tool", text="old"),
-            ),
-        )
-        app._render_shell()
-
-        app.action_clear_shell()
-
-        transcript = str(app.query_one("#shell-transcript", Static).renderable)
-        assert "RAGentForge command shell." in transcript
-        assert "old" not in transcript
 
 
 @pytest.mark.anyio
