@@ -208,6 +208,27 @@ def test_apply_shell_input_sources_with_sources_appends_source_list_message() ->
     assert "Sources:" in format_transcript((result.state.messages[-1],))
 
 
+def test_apply_shell_input_sources_preserves_selected_source() -> None:
+    first = make_source(1)
+    second = make_source(2)
+    state = ShellState(
+        available_sources=(first, second),
+        selected_source=second,
+    )
+
+    result = apply_shell_input(state, "/sources")
+
+    assert result.action == "none"
+    assert result.state.available_sources == (first, second)
+    assert result.state.selected_source == second
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="tool",
+        text="Current sources",
+        metadata={"operation": "source_list"},
+        sources=(first, second),
+    )
+
+
 def test_apply_shell_input_source_rank_selects_source() -> None:
     first = make_source(1)
     second = make_source(2)

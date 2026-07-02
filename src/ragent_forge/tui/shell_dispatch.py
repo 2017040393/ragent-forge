@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 from ragent_forge.tui.commands import format_tui_command_help, parse_tui_input
@@ -166,14 +166,21 @@ def _apply_prompt_command(state: ShellState, value: str) -> ShellState:
 def _apply_sources_command(state: ShellState) -> ShellState:
     if not state.available_sources:
         return _append_shell_message(state, "tool", NO_SOURCES_MESSAGE)
-    return append_message(
+    selected_source = state.selected_source
+    available_sources = state.available_sources
+    updated = append_message(
         state,
         TranscriptMessage(
             role="tool",
             text="Current sources",
             metadata={"operation": "source_list"},
-            sources=state.available_sources,
+            sources=available_sources,
         ),
+    )
+    return replace(
+        updated,
+        selected_source=selected_source,
+        available_sources=available_sources,
     )
 
 
