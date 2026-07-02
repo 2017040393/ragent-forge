@@ -173,6 +173,8 @@ Current implementation status:
 - Local Shell commands are wired.
 - Read-only Shell commands `/docs`, `/trace`, and `/settings` are wired.
 - Shell `/search <query>` is wired through a background worker.
+- Shell search sources are displayed in the transcript.
+- Shell Inspector shows selected-source details.
 - Shell Ask command dispatch is not wired yet.
 
 ## Migration Plan

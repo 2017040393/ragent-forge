@@ -29,6 +29,19 @@ _SENSITIVE_TEXT_PATTERNS = (
     re.compile(r"\btoken\s*[:=]", re.IGNORECASE),
 )
 
+_SOURCE_METADATA_LABELS = {
+    "retrieval_method": "method",
+    "fusion_method": "fusion",
+    "matched_modes": "matched",
+    "lexical_rank": "lexical_rank",
+    "semantic_rank": "semantic_rank",
+    "lexical_score": "lexical_score",
+    "semantic_score": "semantic_score",
+    "hybrid_score": "hybrid_score",
+    "lexical_weight": "lexical_weight",
+    "semantic_weight": "semantic_weight",
+}
+
 
 @dataclass(frozen=True)
 class TranscriptSource:
@@ -263,7 +276,10 @@ def format_transcript_message(message: TranscriptMessage) -> str:
     }[message.role]
     lines = _safe_display_text(message.text).splitlines() or [""]
     indented = "\n".join(f"  {line}" for line in lines)
-    return f"{heading}:\n{indented}"
+    rendered = f"{heading}:\n{indented}"
+    if message.sources:
+        rendered = "\n\n".join([rendered, format_transcript_sources(message.sources)])
+    return rendered
 
 
 def format_transcript(
@@ -309,18 +325,54 @@ def format_shell_inspector(state: ShellState) -> str:
         if state.selected_source is not None
         else "none"
     )
-    return "\n".join(
-        [
-            "Shell details",
-            "",
-            f"mode: {state.retrieval_mode}",
-            f"limit: {state.limit}",
-            f"context: {state.max_context_chars}",
-            f"prompt: {prompt}",
-            f"messages: {len(state.messages)}",
-            f"selected source: {selected_source}",
-        ]
-    )
+    lines = [
+        "Shell details",
+        "",
+        f"mode: {state.retrieval_mode}",
+        f"limit: {state.limit}",
+        f"context: {state.max_context_chars}",
+        f"prompt: {prompt}",
+        f"messages: {len(state.messages)}",
+        f"selected source: {selected_source}",
+    ]
+    if state.selected_source is not None:
+        lines.extend(["", format_shell_source_details(state.selected_source)])
+    return "\n".join(lines)
+
+
+def format_shell_source_details(source: TranscriptSource) -> str:
+    lines = [
+        "Selected source",
+        "",
+        f"rank: {source.rank}",
+        f"source: {compact_source_label(source.source_path)}",
+        f"chunk: {compact_chunk_label(source.chunk_id)}",
+        f"score: {source.score:.4g}",
+        "",
+        "preview:",
+    ]
+    lines.extend(f"  {line}" for line in source.preview.splitlines() or [""])
+
+    metadata_lines = _format_source_metadata(source.metadata)
+    if metadata_lines:
+        lines.extend(["", "Retrieval metadata", "", *metadata_lines])
+    return "\n".join(lines)
+
+
+def _format_source_metadata(metadata: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for key, label in _SOURCE_METADATA_LABELS.items():
+        if key in metadata:
+            lines.append(f"{label}: {_format_source_metadata_value(metadata[key])}")
+    return lines
+
+
+def _format_source_metadata_value(value: Any) -> str:
+    if isinstance(value, list):
+        return ", ".join(str(item) for item in value)
+    if isinstance(value, tuple):
+        return ", ".join(str(item) for item in value)
+    return str(value)
 
 
 def _welcome_message() -> TranscriptMessage:

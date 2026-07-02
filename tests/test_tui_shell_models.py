@@ -10,6 +10,7 @@ from ragent_forge.tui.shell_models import (
     append_messages,
     clear_transcript,
     create_initial_shell_state,
+    format_shell_inspector,
     format_shell_status,
     format_transcript,
     format_transcript_message,
@@ -257,6 +258,112 @@ def test_format_shell_status_reflects_settings_and_running_state() -> None:
     )
 
 
+def test_format_shell_inspector_without_selected_source_keeps_basic_details() -> None:
+    state = ShellState(
+        retrieval_mode="semantic",
+        limit=5,
+        max_context_chars=4000,
+        show_prompt=False,
+        messages=(TranscriptMessage(role="system", text="hello"),),
+    )
+
+    text = format_shell_inspector(state)
+
+    assert "Shell details" in text
+    assert "mode: semantic" in text
+    assert "limit: 5" in text
+    assert "context: 4000" in text
+    assert "prompt: off" in text
+    assert "messages: 1" in text
+    assert "selected source: none" in text
+    assert "Selected source" not in text
+
+
+def test_format_shell_inspector_with_selected_source_shows_source_details() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="/knowledge/rag.md::chunk-0001",
+        source_path="/very/long/path/agentic_rag.md",
+        score=0.832123,
+        preview="Agentic RAG adds planning before retrieval.",
+    )
+    state = ShellState(
+        retrieval_mode="semantic",
+        messages=(TranscriptMessage(role="tool", text="answer", sources=(source,)),),
+        selected_source=source,
+    )
+
+    text = format_shell_inspector(state)
+
+    assert "selected source: agentic_rag.md" in text
+    assert "Selected source" in text
+    assert "rank: 1" in text
+    assert "source: agentic_rag.md" in text
+    assert "chunk: chunk-0001" in text
+    assert "score: 0.8321" in text
+    assert "preview:" in text
+    assert "  Agentic RAG adds planning before retrieval." in text
+    assert "/very/long/path" not in text
+
+
+def test_format_shell_inspector_shows_allowlisted_retrieval_metadata() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="chunk-0001",
+        source_path="/knowledge/agentic_rag.md",
+        score=0.0325,
+        preview="preview",
+        metadata={
+            "retrieval_method": "hybrid_rrf",
+            "fusion_method": "reciprocal_rank_fusion",
+            "matched_modes": ["lexical", "semantic"],
+            "lexical_rank": 1,
+            "semantic_rank": 2,
+            "hybrid_score": 0.0325,
+        },
+    )
+
+    text = format_shell_inspector(ShellState(selected_source=source))
+
+    assert "Retrieval metadata" in text
+    assert "method: hybrid_rrf" in text
+    assert "fusion: reciprocal_rank_fusion" in text
+    assert "matched: lexical, semantic" in text
+    assert "lexical_rank: 1" in text
+    assert "semantic_rank: 2" in text
+    assert "hybrid_score: 0.0325" in text
+
+
+def test_format_shell_inspector_filters_disallowed_source_metadata() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="chunk-0001",
+        source_path="/knowledge/agentic_rag.md",
+        score=0.5,
+        preview="preview",
+        metadata={
+            "retrieval_method": "semantic",
+            "api_key": "secret-value",
+            "secret": "secret-value",
+            "token": "token-value",
+            "authorization": "Bearer abc123",
+            "embedding": [1.0, 2.0, 3.0],
+            "raw_internal_note": "do-not-show",
+        },
+    )
+
+    text = format_shell_inspector(ShellState(selected_source=source))
+
+    assert "method: semantic" in text
+    assert "api_key" not in text
+    assert "secret-value" not in text
+    assert "token-value" not in text
+    assert "Bearer abc123" not in text
+    assert "[1.0, 2.0, 3.0]" not in text
+    assert "raw_internal_note" not in text
+    assert "do-not-show" not in text
+
+
 @pytest.mark.parametrize(
     ("role", "heading"),
     [
@@ -282,6 +389,55 @@ def test_format_transcript_message_indents_multiline_text() -> None:
     text = format_transcript_message(message)
 
     assert text == "Assistant:\n  line 1\n  line 2"
+
+
+def test_format_transcript_message_with_sources_appends_source_block() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="/knowledge/rag.md::chunk-0001",
+        source_path="/very/long/path/agentic_rag.md",
+        score=0.832123,
+        preview="Agentic RAG adds planning before retrieval.",
+        metadata={"retrieval_method": "semantic"},
+    )
+    message = TranscriptMessage(
+        role="tool",
+        text="Search results for: GAG\nResults: 1 | mode: semantic",
+        sources=(source,),
+    )
+
+    text = format_transcript_message(message)
+
+    assert "Tool:\n  Search results for: GAG\n  Results: 1 | mode: semantic" in text
+    assert "\n\nSources:\n" in text
+    assert "1. agentic_rag.md" in text
+    assert "chunk=chunk-0001" in text
+    assert "score=0.8321" in text
+    assert "/very/long/path" not in text
+    assert "retrieval_method" not in text
+
+
+def test_format_transcript_message_source_block_hides_sensitive_metadata() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="chunk-0001",
+        source_path="/knowledge/rag.md",
+        score=1.0,
+        preview="preview",
+        metadata={
+            "api_key": "secret-value",
+            "token": "token-value",
+            "embedding": [1.0, 2.0, 3.0],
+        },
+    )
+    message = TranscriptMessage(role="tool", text="answer", sources=(source,))
+
+    text = format_transcript_message(message)
+
+    assert "Sources:" in text
+    assert "secret-value" not in text
+    assert "token-value" not in text
+    assert "[1.0, 2.0, 3.0]" not in text
 
 
 def test_format_transcript_message_preserves_normal_token_terms() -> None:
@@ -329,6 +485,26 @@ def test_format_transcript_joins_messages_with_blank_lines() -> None:
     text = format_transcript(messages)
 
     assert text == "User:\n  question\n\nAssistant:\n  answer"
+
+
+def test_format_transcript_includes_source_blocks_only_when_sources_exist() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="/knowledge/rag.md::chunk-0001",
+        source_path="/knowledge/agentic_rag.md",
+        score=0.8321,
+        preview="Agentic RAG adds planning before retrieval.",
+    )
+
+    text = format_transcript(
+        (
+            TranscriptMessage(role="user", text="question"),
+            TranscriptMessage(role="tool", text="answer", sources=(source,)),
+        )
+    )
+
+    assert text.count("Sources:") == 1
+    assert "User:\n  question\n\nTool:\n  answer\n\nSources:" in text
 
 
 def test_format_transcript_handles_empty_transcript() -> None:
