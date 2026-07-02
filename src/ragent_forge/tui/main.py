@@ -27,6 +27,7 @@ from ragent_forge.tui.view_models import (
     format_chunk_inspector,
     format_documents_page,
     format_search_result_inspector,
+    format_search_status,
     format_settings_page,
     format_trace_inspector,
     format_trace_overview,
@@ -84,6 +85,10 @@ class RagentForgeApp(App[None]):
     .nav-button {
         width: 100%;
         margin-bottom: 1;
+    }
+
+    .nav-button.active {
+        text-style: bold;
     }
 
     .page {
@@ -253,6 +258,7 @@ class RagentForgeApp(App[None]):
                 results=self.search_state.results,
                 error=self.search_state.error,
                 selected_result=self.search_state.selected_result,
+                has_searched=self.search_state.has_searched,
             )
             self._render_search()
 
@@ -281,7 +287,21 @@ class RagentForgeApp(App[None]):
             widget.set_class(page_name != page, "hidden")
         if page == "search":
             self.set_focus(self.query_one("#query-input", Input))
+        self._render_navigation()
         self._render_inspector()
+
+    def _render_navigation(self) -> None:
+        labels = {
+            "documents": "1 Documents",
+            "search": "2 Search",
+            "trace": "3 Trace",
+            "settings": "4 Settings",
+        }
+        for page_name, label in labels.items():
+            button = self.query_one(f"#nav-{page_name}", Button)
+            is_active = self.current_page == page_name
+            button.label = f"> {label}" if is_active else f"  {label}"
+            button.set_class(is_active, "active")
 
     def _load_documents(self) -> None:
         self.documents_model = load_documents_page_model(self.workspace_path)
@@ -305,8 +325,9 @@ class RagentForgeApp(App[None]):
         if mode_select.value != self.search_state.retrieval_mode:
             mode_select.value = self.search_state.retrieval_mode
 
-        message = self.search_state.error or ""
-        self.query_one("#search-message", Static).update(message)
+        self.query_one("#search-message", Static).update(
+            format_search_status(self.search_state)
+        )
         table = self.query_one("#search-results-table", DataTable)
         table.clear()
         for index, result in enumerate(self.search_state.results, start=1):
@@ -375,6 +396,7 @@ class RagentForgeApp(App[None]):
                 results=self.search_state.results,
                 error=self.search_state.error,
                 selected_result=self.selected_search_result,
+                has_searched=self.search_state.has_searched,
             )
             self._render_inspector()
 

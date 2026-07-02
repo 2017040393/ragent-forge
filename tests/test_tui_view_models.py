@@ -11,6 +11,7 @@ from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 from ragent_forge.tui.view_models import (
     SearchPageState,
+    compact_path_label,
     compact_source_label,
     format_chunk_inspector,
     format_documents_page,
@@ -28,14 +29,15 @@ from ragent_forge.tui.view_models import (
 
 
 def make_workspace(tmp_path: Path) -> LocalWorkspace:
+    source_path = str(tmp_path / "examples" / "knowledge" / "rag.md")
     document = Document(
-        id="/knowledge/rag.md",
+        id=source_path,
         text="Agentic RAG adds planning.\nRetrieval augmented generation basics.",
-        metadata={"source_path": "/knowledge/rag.md"},
+        metadata={"source_path": source_path},
     )
     chunks = SimpleChunker(chunk_size=32, chunk_overlap=0).chunk(document)
     result = IngestResult(
-        source_path="/knowledge",
+        source_path=str(tmp_path / "examples" / "knowledge"),
         documents=[document],
         chunks=chunks,
         skipped_files=[],
@@ -51,7 +53,31 @@ def test_compact_source_label_returns_file_name_for_long_path() -> None:
     assert compact_source_label("/very/long/path/agentic_rag.md") == "agentic_rag.md"
 
 
-def test_documents_page_model_uses_compact_rows_and_inspector_full_path(
+def test_compact_path_label_shortens_long_absolute_path() -> None:
+    path = Path(
+        "C:/Users/MKS/Desktop/code/python/ragent-forge/examples/knowledge"
+    )
+
+    assert compact_path_label(path) == "...\\examples\\knowledge"
+
+
+def test_compact_path_label_preserves_short_relative_path() -> None:
+    assert compact_path_label(Path(".ragent/chunks/chunks.jsonl")) == (
+        ".ragent\\chunks\\chunks.jsonl"
+    )
+
+
+def test_documents_page_omits_duplicate_title_when_layout_owns_title(
+    tmp_path: Path,
+) -> None:
+    workspace = make_workspace(tmp_path)
+
+    text = format_documents_page(load_documents_page_model(workspace.root_path))
+
+    assert not text.startswith("Documents")
+
+
+def test_documents_page_model_uses_compact_summary_paths_and_rows(
     tmp_path: Path,
 ) -> None:
     workspace = make_workspace(tmp_path)
@@ -60,14 +86,22 @@ def test_documents_page_model_uses_compact_rows_and_inspector_full_path(
     page_text = format_documents_page(model)
     inspector_text = format_chunk_inspector(model.recent_chunks[0])
 
-    assert "Workspace:" in page_text
-    assert "Status: ready" in page_text
-    assert "Vector index: missing" in page_text
+    assert "Workspace" in page_text
+    assert "  status: ready" in page_text
+    assert "Ingest" in page_text
+    assert "  source: ...\\examples\\knowledge" in page_text
+    assert "Files" in page_text
+    assert "  chunks: .ragent\\chunks\\chunks.jsonl" in page_text
+    assert "  summary: .ragent\\ingest\\latest_summary.json" in page_text
+    assert "Semantic index" in page_text
+    assert "  status: missing" in page_text
     assert "Recent chunks" in page_text
     assert "rag.md" in page_text
-    assert "/knowledge/rag.md |" not in page_text
+    assert str(workspace.root_path) not in page_text
     assert "Chunk details" in inspector_text
-    assert "source_path: /knowledge/rag.md" in inspector_text
+    assert "source: rag.md" in inspector_text
+    assert "full source_path:" in inspector_text
+    assert str(Path(model.recent_chunks[0].source_path)) in inspector_text
 
 
 def test_documents_page_missing_chunks_renders_friendly_message(
@@ -77,7 +111,8 @@ def test_documents_page_missing_chunks_renders_friendly_message(
 
     text = format_documents_page(model)
 
-    assert "No chunks found. Run ragent ingest <path> first." in text
+    assert "No chunks found." in text
+    assert "ragent ingest examples/knowledge --workspace .ragent" in text
 
 
 def test_settings_page_hides_configured_api_keys(tmp_path: Path) -> None:
@@ -143,8 +178,7 @@ def test_search_page_defaults_to_lexical_and_limit_five() -> None:
     assert state.query == ""
     assert state.retrieval_mode == "lexical"
     assert state.limit == 5
-    assert "Mode: lexical" in format_search_page(state)
-    assert "Limit: 5" in format_search_page(state)
+    assert "Enter a query and press Enter or Run Search." in format_search_page(state)
 
 
 def test_tui_search_rejects_empty_query(tmp_path: Path) -> None:
@@ -168,11 +202,13 @@ def test_tui_lexical_search_renders_compact_results_and_inspector(
 
     assert state.error is None
     assert len(state.results) == 1
+    assert "Results: 1 | mode: lexical | limit: 5" in page_text
     assert "rag.md" in page_text
-    assert "/knowledge/rag.md" not in page_text
-    assert "Search result details" in inspector_text
-    assert "retrieval_method: lexical_token_overlap" in inspector_text
-    assert "source_path: /knowledge/rag.md" in inspector_text
+    assert str(workspace.root_path) not in page_text
+    assert "Search result" in inspector_text
+    assert "method: lexical_token_overlap" in inspector_text
+    assert "RRF:" not in inspector_text
+    assert "full source_path:" in inspector_text
 
 
 def test_tui_semantic_search_missing_vector_index_is_friendly(
@@ -182,7 +218,7 @@ def test_tui_semantic_search_missing_vector_index_is_friendly(
 
     state = run_tui_search(workspace.root_path, "Agentic", "semantic", 5)
 
-    assert state.error == "Vector index not found. Run ragent index build first."
+    assert state.error == "Vector index not found. Run `ragent index build` first."
     assert state.results == []
 
 
@@ -193,8 +229,22 @@ def test_tui_hybrid_search_missing_vector_index_is_friendly(
 
     state = run_tui_search(workspace.root_path, "Agentic", "hybrid", 5)
 
-    assert state.error == "Vector index not found. Run ragent index build first."
+    assert state.error == "Vector index not found. Run `ragent index build` first."
     assert state.results == []
+
+
+def test_search_page_empty_results_message_is_friendly() -> None:
+    state = SearchPageState(
+        query="missing",
+        retrieval_mode="lexical",
+        limit=5,
+        results=[],
+        has_searched=True,
+    )
+
+    text = format_search_page(state)
+
+    assert "No matches found. Try another query or retrieval mode." in text
 
 
 def test_search_result_inspector_includes_hybrid_metadata_when_present() -> None:
@@ -217,11 +267,32 @@ def test_search_result_inspector_includes_hybrid_metadata_when_present() -> None
 
     text = format_search_result_inspector(result, "hybrid")
 
-    assert "retrieval_method: hybrid_rrf" in text
-    assert "fusion_method: reciprocal_rank_fusion" in text
-    assert "matched_modes: lexical, semantic" in text
+    assert "method: hybrid_rrf" in text
+    assert "RRF:" in text
+    assert "  fusion: reciprocal_rank_fusion" in text
+    assert "  matched: lexical, semantic" in text
     assert "lexical_rank: 1" in text
     assert "semantic_rank: 2" in text
+
+
+def test_search_result_inspector_omits_hybrid_fields_for_lexical_result() -> None:
+    result = SearchResult(
+        chunk_id="chunk-0000",
+        document_id="doc",
+        source_path="/knowledge/rag.md",
+        start_char=0,
+        end_char=42,
+        score=1.0,
+        text="Agentic RAG adds planning.",
+        metadata={"retrieval_method": "lexical_token_overlap"},
+    )
+
+    text = format_search_result_inspector(result, "lexical")
+
+    assert "method: lexical_token_overlap" in text
+    assert "RRF:" not in text
+    assert "lexical_rank" not in text
+    assert "semantic_rank" not in text
 
 
 def test_trace_page_renders_recent_steps_and_inspector_metadata(
@@ -251,6 +322,26 @@ def test_trace_page_renders_recent_steps_and_inspector_metadata(
     assert "Trace details" in inspector_text
     assert "- retrieval_mode: hybrid" in inspector_text
     assert "- result_count: 2" in inspector_text
+
+
+def test_trace_missing_state_suggests_trace_producing_commands(
+    tmp_path: Path,
+) -> None:
+    model = load_trace_page_model(tmp_path / ".ragent")
+
+    text = format_trace_page(model)
+
+    assert "No traces found." in text
+    assert 'ragent search "agent memory"' in text
+
+
+def test_settings_missing_config_state_suggests_config_init(
+    tmp_path: Path,
+) -> None:
+    text = format_settings_page(load_settings_page_model(tmp_path / ".ragent"))
+
+    assert "No config file found. Effective defaults are being used." in text
+    assert "ragent config init" in text
 
 
 def test_navigation_keys_switch_to_required_pages() -> None:

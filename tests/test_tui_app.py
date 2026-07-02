@@ -61,8 +61,9 @@ async def test_tui_app_navigates_and_runs_lexical_search(tmp_path: Path) -> None
 
         assert app.current_page == "search"
         inspector = app.query_one("#inspector-content", Static)
-        assert "Search result details" in str(inspector.renderable)
-        assert "source_path: /knowledge/agentic_rag.md" in str(inspector.renderable)
+        assert "Search result" in str(inspector.renderable)
+        assert "full source_path:" in str(inspector.renderable)
+        assert "/knowledge/agentic_rag.md" in str(inspector.renderable)
         assert "/knowledge/agentic_rag.md |" not in str(
             app.query_one("#search-message", Static).renderable
         )

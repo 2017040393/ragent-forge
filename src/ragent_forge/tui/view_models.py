@@ -17,8 +17,15 @@ from ragent_forge.app.workspace import LocalWorkspace
 PageName = Literal["documents", "search", "trace", "settings", "ask", "eval"]
 RetrievalMode = Literal["lexical", "semantic", "hybrid"]
 
-NO_CHUNKS_MESSAGE = "No chunks found. Run ragent ingest <path> first."
-VECTOR_INDEX_MISSING_MESSAGE = "Vector index not found. Run ragent index build first."
+NO_CHUNKS_MESSAGE = "\n".join(
+    [
+        "No chunks found.",
+        "",
+        "Run:",
+        "  ragent ingest examples/knowledge --workspace .ragent",
+    ]
+)
+VECTOR_INDEX_MISSING_MESSAGE = "Vector index not found. Run `ragent index build` first."
 
 
 @dataclass(frozen=True)
@@ -57,6 +64,7 @@ class SearchPageState:
     results: list[SearchResult] = field(default_factory=list)
     error: str | None = None
     selected_result: SearchResult | None = None
+    has_searched: bool = False
 
 
 @dataclass(frozen=True)
@@ -88,6 +96,20 @@ class SettingsPageModel:
 def compact_source_label(source_path: str) -> str:
     name = Path(source_path).name
     return name or source_path
+
+
+def compact_path_label(path: str | Path, *, max_parts: int = 2) -> str:
+    path_obj = Path(path)
+    parts = path_obj.parts
+    if ".ragent" in parts:
+        ragent_index = parts.index(".ragent")
+        return str(Path(".ragent", *parts[ragent_index + 1 :]))
+    if not path_obj.is_absolute():
+        return str(path_obj)
+
+    if len(parts) <= max_parts + 1:
+        return str(path_obj)
+    return str(Path("...", *parts[-max_parts:]))
 
 
 def compact_chunk_label(chunk_id: str) -> str:
@@ -194,10 +216,9 @@ def _chunk_row(index: int, chunk: dict[str, Any]) -> ChunkRow:
 
 def format_documents_page(model: DocumentsPageModel) -> str:
     lines = [
-        "Documents",
-        "",
-        f"Workspace: {model.workspace_path}",
-        f"Status: {model.status_text}",
+        "Workspace",
+        f"  path: {compact_path_label(model.workspace_path)}",
+        f"  status: {model.status_text}",
     ]
 
     if model.message:
@@ -205,17 +226,25 @@ def format_documents_page(model: DocumentsPageModel) -> str:
 
     lines.extend(
         [
-            f"Last ingest source: {model.last_ingest_source}",
-            f"Documents: {model.document_count}",
-            f"Chunks: {model.chunk_count}",
-            f"Skipped files: {model.skipped_count}",
-            f"Chunks file: {model.chunks_path}",
-            f"Summary file: {model.summary_path}",
-            f"Vector index: {model.vector_index_status}",
+            "",
+            "Ingest",
+            f"  source: {compact_path_label(model.last_ingest_source)}",
+            f"  documents: {model.document_count}",
+            f"  chunks: {model.chunk_count}",
+            f"  skipped: {model.skipped_count}",
+            "",
+            "Files",
+            f"  chunks: {compact_path_label(model.chunks_path, max_parts=3)}",
+            f"  summary: {compact_path_label(model.summary_path, max_parts=3)}",
+            "",
+            "Semantic index",
+            f"  status: {model.vector_index_status}",
         ]
     )
     if model.vector_index_path:
-        lines.append(f"Index path: {model.vector_index_path}")
+        lines.append(
+            f"  path: {compact_path_label(model.vector_index_path, max_parts=3)}"
+        )
 
     lines.extend(["", "Recent chunks", "# | Source | Range | Preview"])
     if model.recent_chunks:
@@ -238,11 +267,18 @@ def format_chunk_inspector(chunk: ChunkRow | None) -> str:
         [
             "Chunk details",
             "",
-            f"chunk_id: {chunk.chunk_id}",
-            f"source_path: {chunk.source_path}",
-            f"document_id: {chunk.document_id}",
+            f"chunk: {compact_chunk_label(chunk.chunk_id)}",
+            f"source: {chunk.source_label}",
             f"range: {chunk.range_text}",
-            f"preview: {chunk.preview}",
+            "",
+            "full chunk_id:",
+            f"  {chunk.chunk_id}",
+            "",
+            "full source_path:",
+            f"  {chunk.source_path}",
+            "",
+            "preview:",
+            f"  {chunk.preview}",
         ]
     )
 
@@ -262,6 +298,7 @@ def run_tui_search(
             retrieval_mode=mode,
             limit=safe_limit,
             error="Enter a search query.",
+            has_searched=True,
         )
 
     workspace = LocalWorkspace(workspace_path)
@@ -271,6 +308,7 @@ def run_tui_search(
             retrieval_mode=mode,
             limit=safe_limit,
             error=NO_CHUNKS_MESSAGE,
+            has_searched=True,
         )
 
     if mode in {"semantic", "hybrid"} and not workspace.has_vector_index():
@@ -279,6 +317,7 @@ def run_tui_search(
             retrieval_mode=mode,
             limit=safe_limit,
             error=VECTOR_INDEX_MISSING_MESSAGE,
+            has_searched=True,
         )
 
     try:
@@ -313,6 +352,7 @@ def run_tui_search(
             retrieval_mode=mode,
             limit=safe_limit,
             error="Search failed. Check configuration and workspace files.",
+            has_searched=True,
         )
 
     return SearchPageState(
@@ -321,6 +361,7 @@ def run_tui_search(
         limit=safe_limit,
         results=results,
         selected_result=results[0] if results else None,
+        has_searched=True,
     )
 
 
@@ -341,14 +382,11 @@ def _with_default_retrieval_method(
 
 def format_search_page(state: SearchPageState) -> str:
     lines = [
-        "Search",
+        format_search_status(state),
         "",
-        f"Query: {state.query}",
-        f"Mode: {state.retrieval_mode}",
-        f"Limit: {state.limit}",
+        f"mode: {state.retrieval_mode}",
+        f"limit: {state.limit}",
     ]
-    if state.error:
-        lines.extend(["", state.error])
 
     lines.extend(["", "Results", "# | Score | Source | Chunk"])
     if state.results:
@@ -358,9 +396,22 @@ def format_search_page(state: SearchPageState) -> str:
                 f"{compact_source_label(result.source_path)} | "
                 f"{compact_chunk_label(result.chunk_id)}"
             )
-    elif not state.error:
+    elif state.has_searched and not state.error:
         lines.append("No matches found.")
     return "\n".join(lines)
+
+
+def format_search_status(state: SearchPageState) -> str:
+    if state.error:
+        return state.error
+    if state.results:
+        return (
+            f"Results: {len(state.results)} | "
+            f"mode: {state.retrieval_mode} | limit: {state.limit}"
+        )
+    if state.has_searched:
+        return "No matches found. Try another query or retrieval mode."
+    return "Enter a query and press Enter or Run Search."
 
 
 def format_search_result_inspector(
@@ -372,26 +423,39 @@ def format_search_result_inspector(
 
     metadata = result.metadata
     lines = [
-        "Search result details",
+        "Search result",
         "",
-        f"chunk_id: {result.chunk_id}",
-        f"source_path: {result.source_path}",
+        f"chunk: {compact_chunk_label(result.chunk_id)}",
+        f"source: {compact_source_label(result.source_path)}",
         f"score: {result.score:.4g}",
-        f"retrieval_method: {metadata.get('retrieval_method', retrieval_mode)}",
+        f"method: {metadata.get('retrieval_method', retrieval_mode)}",
     ]
-    for key in (
-        "fusion_method",
-        "matched_modes",
-        "lexical_rank",
-        "semantic_rank",
-    ):
-        if key not in metadata or metadata[key] is None:
-            continue
-        value = metadata[key]
-        if isinstance(value, list):
-            value = ", ".join(str(item) for item in value)
-        lines.append(f"{key}: {value}")
-    lines.append(f"preview: {make_preview(result.text, max_length=120)}")
+    if "fusion_method" in metadata:
+        lines.extend(["", "RRF:"])
+        fusion = metadata.get("fusion_method")
+        if fusion:
+            lines.append(f"  fusion: {fusion}")
+        matched_modes = metadata.get("matched_modes")
+        if isinstance(matched_modes, list):
+            matched_modes = ", ".join(str(item) for item in matched_modes)
+        if matched_modes:
+            lines.append(f"  matched: {matched_modes}")
+        for key in ("lexical_rank", "semantic_rank"):
+            if metadata.get(key) is not None:
+                lines.append(f"  {key}: {metadata[key]}")
+    lines.extend(
+        [
+            "",
+            "full chunk_id:",
+            f"  {result.chunk_id}",
+            "",
+            "full source_path:",
+            f"  {result.source_path}",
+            "",
+            "preview:",
+            f"  {make_preview(result.text, max_length=120)}",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -418,11 +482,7 @@ def load_trace_page_model(workspace_path: str | Path = ".ragent") -> TracePageMo
             warnings.append(f"Latest trace error: {exc}")
 
     selected_trace = latest_trace or (traces[0] if traces else None)
-    message = (
-        None
-        if selected_trace
-        else "No trace found. Run ragent ingest <path> first."
-    )
+    message = None if selected_trace else _trace_empty_message()
     return TracePageModel(
         latest_trace=latest_trace,
         recent_traces=traces,
@@ -433,7 +493,7 @@ def load_trace_page_model(workspace_path: str | Path = ".ragent") -> TracePageMo
 
 
 def format_trace_page(model: TracePageModel) -> str:
-    lines = ["Trace", "", "Recent traces", "# | Operation | Status | Started at"]
+    lines = ["Recent traces", "# | Operation | Status | Started at"]
     if model.recent_traces:
         for index, trace in enumerate(model.recent_traces, start=1):
             lines.append(
@@ -464,7 +524,7 @@ def format_trace_page(model: TracePageModel) -> str:
 
 def format_trace_overview(trace: dict[str, Any] | None) -> str:
     if trace is None:
-        return "Latest trace\n\nNo trace found. Run ragent ingest <path> first."
+        return f"Latest trace\n\n{_trace_empty_message()}"
     return "\n".join(
         [
             "Latest trace",
@@ -493,6 +553,18 @@ def format_trace_steps(trace: dict[str, Any] | None) -> str:
         step_name = step.get("name", "") if isinstance(step, dict) else ""
         lines.append(f"{index}. {step_name}")
     return "\n".join(lines)
+
+
+def _trace_empty_message() -> str:
+    return "\n".join(
+        [
+            "No traces found.",
+            "",
+            "Run one of:",
+            "  ragent ingest examples/knowledge",
+            '  ragent search "agent memory"',
+        ]
+    )
 
 
 def format_trace_inspector(trace: dict[str, Any] | None) -> str:
@@ -534,11 +606,7 @@ def load_settings_page_model(
     workspace = LocalWorkspace(workspace_path)
     config_service = ConfigService(workspace)
     config_exists = workspace.config_path.is_file()
-    message = (
-        None
-        if config_exists
-        else "No config file found. Effective defaults are being used."
-    )
+    message = None if config_exists else _missing_config_message()
     try:
         config = config_service.load()
     except (OSError, ValueError):
@@ -589,7 +657,7 @@ def _hidden_or_not_configured(value: str | None) -> str:
 
 
 def format_settings_page(model: SettingsPageModel) -> str:
-    lines = ["Settings", "", f"config path: {model.config_path}"]
+    lines = [f"config path: {compact_path_label(model.config_path, max_parts=2)}"]
     if model.message:
         lines.extend(["", model.message])
     lines.extend(
@@ -608,6 +676,17 @@ def format_settings_page(model: SettingsPageModel) -> str:
     if model.vector_index_path:
         lines.append(f"vector index path: {model.vector_index_path}")
     return "\n".join(lines)
+
+
+def _missing_config_message() -> str:
+    return "\n".join(
+        [
+            "No config file found. Effective defaults are being used.",
+            "",
+            "To create one:",
+            "  ragent config init",
+        ]
+    )
 
 
 def page_for_key(key: str) -> PageName | None:

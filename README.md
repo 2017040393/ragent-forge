@@ -411,9 +411,12 @@ ragent ask "What is Agentic RAG?" --show-prompt --limit 5
 compact workspace and chunk rows, a Search page for lexical, semantic, or
 hybrid retrieval over existing chunks, a Trace page for recent operation traces,
 a read-only Settings page, and an Inspector panel for the selected chunk,
-search result, trace, or status item. The TUI does not run ingest, build the
-semantic index, run retrieval eval, execute ask generation, or edit config yet;
-use the CLI commands for those workflows.
+search result, trace, or status item. The TUI uses compact paths in main views,
+keeps full paths separated in the Inspector, highlights the active navigation
+page, and shows clearer Search status plus Documents/Trace/Settings empty
+states. The TUI does not run ingest, build the semantic index, run retrieval
+eval, execute ask generation, or edit config yet; use the CLI commands for
+those workflows.
 
 `ragent ingest` loads and
 chunks local Markdown/TXT files without creating embeddings or a vector index.
@@ -496,8 +499,9 @@ observability service is used. The retrieval eval trace operation is
 metrics, report path, semantic index metadata, and hybrid RRF metadata when
 relevant. The TUI displays the same local workspace status, compact recent
 chunk rows, interactive retrieval search over existing workspace data,
-read-only trace history, and read-only provider/config status. Use
-`ragent traces show <trace_id>` for full trace details outside the compact TUI
-Inspector.
+read-only trace history, and read-only provider/config status. Main pages avoid
+long path spam, while the Inspector keeps full paths and selected-item details
+readable. Use `ragent traces show <trace_id>` for full trace details outside
+the compact TUI Inspector.
 Default retrieval remains lexical; reranking, vector database integration, and
 agent workflows are still not implemented.
