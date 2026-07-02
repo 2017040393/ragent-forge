@@ -23,6 +23,7 @@ def test_apply_shell_input_normal_text_appends_ask_placeholder() -> None:
     result = apply_shell_input(create_initial_shell_state(), "What is Agentic RAG?")
 
     assert result.action == "none"
+    assert result.search_query is None
     assert result.state.messages[-2:] == (
         TranscriptMessage(role="user", text="What is Agentic RAG?"),
         TranscriptMessage(role="tool", text=ASK_NOT_WIRED),
@@ -33,10 +34,19 @@ def test_apply_shell_input_ask_command_appends_ask_placeholder() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/ask What is RAG?")
 
     assert result.action == "none"
+    assert result.search_query is None
     assert result.state.messages[-2:] == (
         TranscriptMessage(role="user", text="What is RAG?"),
         TranscriptMessage(role="tool", text=ASK_NOT_WIRED),
     )
+
+
+def test_apply_shell_input_search_returns_search_action() -> None:
+    result = apply_shell_input(create_initial_shell_state(), "/search agent memory")
+
+    assert result.action == "search"
+    assert result.search_query == "agent memory"
+    assert result.state == create_initial_shell_state()
 
 
 def test_apply_shell_input_help_appends_command_help() -> None:
@@ -154,9 +164,6 @@ def test_apply_shell_input_invalid_prompt_appends_usage_error() -> None:
 
 def test_apply_shell_input_planned_not_wired_commands_append_messages() -> None:
     expectations = {
-        "/search agent memory": (
-            "/search dispatch is not wired yet. Use the Search page for now."
-        ),
         "/docs": "/docs dispatch is not wired yet. Use the Documents page for now.",
         "/trace": "/trace dispatch is not wired yet. Use the Trace page for now.",
         "/settings": (
@@ -337,6 +344,8 @@ def test_apply_shell_input_unknown_command_appends_error() -> None:
 def test_apply_shell_input_missing_arguments_appends_parser_error() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/search")
 
+    assert result.action == "none"
+    assert result.search_query is None
     assert result.state.messages[-1] == TranscriptMessage(
         role="error",
         text="Missing arguments for /search. Usage: /search <query>",

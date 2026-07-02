@@ -18,14 +18,13 @@ from ragent_forge.tui.shell_models import (
     set_show_prompt,
 )
 
-ShellAction = Literal["none", "quit"]
+ShellAction = Literal["none", "quit", "search"]
 
 ASK_NOT_WIRED_MESSAGE = (
     "Ask execution from Shell is not wired yet. Use the Ask page for now."
 )
 
 _PLANNED_NOT_WIRED_MESSAGES = {
-    "search": "/search dispatch is not wired yet. Use the Search page for now.",
     "docs": "/docs dispatch is not wired yet. Use the Documents page for now.",
     "trace": "/trace dispatch is not wired yet. Use the Trace page for now.",
     "settings": (
@@ -51,6 +50,7 @@ class ShellReadOnlyHandlers:
 class ShellDispatchResult:
     state: ShellState
     action: ShellAction = "none"
+    search_query: str | None = None
 
 
 def apply_shell_input(
@@ -79,6 +79,8 @@ def apply_shell_input(
         return ShellDispatchResult(_apply_context_command(state, parsed.args))
     if parsed.name == "prompt":
         return ShellDispatchResult(_apply_prompt_command(state, parsed.args))
+    if parsed.name == "search":
+        return ShellDispatchResult(state, action="search", search_query=parsed.args)
     if parsed.name in {"docs", "trace", "settings"}:
         return ShellDispatchResult(
             _apply_read_only_command(state, parsed.name, handlers)

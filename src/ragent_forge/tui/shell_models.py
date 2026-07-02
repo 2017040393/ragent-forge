@@ -8,6 +8,7 @@ from ragent_forge.app.services.chunk_service import make_preview
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.tui.view_models import (
     AskPageState,
+    SearchPageState,
     compact_chunk_label,
     compact_source_label,
 )
@@ -211,6 +212,41 @@ def message_from_search_results(
             "operation": "search",
             "query": query,
             "retrieval_mode": retrieval_mode,
+            "result_count": result_count,
+        },
+        sources=sources,
+    )
+
+
+def message_from_search_state(state: SearchPageState) -> TranscriptMessage:
+    if state.error:
+        return TranscriptMessage(
+            role="error",
+            text=state.error,
+            metadata={
+                "operation": "search",
+                "query": state.query,
+                "retrieval_mode": state.retrieval_mode,
+                "limit": state.limit,
+            },
+        )
+
+    sources = transcript_sources_from_search_results(state.results)
+    result_count = len(state.results)
+    text = (
+        f"Search results for: {state.query}\n"
+        f"Results: {result_count} | mode: {state.retrieval_mode}"
+        if result_count
+        else "No matches found. Try another query or retrieval mode."
+    )
+    return TranscriptMessage(
+        role="tool",
+        text=text,
+        metadata={
+            "operation": "search",
+            "query": state.query,
+            "retrieval_mode": state.retrieval_mode,
+            "limit": state.limit,
             "result_count": result_count,
         },
         sources=sources,

@@ -15,6 +15,7 @@ from ragent_forge.tui.shell_models import (
     format_transcript_message,
     format_transcript_sources,
     message_from_search_results,
+    message_from_search_state,
     messages_from_ask_state,
     select_source,
     set_limit,
@@ -24,7 +25,7 @@ from ragent_forge.tui.shell_models import (
     set_show_prompt,
     transcript_sources_from_search_results,
 )
-from ragent_forge.tui.view_models import AskPageState
+from ragent_forge.tui.view_models import AskPageState, SearchPageState
 
 
 def make_search_result(
@@ -507,6 +508,106 @@ def test_message_from_search_results_handles_no_results() -> None:
     assert message.text == "No matches found. Try another query or retrieval mode."
     assert message.metadata["result_count"] == 0
     assert message.sources == ()
+
+
+def test_message_from_search_state_with_results_returns_tool_message() -> None:
+    result = make_search_result()
+    state = SearchPageState(
+        query="agentic rag",
+        retrieval_mode="hybrid",
+        limit=3,
+        results=[result],
+        has_searched=True,
+    )
+
+    message = message_from_search_state(state)
+
+    assert message.role == "tool"
+    assert message.text == "Search results for: agentic rag\nResults: 1 | mode: hybrid"
+    assert message.metadata == {
+        "operation": "search",
+        "query": "agentic rag",
+        "retrieval_mode": "hybrid",
+        "limit": 3,
+        "result_count": 1,
+    }
+    assert len(message.sources) == 1
+    assert message.sources[0].source_path == "/very/long/path/rag_basics.md"
+
+
+def test_message_from_search_state_with_no_results_returns_no_matches_message() -> None:
+    state = SearchPageState(
+        query="missing",
+        retrieval_mode="lexical",
+        limit=5,
+        has_searched=True,
+    )
+
+    message = message_from_search_state(state)
+
+    assert message.role == "tool"
+    assert message.text == "No matches found. Try another query or retrieval mode."
+    assert message.metadata == {
+        "operation": "search",
+        "query": "missing",
+        "retrieval_mode": "lexical",
+        "limit": 5,
+        "result_count": 0,
+    }
+    assert message.sources == ()
+
+
+def test_message_from_search_state_with_error_returns_error_message() -> None:
+    state = SearchPageState(
+        query="agentic rag",
+        retrieval_mode="semantic",
+        limit=4,
+        error="Vector index not found. Run `ragent index build` first.",
+        has_searched=True,
+    )
+
+    message = message_from_search_state(state)
+
+    assert message == TranscriptMessage(
+        role="error",
+        text="Vector index not found. Run `ragent index build` first.",
+        metadata={
+            "operation": "search",
+            "query": "agentic rag",
+            "retrieval_mode": "semantic",
+            "limit": 4,
+        },
+    )
+
+
+def test_message_from_search_state_formatter_hides_sensitive_source_metadata() -> None:
+    result = make_search_result(
+        metadata={
+            "retrieval_method": "lexical",
+            "api_key": "secret-value",
+            "embedding": [1.0, 2.0, 3.0],
+        },
+    )
+    state = SearchPageState(
+        query="agentic rag",
+        retrieval_mode="lexical",
+        limit=1,
+        results=[result],
+        has_searched=True,
+    )
+
+    message = message_from_search_state(state)
+    rendered = "\n".join(
+        [
+            format_transcript((message,)),
+            format_transcript_sources(message.sources),
+        ]
+    )
+
+    assert "secret-value" not in rendered
+    assert "api_key" not in message.sources[0].metadata
+    assert "embedding" not in message.sources[0].metadata
+    assert "[1.0, 2.0, 3.0]" not in rendered
 
 
 def test_formatting_helpers_do_not_display_metadata_or_api_keys() -> None:

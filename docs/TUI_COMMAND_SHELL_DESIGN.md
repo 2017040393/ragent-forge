@@ -172,7 +172,8 @@ Current implementation status:
 - Experimental Shell page exists.
 - Local Shell commands are wired.
 - Read-only Shell commands `/docs`, `/trace`, and `/settings` are wired.
-- Full Ask/Search command dispatch is not wired yet.
+- Shell `/search <query>` is wired through a background worker.
+- Shell Ask command dispatch is not wired yet.
 
 ## Migration Plan
 

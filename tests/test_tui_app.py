@@ -119,6 +119,46 @@ async def test_tui_app_shell_submission_uses_dispatch_without_running_ask(
         assert "Ask execution from Shell is not wired yet." in transcript
 
 
+@pytest.mark.anyio
+async def test_tui_app_shell_search_starts_worker_and_disables_input(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    started_workers: list[tuple[object, dict[str, object]]] = []
+
+    def forbidden_sync_call(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("Shell search should run inside a worker")
+
+    def fake_run_worker(work: object, **kwargs: object) -> object:
+        started_workers.append((work, kwargs))
+        return object()
+
+    monkeypatch.setattr(tui_main, "run_tui_search", forbidden_sync_call)
+    monkeypatch.setattr(app, "run_worker", fake_run_worker)
+
+    async with app.run_test() as pilot:
+        await pilot.press("h")
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "/search Agentic"
+
+        app._submit_shell_input()
+
+        assert started_workers
+        assert started_workers[0][1]["name"] == "shell-search"
+        assert started_workers[0][1]["group"] == "shell"
+        assert started_workers[0][1]["thread"] is True
+        assert started_workers[0][1]["exclusive"] is True
+        assert shell_input.disabled is True
+        assert app.shell_state.running is True
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert "Running search for: Agentic" in transcript
+        assert "status: running" in str(
+            app.query_one("#shell-status", Static).renderable
+        )
+
+
 def test_tui_app_shell_read_only_handlers_return_workspace_summaries(
     tmp_path: Path,
 ) -> None:

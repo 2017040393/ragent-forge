@@ -430,10 +430,12 @@ workflow. It renders shell status, transcript output, and a composer input. In
 this MVP, local commands such as `/help`, `/mode`, `/limit`, `/context`,
 `/prompt`, `/clear`, and `/exit` are handled. The experimental Shell page can
 also run read-only project inspection commands such as `/docs`, `/trace`, and
-`/settings`. Ask and Search execution from the Shell are still intentionally
-not wired; use the existing Ask and Search pages for those workflows. Normal
-text and `/ask <question>` are recognized as Ask intent, but real Shell Ask
-execution is not wired yet.
+`/settings`. It can run `/search <query>` using the current Shell retrieval
+mode and limit. Semantic and hybrid Shell search require an existing vector
+index, just like the Search page. Ask execution from the Shell remains
+intentionally not wired; use the existing Ask page for generated answers.
+Normal text and `/ask <question>` are recognized as Ask intent, but real Shell
+Ask execution is not wired yet.
 
 `ragent ingest` loads and
 chunks local Markdown/TXT files without creating embeddings or a vector index.
