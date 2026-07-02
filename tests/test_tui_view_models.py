@@ -733,13 +733,15 @@ def test_settings_missing_config_state_suggests_config_init(
 
 
 def test_navigation_keys_switch_to_required_pages() -> None:
+    assert page_for_key("h") == "shell"
+    assert page_for_key("1") == "shell"
     assert page_for_key("d") == "documents"
-    assert page_for_key("1") == "documents"
+    assert page_for_key("2") == "documents"
     assert page_for_key("s") == "search"
-    assert page_for_key("2") == "search"
+    assert page_for_key("3") == "search"
     assert page_for_key("a") == "ask"
-    assert page_for_key("3") == "ask"
+    assert page_for_key("4") == "ask"
     assert page_for_key("t") == "trace"
-    assert page_for_key("4") == "trace"
+    assert page_for_key("5") == "trace"
     assert page_for_key("g") == "settings"
-    assert page_for_key("5") == "settings"
+    assert page_for_key("6") == "settings"

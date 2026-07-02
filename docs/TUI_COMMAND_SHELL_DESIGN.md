@@ -163,6 +163,15 @@ services:
 The shell should not duplicate ingestion, indexing, retrieval, generation, trace,
 or config logic.
 
+## Implementation Status
+
+Current implementation status:
+
+- Command parser exists.
+- Transcript model exists.
+- Experimental Shell page exists.
+- Full Ask/Search command dispatch is not wired yet.
+
 ## Migration Plan
 
 1. Add command parser and design doc.

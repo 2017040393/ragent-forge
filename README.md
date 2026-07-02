@@ -92,8 +92,8 @@ Implemented so far:
   real generation is not configured.
 - `ragent traces latest`, `ragent traces list`, and
   `ragent traces show <trace_id>` inspect local operation traces.
-- `ragent tui` opens a local Textual workbench with Documents, Search, Ask,
-  Trace, Settings, and a contextual Inspector panel.
+- `ragent tui` opens a local Textual workbench with an experimental Shell page,
+  Documents, Search, Ask, Trace, Settings, and a contextual Inspector panel.
 
 Reranking, vector databases, and agent workflows are intentionally not
 implemented yet.
@@ -409,25 +409,29 @@ ragent ask "What is Agentic RAG?" --show-prompt
 ragent ask "What is Agentic RAG?" --show-prompt --limit 5
 ```
 
-`ragent tui` launches the Textual workbench. It provides a Documents page with
-compact workspace and chunk rows, a Search page for lexical, semantic, or
-hybrid retrieval over existing chunks, an Ask page that reuses the same RAG ask
+`ragent tui` launches the Textual workbench. It provides an experimental Shell
+page for the future command-first workflow, a Documents page with compact
+workspace and chunk rows, a Search page for lexical, semantic, or hybrid
+retrieval over existing chunks, an Ask page that reuses the same RAG ask
 pipeline with optional generation, a Trace page for recent operation traces, a
-read-only Settings page, and an Inspector panel for the selected chunk, search
-result, ask source, trace, or status item. The TUI uses compact paths in main
-views, keeps full paths separated in the Inspector, highlights the active
-navigation page, and shows clearer Search/Ask status plus
-Documents/Trace/Settings empty states. The TUI can run Search and Ask, but it
-does not run ingest, build the semantic index, run retrieval eval, or edit
-config; use the CLI commands for those workflows. TUI Ask runs in a background
-worker so the interface stays responsive during retrieval and generation. TUI
-Ask does not write new traces yet, so CLI `ragent ask` remains the
-trace-producing ask workflow.
+read-only Settings page, and an Inspector panel for the selected shell state,
+chunk, search result, ask source, trace, or status item. The TUI uses compact
+paths in main views, keeps full paths separated in the Inspector, highlights
+the active navigation page, and shows clearer Search/Ask status plus
+Documents/Trace/Settings empty states. The TUI can run Search and Ask from
+their existing pages, but it does not run ingest, build the semantic index, run
+retrieval eval, or edit config; use the CLI commands for those workflows. TUI
+Ask runs in a background worker so the interface stays responsive during
+retrieval and generation. TUI Ask does not write new traces yet, so CLI
+`ragent ask` remains the trace-producing ask workflow.
 
-The current TUI is page-based, but the project includes parser and
-transcript-model foundations for a future command-first shell where ordinary
-input runs Ask and slash commands such as `/search`, `/docs`, `/trace`,
-`/settings`, `/mode`, and `/help` control secondary workflows.
+The TUI also includes an experimental Shell page for the future command-first
+workflow. It renders shell status, transcript output, and a composer input. In
+this MVP, local commands such as `/help`, `/mode`, `/limit`, `/context`,
+`/prompt`, `/clear`, and `/exit` are handled, while the Ask, Search, Documents,
+Trace, and Settings dispatch paths still remain on the existing pages. Normal
+text and `/ask <question>` are recognized as Ask intent, but real Shell Ask
+execution is not wired yet.
 
 `ragent ingest` loads and
 chunks local Markdown/TXT files without creating embeddings or a vector index.

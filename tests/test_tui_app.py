@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 from textual.containers import ScrollableContainer
-from textual.widgets import Button, Static
+from textual.widgets import Button, Input, Static
 
 from ragent_forge.app.models import Document, IngestResult, OperationTrace, TraceStep
 from ragent_forge.app.workspace import LocalWorkspace
@@ -69,6 +69,68 @@ async def test_tui_app_navigates_and_runs_lexical_search(tmp_path: Path) -> None
         assert "/knowledge/agentic_rag.md |" not in str(
             app.query_one("#search-message", Static).renderable
         )
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_page_renders_status_transcript_and_input(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test() as pilot:
+        await pilot.press("h")
+
+        assert app.current_page == "shell"
+        assert "mode: lexical" in str(
+            app.query_one("#shell-status", Static).renderable
+        )
+        assert "RAGentForge command shell." in str(
+            app.query_one("#shell-transcript", Static).renderable
+        )
+        assert app.query_one("#shell-input", Input).placeholder == (
+            "Ask a question or type /help"
+        )
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_submission_uses_dispatch_without_running_ask(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    def forbidden_sync_call(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("Shell MVP should not run ask execution")
+
+    monkeypatch.setattr(tui_main, "run_tui_ask", forbidden_sync_call)
+
+    async with app.run_test() as pilot:
+        await pilot.press("h")
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "What is Agentic RAG?"
+
+        app._submit_shell_input()
+
+        assert shell_input.value == ""
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert "User:\n  What is Agentic RAG?" in transcript
+        assert "Ask execution from Shell is not wired yet." in transcript
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_inspector_shows_basic_details(tmp_path: Path) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test() as pilot:
+        await pilot.press("h")
+
+        inspector = str(app.query_one("#inspector-content", Static).renderable)
+        assert "Shell details" in inspector
+        assert "mode: lexical" in inspector
+        assert "messages: 1" in inspector
 
 
 @pytest.mark.anyio

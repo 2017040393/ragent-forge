@@ -266,6 +266,27 @@ def format_shell_status(state: ShellState) -> str:
     )
 
 
+def format_shell_inspector(state: ShellState) -> str:
+    prompt = "on" if state.show_prompt else "off"
+    selected_source = (
+        compact_source_label(state.selected_source.source_path)
+        if state.selected_source is not None
+        else "none"
+    )
+    return "\n".join(
+        [
+            "Shell details",
+            "",
+            f"mode: {state.retrieval_mode}",
+            f"limit: {state.limit}",
+            f"context: {state.max_context_chars}",
+            f"prompt: {prompt}",
+            f"messages: {len(state.messages)}",
+            f"selected source: {selected_source}",
+        ]
+    )
+
+
 def _welcome_message() -> TranscriptMessage:
     return TranscriptMessage(role="system", text=WELCOME_MESSAGE)
 

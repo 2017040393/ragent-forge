@@ -18,6 +18,14 @@ from textual.widgets import (
 from textual.worker import Worker, WorkerState
 
 from ragent_forge.app.services.search_service import SearchResult
+from ragent_forge.tui.shell_dispatch import apply_shell_input
+from ragent_forge.tui.shell_models import (
+    ShellState,
+    create_initial_shell_state,
+    format_shell_inspector,
+    format_shell_status,
+    format_transcript,
+)
 from ragent_forge.tui.view_models import (
     AskPageState,
     ChunkRow,
@@ -83,6 +91,22 @@ class RagentForgeApp(App[None]):
         padding-left: 1;
     }
 
+    #shell-status {
+        height: auto;
+        margin-bottom: 1;
+    }
+
+    #shell-transcript-container {
+        height: 1fr;
+        border: solid $secondary;
+        padding: 1;
+        margin-bottom: 1;
+    }
+
+    #shell-input {
+        height: auto;
+    }
+
     #search-controls {
         height: auto;
         margin-bottom: 1;
@@ -144,18 +168,20 @@ class RagentForgeApp(App[None]):
     """
 
     BINDINGS = [
+        ("h", "switch_page('shell')", "Shell"),
+        ("1", "switch_page('shell')", "Shell"),
         ("d", "switch_page('documents')", "Documents"),
-        ("1", "switch_page('documents')", "Documents"),
+        ("2", "switch_page('documents')", "Documents"),
         ("s", "switch_page('search')", "Search"),
-        ("2", "switch_page('search')", "Search"),
+        ("3", "switch_page('search')", "Search"),
         ("a", "switch_page('ask')", "Ask"),
-        ("3", "switch_page('ask')", "Ask"),
+        ("4", "switch_page('ask')", "Ask"),
         ("t", "switch_page('trace')", "Trace"),
-        ("4", "switch_page('trace')", "Trace"),
+        ("5", "switch_page('trace')", "Trace"),
         ("g", "switch_page('settings')", "Settings"),
-        ("5", "switch_page('settings')", "Settings"),
+        ("6", "switch_page('settings')", "Settings"),
         ("r", "refresh_page", "Refresh"),
-        ("/", "focus_search", "Query/question"),
+        ("/", "focus_search", "Focus input"),
         ("q", "quit", "Quit"),
     ]
 
@@ -163,6 +189,7 @@ class RagentForgeApp(App[None]):
         super().__init__()
         self.workspace_path = workspace_path
         self.current_page: PageName = "documents"
+        self.shell_state: ShellState = create_initial_shell_state()
         self.documents_model: DocumentsPageModel | None = None
         self.search_state = SearchPageState()
         self.ask_state = AskPageState()
@@ -178,13 +205,23 @@ class RagentForgeApp(App[None]):
         with Horizontal(id="workspace"):
             with Vertical(id="navigation"):
                 yield Label("Navigation")
-                yield Button("1 Documents", id="nav-documents", classes="nav-button")
-                yield Button("2 Search", id="nav-search", classes="nav-button")
-                yield Button("3 Ask", id="nav-ask", classes="nav-button")
-                yield Button("4 Trace", id="nav-trace", classes="nav-button")
-                yield Button("5 Settings", id="nav-settings", classes="nav-button")
+                yield Button("1 Shell", id="nav-shell", classes="nav-button")
+                yield Button("2 Documents", id="nav-documents", classes="nav-button")
+                yield Button("3 Search", id="nav-search", classes="nav-button")
+                yield Button("4 Ask", id="nav-ask", classes="nav-button")
+                yield Button("5 Trace", id="nav-trace", classes="nav-button")
+                yield Button("6 Settings", id="nav-settings", classes="nav-button")
                 yield Static("Eval", classes="nav-placeholder")
             with Vertical(id="main-panel"):
+                with Vertical(id="shell-page", classes="page hidden"):
+                    yield Label("Shell")
+                    yield Static("", id="shell-status")
+                    with ScrollableContainer(id="shell-transcript-container"):
+                        yield Static("", id="shell-transcript")
+                    yield Input(
+                        placeholder="Ask a question or type /help",
+                        id="shell-input",
+                    )
                 with Vertical(id="documents-page", classes="page"):
                     yield Label("Documents")
                     yield Static("", id="documents-summary")
@@ -260,8 +297,9 @@ class RagentForgeApp(App[None]):
                 yield Label("Inspector")
                 yield Static("", id="inspector-content")
         yield Static(
-            "Keys: 1/d Documents | 2/s Search | 3/a Ask | 4/t Trace | "
-            "5/g Settings | / query/question | Enter run/select | r refresh | q quit",
+            "Keys: 1/h Shell | 2/d Documents | 3/s Search | 4/a Ask | "
+            "5/t Trace | 6/g Settings | / focus input | "
+            "Enter run/select | r refresh | q quit",
             id="help",
         )
         yield Footer()
@@ -284,6 +322,7 @@ class RagentForgeApp(App[None]):
     def _refresh_all(self) -> None:
         self._load_documents()
         self._load_trace()
+        self._render_shell()
         self._render_settings()
         self._render_search()
         self._render_ask()
@@ -291,11 +330,20 @@ class RagentForgeApp(App[None]):
 
     def action_switch_page(self, page: str) -> None:
         resolved_page = page_for_key(page) or page
-        if resolved_page in {"documents", "search", "ask", "trace", "settings"}:
+        if resolved_page in {
+            "shell",
+            "documents",
+            "search",
+            "ask",
+            "trace",
+            "settings",
+        }:
             self._show_page(resolved_page)
 
     def action_refresh_page(self) -> None:
-        if self.current_page == "documents":
+        if self.current_page == "shell":
+            self._render_shell()
+        elif self.current_page == "documents":
             self._load_documents()
         elif self.current_page == "trace":
             self._load_trace()
@@ -308,7 +356,9 @@ class RagentForgeApp(App[None]):
         self._render_inspector()
 
     def action_focus_search(self) -> None:
-        if self.current_page == "search":
+        if self.current_page == "shell":
+            self.set_focus(self.query_one("#shell-input", Input))
+        elif self.current_page == "search":
             self.set_focus(self.query_one("#query-input", Input))
         elif self.current_page == "ask":
             self.set_focus(self.query_one("#ask-question-input", Input))
@@ -319,6 +369,7 @@ class RagentForgeApp(App[None]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id or ""
         page_by_button = {
+            "nav-shell": "shell",
             "nav-documents": "documents",
             "nav-search": "search",
             "nav-ask": "ask",
@@ -334,7 +385,9 @@ class RagentForgeApp(App[None]):
             self._run_ask_from_inputs()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
-        if event.input.id in {"query-input", "limit-input"}:
+        if event.input.id == "shell-input":
+            self._submit_shell_input()
+        elif event.input.id in {"query-input", "limit-input"}:
             self._run_search_from_inputs()
         elif event.input.id in {
             "ask-question-input",
@@ -392,10 +445,12 @@ class RagentForgeApp(App[None]):
 
     def _show_page(self, page: PageName) -> None:
         self.current_page = page
-        for page_name in ("documents", "search", "ask", "trace", "settings"):
+        for page_name in ("shell", "documents", "search", "ask", "trace", "settings"):
             widget = self.query_one(f"#{page_name}-page")
             widget.set_class(page_name != page, "hidden")
-        if page == "search":
+        if page == "shell":
+            self.set_focus(self.query_one("#shell-input", Input))
+        elif page == "search":
             self.set_focus(self.query_one("#query-input", Input))
         elif page == "ask":
             self.set_focus(self.query_one("#ask-question-input", Input))
@@ -404,11 +459,12 @@ class RagentForgeApp(App[None]):
 
     def _render_navigation(self) -> None:
         labels = {
-            "documents": "1 Documents",
-            "search": "2 Search",
-            "ask": "3 Ask",
-            "trace": "4 Trace",
-            "settings": "5 Settings",
+            "shell": "1 Shell",
+            "documents": "2 Documents",
+            "search": "3 Search",
+            "ask": "4 Ask",
+            "trace": "5 Trace",
+            "settings": "6 Settings",
         }
         for page_name, label in labels.items():
             button = self.query_one(f"#nav-{page_name}", Button)
@@ -429,6 +485,26 @@ class RagentForgeApp(App[None]):
         table.clear()
         for row in self.documents_model.recent_chunks:
             table.add_row(row.index, row.source_label, row.range_text, row.preview)
+
+    def _render_shell(self) -> None:
+        self.query_one("#shell-status", Static).update(
+            format_shell_status(self.shell_state)
+        )
+        self.query_one("#shell-transcript", Static).update(
+            format_transcript(self.shell_state.messages)
+        )
+
+    def _submit_shell_input(self) -> None:
+        shell_input = self.query_one("#shell-input", Input)
+        text = shell_input.value
+        shell_input.value = ""
+        result = apply_shell_input(self.shell_state, text)
+        self.shell_state = result.state
+        if result.action == "quit":
+            self.exit()
+            return
+        self._render_shell()
+        self._render_inspector()
 
     def _render_search(self) -> None:
         self.selected_search_result = self.search_state.selected_result
@@ -687,7 +763,9 @@ class RagentForgeApp(App[None]):
 
     def _render_inspector(self) -> None:
         content = "Inspector\n\nSelect a chunk, search result, trace, or setting."
-        if self.current_page == "documents":
+        if self.current_page == "shell":
+            content = format_shell_inspector(self.shell_state)
+        elif self.current_page == "documents":
             content = format_chunk_inspector(self.selected_chunk)
         elif self.current_page == "search":
             content = format_search_result_inspector(

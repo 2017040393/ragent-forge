@@ -16,7 +16,7 @@ from ragent_forge.app.services.semantic_search_service import SemanticSearchServ
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
 from ragent_forge.app.workspace import LocalWorkspace
 
-PageName = Literal["documents", "search", "trace", "settings", "ask", "eval"]
+PageName = Literal["shell", "documents", "search", "trace", "settings", "ask", "eval"]
 RetrievalMode = Literal["lexical", "semantic", "hybrid"]
 
 NO_CHUNKS_MESSAGE = "\n".join(
@@ -947,14 +947,16 @@ def _missing_config_message() -> str:
 
 def page_for_key(key: str) -> PageName | None:
     return {
+        "h": "shell",
+        "1": "shell",
         "d": "documents",
-        "1": "documents",
+        "2": "documents",
         "s": "search",
-        "2": "search",
+        "3": "search",
         "a": "ask",
-        "3": "ask",
+        "4": "ask",
         "t": "trace",
-        "4": "trace",
+        "5": "trace",
         "g": "settings",
-        "5": "settings",
+        "6": "settings",
     }.get(key)
