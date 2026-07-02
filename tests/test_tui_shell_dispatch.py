@@ -1,11 +1,24 @@
 from ragent_forge.tui.commands import format_tui_command_help
 from ragent_forge.tui.shell_dispatch import ShellReadOnlyHandlers, apply_shell_input
 from ragent_forge.tui.shell_models import (
+    ShellState,
     TranscriptMessage,
+    TranscriptSource,
     create_initial_shell_state,
     format_shell_status,
     format_transcript,
 )
+
+
+def make_source(rank: int = 1) -> TranscriptSource:
+    return TranscriptSource(
+        rank=rank,
+        chunk_id=f"/knowledge/rag.md::chunk-{rank:04d}",
+        source_path=f"/knowledge/source_{rank}.md",
+        score=0.1 * rank,
+        preview=f"Preview {rank}",
+        metadata={"retrieval_method": "lexical_token_overlap"},
+    )
 
 
 def test_shell_initial_state_renders_status_and_welcome_transcript() -> None:
@@ -165,6 +178,120 @@ def test_apply_shell_input_invalid_prompt_appends_usage_error() -> None:
     assert result.state.messages[-1] == TranscriptMessage(
         role="error",
         text="Usage: /prompt on|off",
+    )
+
+
+def test_apply_shell_input_sources_without_sources_appends_friendly_message() -> None:
+    result = apply_shell_input(create_initial_shell_state(), "/sources")
+
+    assert result.action == "none"
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="tool",
+        text="No sources available. Run /search <query> or ask a question first.",
+    )
+
+
+def test_apply_shell_input_sources_with_sources_appends_source_list_message() -> None:
+    first = make_source(1)
+    second = make_source(2)
+    state = ShellState(available_sources=(first, second), selected_source=first)
+
+    result = apply_shell_input(state, "/sources")
+
+    assert result.action == "none"
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="tool",
+        text="Current sources",
+        metadata={"operation": "source_list"},
+        sources=(first, second),
+    )
+    assert "Sources:" in format_transcript((result.state.messages[-1],))
+
+
+def test_apply_shell_input_source_rank_selects_source() -> None:
+    first = make_source(1)
+    second = make_source(2)
+    state = ShellState(available_sources=(first, second), selected_source=first)
+
+    result = apply_shell_input(state, "/source 2")
+
+    assert result.action == "none"
+    assert result.search_query is None
+    assert result.ask_question is None
+    assert result.state.selected_source == second
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="tool",
+        text="selected source 2: source_2.md",
+    )
+
+
+def test_apply_shell_input_source_next_selects_next_and_wraps() -> None:
+    first = make_source(1)
+    second = make_source(2)
+    state = ShellState(available_sources=(first, second), selected_source=first)
+
+    moved = apply_shell_input(state, "/source next")
+    wrapped = apply_shell_input(moved.state, "/source next")
+
+    assert moved.state.selected_source == second
+    assert moved.state.messages[-1].text == "selected source 2: source_2.md"
+    assert wrapped.state.selected_source == first
+    assert wrapped.state.messages[-1].text == "selected source 1: source_1.md"
+
+
+def test_apply_shell_input_source_prev_selects_previous_and_wraps() -> None:
+    first = make_source(1)
+    second = make_source(2)
+    state = ShellState(available_sources=(first, second), selected_source=second)
+
+    moved = apply_shell_input(state, "/source prev")
+    wrapped = apply_shell_input(moved.state, "/source prev")
+
+    assert moved.state.selected_source == first
+    assert moved.state.messages[-1].text == "selected source 1: source_1.md"
+    assert wrapped.state.selected_source == second
+    assert wrapped.state.messages[-1].text == "selected source 2: source_2.md"
+
+
+def test_apply_shell_input_source_without_sources_appends_friendly_message() -> None:
+    result = apply_shell_input(create_initial_shell_state(), "/source 1")
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="tool",
+        text="No sources available. Run /search <query> or ask a question first.",
+    )
+
+
+def test_apply_shell_input_source_zero_appends_friendly_error() -> None:
+    state = ShellState(available_sources=(make_source(1),))
+
+    result = apply_shell_input(state, "/source 0")
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="error",
+        text="Source rank must be a positive integer.",
+    )
+
+
+def test_apply_shell_input_source_invalid_arg_appends_usage_error() -> None:
+    state = ShellState(available_sources=(make_source(1),))
+
+    result = apply_shell_input(state, "/source nope")
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="error",
+        text="Usage: /source <rank|next|prev>",
+    )
+
+
+def test_apply_shell_input_source_out_of_range_appends_friendly_error() -> None:
+    state = ShellState(available_sources=(make_source(1), make_source(2)))
+
+    result = apply_shell_input(state, "/source 99")
+
+    assert result.state.messages[-1] == TranscriptMessage(
+        role="error",
+        text="Source rank out of range. Available sources: 1-2.",
     )
 
 

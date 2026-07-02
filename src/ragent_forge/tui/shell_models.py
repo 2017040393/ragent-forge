@@ -73,6 +73,7 @@ class ShellState:
     running: bool = False
     messages: tuple[TranscriptMessage, ...] = ()
     selected_source: TranscriptSource | None = None
+    available_sources: tuple[TranscriptSource, ...] = ()
 
 
 def create_initial_shell_state() -> ShellState:
@@ -80,14 +81,13 @@ def create_initial_shell_state() -> ShellState:
 
 
 def append_message(state: ShellState, message: TranscriptMessage) -> ShellState:
-    selected_source = state.selected_source
-    if selected_source is None and message.sources:
-        selected_source = message.sources[0]
-    return replace(
+    updated = replace(
         state,
         messages=(*state.messages, message),
-        selected_source=selected_source,
     )
+    if message.sources:
+        return set_available_sources(updated, message.sources)
+    return updated
 
 
 def append_messages(
@@ -106,6 +106,7 @@ def clear_transcript(state: ShellState) -> ShellState:
         running=False,
         messages=(_welcome_message(),),
         selected_source=None,
+        available_sources=(),
     )
 
 
@@ -143,6 +144,74 @@ def select_source(
     source: TranscriptSource | None,
 ) -> ShellState:
     return replace(state, selected_source=source)
+
+
+def set_available_sources(
+    state: ShellState,
+    sources: list[TranscriptSource] | tuple[TranscriptSource, ...],
+) -> ShellState:
+    available_sources = tuple(sources)
+    return replace(
+        state,
+        available_sources=available_sources,
+        selected_source=available_sources[0] if available_sources else None,
+    )
+
+
+def select_source_by_rank(state: ShellState, rank: int) -> ShellState:
+    if not state.available_sources:
+        raise ValueError(
+            "No sources available. Run /search <query> or ask a question first."
+        )
+    if rank <= 0:
+        raise ValueError("Source rank must be a positive integer.")
+    if rank > len(state.available_sources):
+        raise ValueError(
+            "Source rank out of range. "
+            f"Available sources: 1-{len(state.available_sources)}."
+        )
+    return select_source(state, state.available_sources[rank - 1])
+
+
+def select_next_source(state: ShellState) -> ShellState:
+    if not state.available_sources:
+        raise ValueError(
+            "No sources available. Run /search <query> or ask a question first."
+        )
+    selected_index = _selected_source_index(state)
+    next_index = (
+        0
+        if selected_index is None
+        else (selected_index + 1) % len(state.available_sources)
+    )
+    return select_source(state, state.available_sources[next_index])
+
+
+def select_previous_source(state: ShellState) -> ShellState:
+    if not state.available_sources:
+        raise ValueError(
+            "No sources available. Run /search <query> or ask a question first."
+        )
+    selected_index = _selected_source_index(state)
+    previous_index = (
+        0
+        if selected_index is None
+        else (selected_index - 1) % len(state.available_sources)
+    )
+    return select_source(state, state.available_sources[previous_index])
+
+
+def format_selected_source_ack(source: TranscriptSource) -> str:
+    return f"selected source {source.rank}: {compact_source_label(source.source_path)}"
+
+
+def _selected_source_index(state: ShellState) -> int | None:
+    if state.selected_source is None:
+        return None
+    for index, source in enumerate(state.available_sources):
+        if source == state.selected_source:
+            return index
+    return None
 
 
 def transcript_sources_from_search_results(

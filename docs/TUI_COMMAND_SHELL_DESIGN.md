@@ -20,6 +20,8 @@ Slash commands control explicit workflows:
 
 - `/ask <question>` explicitly runs Ask.
 - `/search <query>` runs retrieval search.
+- `/sources` shows the current source list.
+- `/source <rank|next|prev>` changes the source shown in the Inspector.
 - `/docs` shows workspace and document summary.
 - `/trace` shows the latest trace.
 - `/settings` shows a read-only config summary.
@@ -72,6 +74,8 @@ The MVP command registry should stay conservative:
 | `/help` | | Show available commands. |
 | `/ask <question>` | | Run Ask explicitly. |
 | `/search <query>` | `/s` | Search chunks. |
+| `/sources` | | Show current sources. |
+| `/source <rank|next|prev>` | | Select a source by rank, next, or prev. |
 | `/docs` | | Show document summary. |
 | `/trace` | `/t` | Show the latest trace. |
 | `/settings` | `/config` | Show read-only config summary. |
@@ -97,6 +101,7 @@ show_prompt: bool
 running: bool
 messages: list[TranscriptMessage]
 selected_source: SearchResult | None
+available_sources: list[TranscriptSource]
 ```
 
 This state should be updated by command dispatch and worker completion, not by
@@ -189,6 +194,8 @@ Current implementation status:
 - Shell `/search <query>` is wired through a background worker.
 - Shell search sources are displayed in the transcript.
 - Shell Inspector shows selected-source details.
+- Shell source navigation commands `/sources` and
+  `/source <rank|next|prev>` are wired.
 - Shell ordinary questions and `/ask <question>` are wired through a background
   worker.
 - Lightweight inline command candidates are available while typing slash
@@ -197,14 +204,16 @@ Current implementation status:
 ## Migration Plan
 
 The single Shell interface is the primary TUI surface. Future work should
-improve the Shell itself: source navigation, command
-suggestions, transcript polish, and optional richer status panels.
+improve the Shell itself: richer source inspection, command suggestions,
+transcript polish, and optional richer status panels.
 
 ## Non-goals
 
 - No command palette.
 - No popup autocomplete.
 - No command execution directly from the candidate list.
+- No local file opening.
+- No source table UI.
 - No session persistence.
 - No agent tool loop.
 - No TUI ingest execution.

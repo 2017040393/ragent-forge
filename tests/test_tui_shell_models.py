@@ -19,7 +19,11 @@ from ragent_forge.tui.shell_models import (
     message_from_search_results,
     message_from_search_state,
     messages_from_ask_state,
+    select_next_source,
+    select_previous_source,
     select_source,
+    select_source_by_rank,
+    set_available_sources,
     set_limit,
     set_max_context_chars,
     set_retrieval_mode,
@@ -70,6 +74,7 @@ def test_initial_shell_state_has_default_settings_and_welcome_message() -> None:
     assert state.show_prompt is False
     assert state.running is False
     assert state.selected_source is None
+    assert state.available_sources == ()
     assert state.messages == (
         TranscriptMessage(role="system", text=WELCOME_MESSAGE),
     )
@@ -115,19 +120,38 @@ def test_append_message_selects_first_source_when_none_selected() -> None:
     )
 
     assert updated.selected_source == source
+    assert updated.available_sources == (source,)
 
 
-def test_append_message_preserves_existing_selected_source() -> None:
+def test_append_message_with_sources_replaces_available_sources() -> None:
     selected = make_source(1)
     next_source = make_source(2)
-    state = ShellState(selected_source=selected)
+    state = ShellState(
+        selected_source=selected,
+        available_sources=(selected,),
+    )
 
     updated = append_message(
         state,
         TranscriptMessage(role="assistant", text="answer", sources=(next_source,)),
     )
 
-    assert updated.selected_source == selected
+    assert updated.selected_source == next_source
+    assert updated.available_sources == (next_source,)
+
+
+def test_append_message_without_sources_preserves_available_sources() -> None:
+    source = make_source()
+    state = ShellState(
+        messages=(TranscriptMessage(role="system", text="hello"),),
+        selected_source=source,
+        available_sources=(source,),
+    )
+
+    updated = append_message(state, TranscriptMessage(role="tool", text="ok"))
+
+    assert updated.selected_source == source
+    assert updated.available_sources == (source,)
 
 
 def test_append_messages_preserves_order_and_selects_first_available_source() -> None:
@@ -142,6 +166,7 @@ def test_append_messages_preserves_order_and_selects_first_available_source() ->
 
     assert updated.messages[-2:] == messages
     assert updated.selected_source == source
+    assert updated.available_sources == (source,)
 
 
 def test_clear_transcript_preserves_settings_and_resets_transcript() -> None:
@@ -153,6 +178,7 @@ def test_clear_transcript_preserves_settings_and_resets_transcript() -> None:
         running=True,
         messages=(TranscriptMessage(role="assistant", text="old"),),
         selected_source=make_source(),
+        available_sources=(make_source(),),
     )
 
     cleared = clear_transcript(state)
@@ -163,6 +189,7 @@ def test_clear_transcript_preserves_settings_and_resets_transcript() -> None:
     assert cleared.show_prompt is True
     assert cleared.running is False
     assert cleared.selected_source is None
+    assert cleared.available_sources == ()
     assert cleared.messages == (TranscriptMessage(role="system", text=WELCOME_MESSAGE),)
 
 
@@ -243,6 +270,108 @@ def test_select_source_sets_and_clears_source() -> None:
     assert selected.selected_source == source
     assert cleared.selected_source is None
     assert cleared.messages == state.messages
+
+
+def test_set_available_sources_selects_first_source() -> None:
+    first = make_source(1)
+    second = make_source(2)
+
+    updated = set_available_sources(create_initial_shell_state(), [first, second])
+
+    assert updated.available_sources == (first, second)
+    assert updated.selected_source == first
+
+
+def test_set_available_sources_empty_clears_selected_source() -> None:
+    source = make_source()
+    state = ShellState(selected_source=source, available_sources=(source,))
+
+    updated = set_available_sources(state, ())
+
+    assert updated.available_sources == ()
+    assert updated.selected_source is None
+
+
+def test_select_source_by_rank_selects_first_and_second_source() -> None:
+    first = make_source(1)
+    second = make_source(2)
+    state = ShellState(available_sources=(first, second), selected_source=first)
+
+    assert select_source_by_rank(state, 1).selected_source == first
+    assert select_source_by_rank(state, 2).selected_source == second
+
+
+def test_select_source_by_rank_rejects_non_positive_rank() -> None:
+    state = ShellState(available_sources=(make_source(1),))
+
+    with pytest.raises(ValueError, match="Source rank must be a positive integer."):
+        select_source_by_rank(state, 0)
+
+
+def test_select_source_by_rank_rejects_out_of_range_rank() -> None:
+    state = ShellState(available_sources=(make_source(1), make_source(2)))
+
+    with pytest.raises(
+        ValueError,
+        match="Source rank out of range. Available sources: 1-2.",
+    ):
+        select_source_by_rank(state, 99)
+
+
+def test_select_source_by_rank_requires_available_sources() -> None:
+    with pytest.raises(
+        ValueError,
+        match="No sources available. Run /search <query> or ask a question first.",
+    ):
+        select_source_by_rank(create_initial_shell_state(), 1)
+
+
+def test_select_next_source_moves_forward_and_wraps() -> None:
+    first = make_source(1)
+    second = make_source(2)
+    state = ShellState(available_sources=(first, second), selected_source=first)
+
+    moved = select_next_source(state)
+    wrapped = select_next_source(moved)
+
+    assert moved.selected_source == second
+    assert wrapped.selected_source == first
+
+
+def test_select_next_source_selects_first_when_none_selected() -> None:
+    first = make_source(1)
+    state = ShellState(available_sources=(first,), selected_source=None)
+
+    assert select_next_source(state).selected_source == first
+
+
+def test_select_previous_source_moves_backward_and_wraps() -> None:
+    first = make_source(1)
+    second = make_source(2)
+    state = ShellState(available_sources=(first, second), selected_source=second)
+
+    moved = select_previous_source(state)
+    wrapped = select_previous_source(moved)
+
+    assert moved.selected_source == first
+    assert wrapped.selected_source == second
+
+
+def test_select_previous_source_selects_first_when_none_selected() -> None:
+    first = make_source(1)
+    state = ShellState(available_sources=(first,), selected_source=None)
+
+    assert select_previous_source(state).selected_source == first
+
+
+def test_selecting_source_does_not_mutate_messages() -> None:
+    source = make_source()
+    message = TranscriptMessage(role="system", text="hello")
+    state = ShellState(messages=(message,), available_sources=(source,))
+
+    updated = select_source_by_rank(state, 1)
+
+    assert updated.messages == state.messages
 
 
 def test_format_shell_status_reflects_settings_and_running_state() -> None:

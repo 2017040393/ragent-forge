@@ -13,6 +13,8 @@ from ragent_forge.tui.commands import (
 EXPECTED_COMMANDS = {
     "ask",
     "search",
+    "source",
+    "sources",
     "docs",
     "trace",
     "settings",
@@ -76,6 +78,10 @@ def test_normal_text_parses_as_ask() -> None:
     [
         ("/ask What is RAG?", "ask", "What is RAG?"),
         ("/search hybrid retrieval", "search", "hybrid retrieval"),
+        ("/source 2", "source", "2"),
+        ("/source next", "source", "next"),
+        ("/source prev", "source", "prev"),
+        ("/sources", "sources", ""),
         ("/docs", "docs", ""),
         ("/trace", "trace", ""),
         ("/settings", "settings", ""),
@@ -117,6 +123,7 @@ def test_unknown_slash_command_returns_unknown_with_error() -> None:
     [
         ("/ask", "ask", "/ask <question>"),
         ("/search", "search", "/search <query>"),
+        ("/source", "source", "/source <rank|next|prev>"),
         ("/mode", "mode", "/mode lexical|semantic|hybrid"),
         ("/limit", "limit", "/limit <n>"),
         ("/context", "context", "/context <n>"),
@@ -148,6 +155,12 @@ def test_match_tui_commands_prefix_matches_names_and_aliases() -> None:
     assert {command.name for command in matches} == {"search", "settings"}
 
 
+def test_match_tui_commands_prefix_matches_source_commands() -> None:
+    matches = match_tui_commands("/so")
+
+    assert [command.name for command in matches] == ["source", "sources"]
+
+
 def test_match_tui_commands_without_slash_matches_trace() -> None:
     matches = match_tui_commands("tr")
 
@@ -162,6 +175,8 @@ def test_format_tui_command_help_includes_major_commands() -> None:
         "/help",
         "/ask <question>",
         "/search <query>",
+        "/source <rank|next|prev>",
+        "/sources",
         "/docs",
         "/trace",
         "/settings",
@@ -205,6 +220,15 @@ def test_format_tui_command_suggestions_prefix_matches_names() -> None:
     assert "/settings" in text
     assert "Show read-only config." in text
     assert "/trace" not in text
+
+
+def test_format_tui_command_suggestions_prefix_matches_source_commands() -> None:
+    text = format_tui_command_suggestions("/so")
+
+    assert "/source <rank|next|prev>" in text
+    assert "Select a source by rank, next, or prev." in text
+    assert "/sources" in text
+    assert "Show current sources." in text
 
 
 def test_format_tui_command_suggestions_prefix_matches_trace() -> None:

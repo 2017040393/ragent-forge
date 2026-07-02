@@ -11,6 +11,10 @@ from ragent_forge.tui.shell_models import (
     TranscriptRole,
     append_message,
     clear_transcript,
+    format_selected_source_ack,
+    select_next_source,
+    select_previous_source,
+    select_source_by_rank,
     set_limit,
     set_max_context_chars,
     set_retrieval_mode,
@@ -18,6 +22,9 @@ from ragent_forge.tui.shell_models import (
 )
 
 ShellAction = Literal["none", "quit", "search", "ask"]
+NO_SOURCES_MESSAGE = (
+    "No sources available. Run /search <query> or ask a question first."
+)
 
 _PLANNED_NOT_WIRED_MESSAGES = {
     "docs": "/docs is unavailable in this shell context.",
@@ -75,6 +82,10 @@ def apply_shell_input(
         return ShellDispatchResult(_apply_prompt_command(state, parsed.args))
     if parsed.name == "search":
         return ShellDispatchResult(state, action="search", search_query=parsed.args)
+    if parsed.name == "sources":
+        return ShellDispatchResult(_apply_sources_command(state))
+    if parsed.name == "source":
+        return ShellDispatchResult(_apply_source_command(state, parsed.args))
     if parsed.name in {"docs", "trace", "settings"}:
         return ShellDispatchResult(
             _apply_read_only_command(state, parsed.name, handlers)
@@ -150,6 +161,58 @@ def _apply_prompt_command(state: ShellState, value: str) -> ShellState:
     updated = set_show_prompt(state, enabled)
     status = "enabled" if enabled else "disabled"
     return _append_shell_message(updated, "tool", f"prompt preview {status}")
+
+
+def _apply_sources_command(state: ShellState) -> ShellState:
+    if not state.available_sources:
+        return _append_shell_message(state, "tool", NO_SOURCES_MESSAGE)
+    return append_message(
+        state,
+        TranscriptMessage(
+            role="tool",
+            text="Current sources",
+            metadata={"operation": "source_list"},
+            sources=state.available_sources,
+        ),
+    )
+
+
+def _apply_source_command(state: ShellState, value: str) -> ShellState:
+    normalized = value.lower()
+    if normalized == "next":
+        return _select_source_with_ack(state, select_next_source)
+    if normalized == "prev":
+        return _select_source_with_ack(state, select_previous_source)
+
+    try:
+        rank = int(value)
+    except ValueError:
+        return _append_shell_message(state, "error", "Usage: /source <rank|next|prev>")
+
+    return _select_source_with_ack(
+        state,
+        lambda current: select_source_by_rank(current, rank),
+    )
+
+
+def _select_source_with_ack(
+    state: ShellState,
+    select_source_fn: Callable[[ShellState], ShellState],
+) -> ShellState:
+    try:
+        updated = select_source_fn(state)
+    except ValueError as exc:
+        message = str(exc)
+        role: TranscriptRole = "tool" if message == NO_SOURCES_MESSAGE else "error"
+        return _append_shell_message(state, role, message)
+
+    if updated.selected_source is None:
+        return _append_shell_message(updated, "tool", NO_SOURCES_MESSAGE)
+    return _append_shell_message(
+        updated,
+        "tool",
+        format_selected_source_ack(updated.selected_source),
+    )
 
 
 def _apply_read_only_command(

@@ -416,8 +416,9 @@ text and `/ask <question>` run the existing Ask pipeline in a background worker.
 mode and limit. Read-only commands such as `/docs`, `/trace`, and `/settings`
 append project state summaries to the transcript. Shell search and ask results
 include compact source lists in the transcript, and the Inspector shows details
-for the currently selected source. Interactive source navigation is not
-implemented yet.
+for the currently selected source. Use `/sources` to show the current source
+list and `/source <rank>`, `/source next`, or `/source prev` to switch the
+source shown in the Inspector.
 
 The Shell is composer-first. Use slash commands such as `/help`, `/clear`,
 `/exit`, `/mode`, `/search`, and `/ask`. The TUI intentionally avoids global

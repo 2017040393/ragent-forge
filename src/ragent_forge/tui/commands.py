@@ -6,6 +6,8 @@ from typing import Literal
 TuiCommandName = Literal[
     "ask",
     "search",
+    "source",
+    "sources",
     "docs",
     "trace",
     "settings",
@@ -53,6 +55,19 @@ def list_tui_commands() -> list[SlashCommandSpec]:
             description="Search chunks.",
             usage="/search <query>",
             requires_args=True,
+        ),
+        SlashCommandSpec(
+            name="source",
+            aliases=(),
+            description="Select a source by rank, next, or prev.",
+            usage="/source <rank|next|prev>",
+            requires_args=True,
+        ),
+        SlashCommandSpec(
+            name="sources",
+            aliases=(),
+            description="Show current sources.",
+            usage="/sources",
         ),
         SlashCommandSpec(
             name="docs",
@@ -302,6 +317,8 @@ def _typed_command_name(name: str) -> TuiCommandName:
     if name in {
         "ask",
         "search",
+        "source",
+        "sources",
         "docs",
         "trace",
         "settings",

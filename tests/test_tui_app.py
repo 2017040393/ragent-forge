@@ -14,7 +14,7 @@ from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 from ragent_forge.tui import main as tui_main
 from ragent_forge.tui.main import RagentForgeApp
-from ragent_forge.tui.shell_models import WELCOME_MESSAGE
+from ragent_forge.tui.shell_models import WELCOME_MESSAGE, TranscriptSource
 from ragent_forge.tui.view_models import AskPageState, SearchPageState
 
 
@@ -55,6 +55,16 @@ def add_trace(workspace: LocalWorkspace) -> None:
 def assert_missing_widget(app: RagentForgeApp, selector: str) -> None:
     with pytest.raises(NoMatches):
         app.query_one(selector)
+
+
+def make_transcript_source(rank: int = 1) -> TranscriptSource:
+    return TranscriptSource(
+        rank=rank,
+        chunk_id=f"/knowledge/rag.md::chunk-{rank:04d}",
+        source_path=f"/knowledge/source_{rank}.md",
+        score=0.1 * rank,
+        preview=f"Preview {rank}",
+    )
 
 
 @pytest.fixture
@@ -199,6 +209,32 @@ async def test_tui_app_shell_submission_clears_suggestions(tmp_path: Path) -> No
 
         assert app.query_one("#shell-suggestions", Static).renderable == ""
         assert shell_input.value == ""
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_source_command_updates_inspector(tmp_path: Path) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    first = make_transcript_source(1)
+    second = make_transcript_source(2)
+
+    async with app.run_test():
+        app.shell_state = replace(
+            app.shell_state,
+            available_sources=(first, second),
+            selected_source=first,
+        )
+        app._render_inspector()
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "/source 2"
+
+        app._submit_shell_input()
+
+        inspector = str(app.query_one("#inspector-content", Static).renderable)
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert "selected source: source_2.md" in inspector
+        assert "rank: 2" in inspector
+        assert "selected source 2: source_2.md" in transcript
 
 
 @pytest.mark.anyio
