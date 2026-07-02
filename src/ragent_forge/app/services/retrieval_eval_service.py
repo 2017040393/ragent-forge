@@ -216,7 +216,7 @@ class RetrievalEvalService:
         search_results: list[SearchResult],
     ) -> RetrievalEvalCaseResult:
         expected_chunk_ids = set(case.expected_chunk_ids)
-        expected_source_paths = set(case.expected_source_paths)
+        expected_source_paths = tuple(case.expected_source_paths)
         chunk_rank = _first_matching_rank(
             search_results,
             lambda result: result.chunk_id in expected_chunk_ids,
@@ -225,7 +225,10 @@ class RetrievalEvalService:
         if chunk_rank is None:
             source_rank = _first_matching_rank(
                 search_results,
-                lambda result: result.source_path in expected_source_paths,
+                lambda result: _source_path_matches(
+                    result.source_path,
+                    expected_source_paths,
+                ),
             )
 
         rank = chunk_rank if chunk_rank is not None else source_rank
@@ -260,6 +263,18 @@ def _first_matching_rank(
         if predicate(result):
             return rank
     return None
+
+
+def _source_path_matches(actual_path: str, expected_paths: tuple[str, ...]) -> bool:
+    actual = _normalize_eval_path(actual_path)
+    return any(
+        actual == expected or actual.endswith(f"/{expected}")
+        for expected in (_normalize_eval_path(path) for path in expected_paths)
+    )
+
+
+def _normalize_eval_path(path: str) -> str:
+    return path.strip().replace("\\", "/").rstrip("/")
 
 
 def _compact_top_results(search_results: list[SearchResult]) -> list[dict[str, Any]]:

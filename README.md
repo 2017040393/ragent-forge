@@ -1,524 +1,220 @@
 # RAGentForge
 
-A local-first TUI workbench for inspectable Agentic RAG workflows over personal knowledge bases.
+RAGentForge is a local-first and inspectable command-first RAG console for
+working with Markdown/TXT knowledge bases from the terminal. It focuses on the
+parts of RAG that should be easy to see: what was ingested, how text was
+chunked, which sources were retrieved, what prompt was assembled, and what
+trace was produced.
 
-RAGentForge is an early-stage Python project for developers who want to query,
-organize, and reason over their own Markdown/TXT notes, project documents,
-learning materials, and interview preparation files. Early versions focus on
-local, inspectable RAG workflows rather than full autonomous agents.
+## What It Is
 
-## Project Goals
+RAGentForge is a small Python project for developers who want to understand and
+demo an end-to-end retrieval augmented generation workflow without a hosted
+service or hidden backend. It stores generated state under a local `.ragent/`
+workspace and exposes that state through CLI commands plus a Textual Shell TUI.
 
-- Provide a TUI-first workspace for local knowledge exploration.
-- Keep ingestion, chunking, retrieval, generation, and traces inspectable.
-- Start with Markdown and TXT files before expanding to richer formats.
-- Use Python to iterate quickly on AI system design.
-- Leave room for future Rust modules only after real bottlenecks appear.
+It is not a full autonomous agent framework. The current v0.1 surface is a
+local, inspectable MVP for ingestion, retrieval, optional generation, traces,
+retrieval evaluation, and command-first TUI inspection.
 
-## Early Non-Goals
+## Why It Exists
 
-- No cloud service, hosted backend, or enterprise knowledge base.
-- No Web UI, desktop UI, authentication, or multi-user workflow.
-- No vector database integration, reranking, or agent workflows yet.
-- No no-code platform, complex agent autonomy, plugin system, or distributed jobs.
-- No Rust, PyO3, native extensions, or mixed-language build system in this step.
+Many RAG demos hide the important engineering details behind a hosted app,
+framework abstraction, or vector database. RAGentForge keeps the workflow
+plain and inspectable so a reader can see the data flow from local documents to
+chunks, retrieval results, context packs, answers, sources, traces, and eval
+reports.
 
-## Core Principles
+## Features
 
-1. Local-first before cloud.
-2. TUI-first before Web/Desktop UI.
-3. Inspectable before autonomous.
-4. Python-first for fast AI system iteration.
-5. Rust-ready only as a future option for performance-critical modules.
+- Markdown/TXT ingestion from local files or folders.
+- Deterministic chunking into JSONL records.
+- Local workspace storage under `.ragent/`.
+- Lexical retrieval over generated chunks.
+- OpenAI-compatible embedding configuration for semantic retrieval.
+- Local JSONL vector index for semantic search.
+- Hybrid retrieval with Reciprocal Rank Fusion over lexical and semantic
+  candidates.
+- Ask pipeline with optional OpenAI Responses-compatible generation.
+- Retrieval-only Ask mode when generation is not configured.
+- Source-grounded answers and compact source displays.
+- Local operation traces for CLI ingest, index build, search, ask, and
+  retrieval eval workflows.
+- Retrieval evaluation with hit@k and MRR.
+- Command-first Textual TUI Shell with command suggestions, source navigation,
+  and an Inspector panel.
 
-## Target Environment
+## Quickstart
 
-- Python 3.11+
-- Local developer machines
-- Markdown/TXT personal knowledge bases
-- Terminal-first workflows
-
-## Planned Roadmap
-
-- `v0.1`: Local TUI + inspectable RAG foundations.
-- `v0.2`: Retrieval polish and better trace views.
-- `v0.3`: Project memory over local workspaces.
-- `v0.4`: Minimal agent runtime with explicit controls.
-- `v0.5`: Evaluation dashboard for retrieval and answer quality.
-- `v0.6`: Open-source polish, examples, and contributor ergonomics.
-
-## Current Status
-
-This repository currently contains the project skeleton, documentation, typed
-data models, Markdown/TXT loader, simple chunker, trace model, and a minimal
-Textual TUI skeleton.
-
-Implemented so far:
-
-- `ragent ingest` scans local files or folders for Markdown/TXT documents.
-- Ingestion loads supported documents and skips unsupported files.
-- Loaded documents are chunked with the deterministic `SimpleChunker`.
-- `IngestResult` returns document, chunk, skipped-file, and chunking statistics.
-- The CLI writes chunks and the latest ingestion summary under `.ragent/`.
-- `ragent status` reads `.ragent/` and reports whether the local workspace is
-  ready, incomplete, or not initialized.
-- `ragent config show` and `ragent config init` inspect or write optional local
-  generation config.
-- `ragent chunks list` and `ragent chunks show <chunk_id>` inspect generated
-  chunks from the local workspace.
-- `ragent search <query>` performs deterministic lexical search over generated
-  chunks.
-- `ragent index build` creates a local JSONL semantic vector index from
-  generated chunks using an OpenAI-compatible embeddings provider.
-- `ragent index status` reports whether the local semantic index is missing or
-  ready.
-- `ragent search <query> --retrieval semantic` performs cosine-similarity
-  semantic search after an index has been built.
-- `ragent search <query> --retrieval hybrid` combines lexical and semantic
-  candidates with Reciprocal Rank Fusion after an index has been built.
-- Successful `ragent ingest` writes a local JSON trace for the ingest workflow.
-- Successful `ragent search` writes a local JSON trace for the search workflow.
-- `ragent ask <question>` retrieves local context and can optionally generate an
-  answer with an OpenAI Responses-compatible provider.
-- `ragent ask <question> --retrieval semantic` uses semantic retrieval before
-  assembling the context pack and optional generated answer.
-- `ragent ask <question> --retrieval hybrid` uses hybrid RRF retrieval before
-  the same context packing and optional generation pipeline.
-- `ragent eval retrieval --cases <path>` evaluates retrieval cases from JSONL
-  and writes a compact local report.
-- `ragent eval retrieval --cases <path> --retrieval hybrid` evaluates hybrid
-  RRF retrieval with the same hit-rate and MRR metrics.
-- The default `null` generation provider keeps ask in retrieval-only mode when
-  real generation is not configured.
-- `ragent traces latest`, `ragent traces list`, and
-  `ragent traces show <trace_id>` inspect local operation traces.
-- `ragent tui` opens a local Textual command shell with a composer, transcript,
-  status line, compact source display, and contextual Inspector panel.
-
-Reranking, vector databases, and agent workflows are intentionally not
-implemented yet.
-
-## Local Workspace
-
-RAGentForge stores generated local state under `.ragent/`.
-
-The knowledge base directory contains human-readable source documents. The
-`.ragent/` directory contains derived system data such as chunks, ingestion
-summaries, traces, memory, and future indexes.
-
-The source documents are the source of truth; `.ragent/` is derived and can be
-regenerated.
-
-`ragent status` reads workspace state from:
-
-```text
-.ragent/chunks/chunks.jsonl
-.ragent/ingest/latest_summary.json
-```
-
-Each successful traced operation writes a trace file under:
-
-```text
-.ragent/traces/<trace_id>.json
-```
-
-`ragent traces latest` reads the latest local trace pointer from:
-
-```text
-.ragent/traces/latest_trace.json
-```
-
-Optional generation config lives at:
-
-```text
-.ragent/config.toml
-```
-
-The semantic vector index lives at:
-
-```text
-.ragent/index/vector_index.jsonl
-.ragent/index/vector_index_manifest.json
-```
-
-Retrieval evaluation reports live at:
-
-```text
-.ragent/eval/retrieval_eval_<timestamp>.json
-.ragent/eval/latest_retrieval_eval.json
-```
-
-If the config file is missing, RAGentForge uses the default:
-
-```toml
-[generation]
-provider = "null"
-
-[embedding]
-provider = "none"
-```
-
-Official OpenAI Responses API example:
-
-```toml
-[generation]
-provider = "openai_responses"
-base_url = "https://api.openai.com/v1"
-model = "gpt-4o-mini"
-api_key = "sk-..."
-timeout_seconds = 60
-temperature = 0.2
-reasoning_effort = "low"
-```
-
-Third-party Responses-compatible API example:
-
-```toml
-[generation]
-provider = "openai_responses"
-base_url = "https://third-party.example.com/v1"
-model = "some-responses-compatible-model"
-api_key = "tp-..."
-timeout_seconds = 60
-temperature = 0.2
-reasoning_effort = "low"
-```
-
-`generation.api_key` stores the provider key directly in the local
-`.ragent/config.toml`. Treat this file as sensitive local state. `ragent config
-show` hides the key value, and traces do not store the key. The provider calls
-`{base_url.rstrip("/")}/responses`. `reasoning_effort` is optional; if omitted,
-the model default is used.
-
-OpenAI-compatible embeddings example:
-
-```toml
-[embedding]
-provider = "openai_embeddings"
-base_url = "https://api.openai.com/v1"
-model = "text-embedding-3-small"
-api_key = "sk-..."
-timeout_seconds = 60
-batch_size = 64
-```
-
-Third-party embeddings-compatible API example:
-
-```toml
-[embedding]
-provider = "openai_embeddings"
-base_url = "https://third-party.example.com/v1"
-model = "some-embedding-model"
-api_key = "tp-..."
-timeout_seconds = 60
-batch_size = 64
-```
-
-`embedding.api_key` is also stored directly in `.ragent/config.toml`; treat the
-file as sensitive. `ragent config show` hides both generation and embedding API
-keys. Traces and the vector index do not store API keys. The vector index stores
-embedding vectors and metadata but not original full chunk text; full text
-remains in `.ragent/chunks/chunks.jsonl`.
-
-The TUI Shell reads the same workspace files through commands such as `/docs`,
-`/trace`, and `/settings`. Shell Search and Ask run over existing chunks and
-indexes but do not run ingest or build the semantic index. Shell trace summaries
-read `.ragent/traces/latest_trace.json` and recent trace files under
-`.ragent/traces/<trace_id>.json`; use `ragent traces show <trace_id>` to inspect
-a specific trace. Shell Ask does not write new traces in this MVP; the CLI
-`ragent ask` command remains the trace-producing ask workflow.
-
-## Development Setup
-
-With `uv`:
+Install development dependencies:
 
 ```bash
 uv sync --extra dev
-uv run pytest
-uv run ruff check .
 ```
 
-With standard Python tooling on macOS/Linux:
+Prepare the sample workspace:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev]"
-python -m pytest
-python -m ruff check .
+uv run ragent ingest examples/knowledge --workspace .ragent
+uv run ragent status --workspace .ragent
+uv run ragent chunks list --workspace .ragent
 ```
 
-With standard Python tooling on Windows PowerShell:
+Run lexical retrieval:
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
-python -m pytest
-python -m ruff check .
+```bash
+uv run ragent search "What is RAG?" --retrieval lexical --workspace .ragent
+uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
 ```
+
+Launch the command-first TUI from the project root:
+
+```bash
+uv run ragent tui
+```
+
+The TUI currently reads the default `.ragent` workspace in the current working
+directory. Use the CLI for ingest, index build, eval, and config editing.
 
 ## End-to-End Demo
 
-This demo starts from the checked-in example knowledge base and walks through
-the local RAG workflow: ingest, inspect, index, retrieve, ask, trace, and
-evaluate.
+For the reproducible demo flow, see
+[docs/PROJECT_WALKTHROUGH.md](docs/PROJECT_WALKTHROUGH.md).
 
-Start by ingesting the sample Markdown files:
-
-```bash
-ragent ingest examples/knowledge --workspace .ragent
-ragent status --workspace .ragent
-ragent chunks list --workspace .ragent
-ragent chunks show "<chunk_id>" --workspace .ragent
-```
-
-Ingestion proves local Markdown/TXT documents can be loaded and chunked. Chunk
-inspection proves the workspace is inspectable rather than a black box.
-
-Configure providers in `.ragent/config.toml` when you want semantic retrieval
-or generated answers. Generation and embeddings can use different
-OpenAI-compatible providers:
-
-```toml
-[generation]
-provider = "openai_responses"
-base_url = "https://your-chat-provider.example/v1"
-model = "your-chat-model"
-api_key = "..."
-
-[embedding]
-provider = "openai_embeddings"
-base_url = "https://your-embedding-provider.example/v1"
-model = "your-embedding-model"
-api_key = "..."
-timeout_seconds = 60
-batch_size = 32
-```
-
-API keys are stored in the local `.ragent/config.toml`, so treat that file as
-sensitive. `ragent config show` hides API keys. Reports and traces should not
-contain API keys. The vector index stores vectors and metadata, but not the
-original full chunk text.
-
-Semantic and hybrid retrieval require a semantic vector index:
+The short version:
 
 ```bash
-ragent index build --workspace .ragent
-ragent index status --workspace .ragent
+uv run ragent ingest examples/knowledge --workspace .ragent
+uv run ragent chunks list --workspace .ragent
+uv run ragent search "What is Agentic RAG?" --retrieval lexical --workspace .ragent
+uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
+uv run ragent traces latest --workspace .ragent
+uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
+uv run ragent tui
 ```
 
-The index build proves semantic retrieval is backed by a local JSONL vector
-index under `.ragent/index/`.
-
-Try the three retrieval modes:
+Semantic and hybrid retrieval require an embedding provider in
+`.ragent/config.toml` and a built vector index:
 
 ```bash
-ragent search "How does hybrid retrieval work?" --retrieval lexical --workspace .ragent
-ragent search "How does hybrid retrieval work?" --retrieval semantic --workspace .ragent
-ragent search "How does hybrid retrieval work?" --retrieval hybrid --workspace .ragent
+uv run ragent config init --workspace .ragent
+uv run ragent index build --workspace .ragent
+uv run ragent index status --workspace .ragent
+uv run ragent search "What is Agentic RAG?" --retrieval semantic --workspace .ragent
+uv run ragent search "What is Agentic RAG?" --retrieval hybrid --workspace .ragent
 ```
 
-Lexical search is useful for exact terms, commands, file names, and config
-fields. Semantic search is useful for paraphrases and concept-level queries.
-Hybrid search combines lexical and semantic candidates with Reciprocal Rank
-Fusion.
+With the default config, generation uses the `null` provider. In that mode
+`ragent ask` retrieves and displays context but does not call a model.
 
-Ask a question with hybrid retrieval:
+## Command-First TUI
 
-```bash
-ragent ask "How does RAGentForge perform hybrid retrieval?" --retrieval hybrid --workspace .ragent
-ragent ask "How does RAGentForge perform hybrid retrieval?" --retrieval hybrid --show-prompt --workspace .ragent
+`uv run ragent tui` opens a single Shell interface with a transcript, composer,
+status line, inline command suggestions, and selected-source Inspector.
+
+Ordinary text and `/ask <question>` run Shell Ask in a background worker.
+`/search <query>` runs Shell Search in a background worker. The Shell reads
+existing workspace chunks and indexes; it does not run ingest, build the
+semantic index, run retrieval eval, or edit config.
+
+Useful Shell commands:
+
+```text
+/help
+/mode lexical|semantic|hybrid
+/limit <n>
+/context <n>
+/prompt on|off
+/search <query>
+/ask <question>
+/sources
+/source <rank>
+/source next
+/source prev
+/docs
+/trace
+/settings
+/config
+/clear
+/exit
+/quit
+/q
 ```
 
-`ragent ask` uses retrieved context and can optionally generate source-grounded
-answers when a generation provider is configured. `--show-prompt` shows the
-deterministic prompt preview used for generation.
+Shell source navigation:
 
-Inspect traces after any operation:
-
-```bash
-ragent traces latest --workspace .ragent
-ragent traces list --workspace .ragent
+```text
+/sources
+/source <rank>
+/source next
+/source prev
 ```
 
-Trace inspection shows operation steps and compact metadata. Trace files are
-written under `.ragent/traces/`.
+Typing `/` opens inline command candidates. Use Up/Down to choose a command,
+then Tab or Enter to complete it into the composer. Command execution still
+happens through composer text.
 
-Run retrieval evaluation against the included example cases:
+The TUI intentionally avoids global single-key shortcuts such as `q` to quit.
+Use `/exit`, `/quit`, or `/q` from the composer.
 
-```bash
-ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
-ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval semantic --workspace .ragent
-ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval hybrid --workspace .ragent
+Shell Ask does not write new traces in v0.1. CLI `uv run ragent ask ...`
+remains the trace-producing Ask workflow. Shell `/trace` reads the latest trace
+already written by CLI workflows.
+
+## Architecture
+
+The project is organized around presentation layers, application services,
+focused core modules, and local workspace storage. The high-level pipeline is:
+
+```text
+local documents
+-> ingest
+-> deterministic chunks
+-> lexical / semantic / hybrid retrieval
+-> context pack
+-> optional generation
+-> answer + sources
+-> traces
+-> retrieval eval
+-> command-first TUI inspection
 ```
 
-Retrieval eval reports `hit@1`, `hit@3`, `hit@5`, requested `hit@k`, MRR, and
-failed cases. Reports are written under `.ragent/eval/`. The example cases use
-repo-relative source paths from `examples/knowledge`; if your local report does
-not match because the workspace stores resolved absolute paths, copy the exact
-`Source` values from `ragent chunks list` into the JSONL file.
+Read the full architecture note:
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Retrieval eval is retrieval-only. It does not run answer evaluation or
-LLM-as-judge. Reranking, dashboards, vector database integration, web UI, and
-agent workflows are intentionally not implemented yet.
+The TUI design note is here:
+[docs/TUI_COMMAND_SHELL_DESIGN.md](docs/TUI_COMMAND_SHELL_DESIGN.md).
 
-## Basic Usage
+## Project Scope
 
-These commands are available now. Ingestion scans local Markdown/TXT files and
-prints loading/chunking statistics; asking uses lexical retrieval and can
-optionally generate an answer when `generation.provider = "openai_responses"`:
+The current scope is documented in
+[docs/V0_1_SCOPE.md](docs/V0_1_SCOPE.md).
 
-```bash
-ragent --help
-ragent tui
-ragent ingest examples/knowledge
-ragent ingest examples/knowledge --workspace .ragent
-ragent status
-ragent status --workspace .ragent
-ragent config show
-ragent config init
-ragent config init --overwrite
-ragent chunks list
-ragent chunks list --limit 20
-ragent chunks show "<chunk_id>"
-ragent index status
-ragent index build
-ragent search "agent memory"
-ragent search "agent memory" --retrieval lexical
-ragent search "agent memory" --retrieval semantic
-ragent search "agent memory" --retrieval hybrid
-ragent search "agent memory" --limit 5
-ragent eval retrieval --cases eval/retrieval_cases.jsonl
-ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval lexical
-ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval semantic
-ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval hybrid
-ragent eval retrieval --cases eval/retrieval_cases.jsonl --limit 5
-ragent eval retrieval --cases eval/retrieval_cases.jsonl --report-path report.json
-ragent traces latest
-ragent traces latest --workspace .ragent
-ragent traces list
-ragent traces list --limit 20
-ragent traces show "<trace_id>"
-ragent ask "What is Agentic RAG?"
-ragent ask "What is Agentic RAG?" --retrieval lexical
-ragent ask "What is Agentic RAG?" --retrieval semantic
-ragent ask "What is Agentic RAG?" --retrieval hybrid
-ragent ask "What is Agentic RAG?" --limit 5
-ragent ask "What is Agentic RAG?" --show-prompt
-ragent ask "What is Agentic RAG?" --show-prompt --limit 5
-```
+v0.1 includes local ingestion, deterministic chunks, lexical retrieval,
+semantic retrieval, hybrid RRF retrieval, optional generation, source display,
+traces, retrieval evaluation, and a command-first TUI Shell.
 
-`ragent tui` launches a command-first Textual shell. The Shell provides a
-status line, transcript output, composer input, and Inspector panel. Ordinary
-text and `/ask <question>` run the existing Ask pipeline in a background worker.
-`/search <query>` runs retrieval in a background worker using the current Shell
-mode and limit. Read-only commands such as `/docs`, `/trace`, and `/settings`
-append project state summaries to the transcript. Shell search and ask results
-include compact source lists in the transcript, and the Inspector shows details
-for the currently selected source. Use `/sources` to show the current source
-list and `/source <rank>`, `/source next`, or `/source prev` to switch the
-source shown in the Inspector.
+## Current Limitations
 
-The Shell is composer-first. Use slash commands such as `/help`, `/clear`,
-`/exit`, `/mode`, `/search`, and `/ask`. The TUI intentionally avoids global
-single-key shortcuts such as `q` to quit; use `/exit`, `/quit`, or `/q` from the
-composer.
+RAGentForge v0.1 intentionally does not include BM25, reranking,
+cross-encoder reranking, LLM-as-judge, answer evaluation, query expansion,
+multi-turn memory, agent tool loops, planning loops, PDF/OCR, web UI, vector
+databases, streaming, session persistence, or TUI write operations such as
+ingest/index/eval/config editing.
 
-Typing `/` in the Shell composer opens a lightweight inline command candidate
-list. Use Up/Down to choose a command, then Tab or Enter to complete it into the
-composer; command execution still happens through the composer text.
+Semantic and hybrid retrieval require a vector index. Generation depends on a
+configured OpenAI Responses-compatible provider; otherwise Ask stays in
+retrieval-only mode.
 
-Use `/mode`, `/limit`, `/context`, and `/prompt` to control Shell behavior. Use
-`/help` for the command list. The TUI does not run ingest, build the semantic
-index, run retrieval eval, or edit config; use the CLI commands for those
-workflows. Shell Ask does not write new traces; CLI `ragent ask` remains the
-trace-producing Ask workflow.
+## Roadmap
 
-`ragent ingest` loads and
-chunks local Markdown/TXT files without creating embeddings or a vector index.
-It writes `.ragent/chunks/chunks.jsonl` and
-`.ragent/ingest/latest_summary.json` by default.
-`ragent status` reports whether those workspace files are present and readable.
-`.ragent/config.toml` is optional; when it is missing, `ragent config show`
-prints the effective defaults `generation.provider = "null"` and
-`embedding.provider = "none"`. `ragent config init` writes that default file, and
-`ragent config init --overwrite` replaces an existing config with the default.
-`ragent config show` also prints provider-specific generation and embedding
-settings while hiding configured API key values. Unsupported provider values
-fail clearly.
-`ragent chunks list` and `ragent chunks show <chunk_id>` read
-`.ragent/chunks/chunks.jsonl` so you can inspect chunking output directly.
-`ragent search` defaults to simple
-lexical token overlap over `.ragent/chunks/chunks.jsonl`. Retrieval modes are
-`lexical`, `semantic`, and `hybrid`; the default remains `lexical`. Semantic
-retrieval is opt-in with `--retrieval semantic` and requires `ragent index
-build` first. Hybrid retrieval is opt-in with `--retrieval hybrid`, also
-requires `ragent index build`, and combines lexical top-N candidates with
-semantic top-N candidates using Reciprocal Rank Fusion (RRF).
-`ragent index build` embeds chunks in batches and writes
-`.ragent/index/vector_index.jsonl`; `ragent index status` reports whether that
-index is ready. The MVP computes cosine similarity locally from JSONL vectors.
-It does not use BM25, LLM reranking, cross-encoder reranking, score
-normalization, FAISS, Chroma, LanceDB, LangChain, LlamaIndex, or a vector
-database. Use `ragent chunks show <chunk_id>` to inspect full chunk content.
-`ragent ask` defaults to lexical retrieval, assembles a context pack,
-and either stays in retrieval-only mode with the default `null` provider or
-generates an answer with an OpenAI Responses-compatible provider. `ragent ask
---retrieval semantic` uses the semantic index before the same context packing
-and generation step. `ragent ask --retrieval hybrid` uses hybrid RRF retrieval
-before the same context packing and generation step. `ragent ask --show-prompt`
-shows the actual generation
-prompt assembled from the question, retrieved chunks, scores, and source
-references; the prompt is only sent when
-`generation.provider = "openai_responses"`. Context packs are generated in
-memory and are not persisted. `openai_responses` sends a request to
-`{base_url}/responses` and supports both the official OpenAI Responses API and
-third-party Responses-compatible base URLs. Chat Completions is not implemented
-in this step. If no retrieved context is found, `ragent ask` skips generation.
-`ragent eval retrieval` reads a user-authored JSONL cases file and checks
-whether each query retrieves an expected chunk id or exact source path in the
-top-k results. Each line is one case, for example:
+Future versions may add better retrieval quality, answer evaluation,
+explicitly controlled agent layers, richer source inspection, and more polished
+developer ergonomics. These are future directions, not current v0.1 features.
 
-```json
-{"id":"case-001","query":"How do I configure semantic retrieval?","expected_source_paths":["README.md"]}
-```
+More context:
 
-Each case requires non-empty `id` and `query` fields plus at least one of
-`expected_chunk_ids` or `expected_source_paths`. The command reports `hit@1`,
-`hit@3`, `hit@5`, requested `hit@k`, and MRR; failed cases are printed in the
-CLI. Lexical evaluation is the default and does not require embedding config.
-Semantic evaluation uses `--retrieval semantic` and requires `ragent index
-build` first. Hybrid evaluation uses `--retrieval hybrid`, requires the same
-semantic vector index, and reports `retrieval_method = "hybrid_rrf"` plus RRF
-fusion metadata. To compare modes manually, run:
-
-```bash
-ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval lexical
-ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval semantic
-ragent eval retrieval --cases eval/retrieval_cases.jsonl --retrieval hybrid
-```
-
-There is no dedicated compare command in this step. Reports exclude API keys,
-full chunk text, embedding vectors, prompts, generated answers, and
-answer-quality judgments. This is retrieval evaluation only; answer evaluation,
-LLM-as-judge, reranking, charts, dashboards, and TUI eval views are not
-implemented yet.
-Successful ingest, index build, search, ask retrieval, and retrieval eval
-commands write local JSON trace artifacts under `.ragent/traces/<trace_id>.json`;
-`.ragent/traces/latest_trace.json` points to the latest operation trace. Current
-traces cover ingest, index build, lexical search, semantic search, hybrid
-search, ask retrieval, and retrieval eval workflows. Use `ragent traces latest`
-for the latest trace, `ragent traces list` for historical trace files, and
-`ragent traces show <trace_id>` for one specific trace. No external
-observability service is used. The retrieval eval trace operation is
-`retrieval_eval` and stores only compact metadata such as case counts, hit
-metrics, report path, semantic index metadata, and hybrid RRF metadata when
-relevant. The TUI Shell displays local workspace status, compact recent chunk
-rows, retrieval search over existing workspace data, read-only trace history,
-and read-only provider/config status through slash commands. Transcript and
-Inspector output keep paths and selected-source details compact. Use
-`ragent traces show <trace_id>` for full trace details outside the compact TUI
-Inspector.
-Default retrieval remains lexical; reranking, vector database integration, and
-agent workflows are still not implemented.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/PROJECT_WALKTHROUGH.md](docs/PROJECT_WALKTHROUGH.md)
+- [docs/V0_1_SCOPE.md](docs/V0_1_SCOPE.md)
+- [docs/TUI_COMMAND_SHELL_DESIGN.md](docs/TUI_COMMAND_SHELL_DESIGN.md)

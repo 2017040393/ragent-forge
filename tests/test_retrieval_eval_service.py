@@ -197,6 +197,42 @@ def test_evaluate_matches_source_path_when_no_chunk_match_exists() -> None:
     assert result.actual_source_paths == ["rag.md"]
 
 
+def test_evaluate_matches_repo_relative_source_path_against_absolute_result() -> None:
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="retrieval",
+            expected_source_paths=["examples/knowledge/rag_basics.md"],
+        )
+    ]
+    search = FakeSearchService(
+        {
+            "retrieval": [
+                make_result(
+                    "C:\\repo\\ragent-forge\\examples\\knowledge\\rag_basics.md::chunk-0000",
+                    "C:\\repo\\ragent-forge\\examples\\knowledge\\rag_basics.md",
+                    1.0,
+                )
+            ]
+        }
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=3,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("examples/eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+    )
+
+    result = report.results[0]
+    assert result.passed is True
+    assert result.rank == 1
+    assert result.matched_by == "source_path"
+
+
 def test_evaluate_records_failed_cases_and_empty_retrieval_results() -> None:
     cases = [
         RetrievalEvalCase(

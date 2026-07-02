@@ -144,15 +144,15 @@ services.
 
 ## Worker Behavior
 
-Ask already needs worker execution to keep the current TUI responsive. The future
-shell should also run Ask in a worker. Semantic and hybrid Search may also need
-workers because query embedding can involve network latency.
+Ask and Search run in workers to keep the current TUI responsive. Semantic and
+hybrid Search can involve query embedding network latency, so worker execution
+keeps the composer and transcript responsive.
 
 Worker completion should append transcript messages and update shell state on
 the UI thread. Worker failures should produce friendly error messages and never
-display stack traces or API keys.
-
-This design does not add new worker behavior by itself.
+display stack traces or API keys. Shell Search and Shell Ask are read-oriented
+TUI workflows over the current local workspace; CLI commands remain the
+trace-producing workflows.
 
 ## Composer Polish
 
@@ -204,13 +204,14 @@ Current implementation status:
 ## Migration Plan
 
 The single Shell interface is the primary TUI surface. Future work should
-improve the Shell itself: richer source inspection, command suggestions,
-transcript polish, and optional richer status panels.
+improve the Shell itself: richer source inspection, transcript polish, and
+optional richer status panels.
 
 ## Non-goals
 
 - No command palette.
-- No popup autocomplete.
+- No modal popup autocomplete; the current Shell uses inline command
+  candidates in the composer area.
 - No command execution directly from the candidate list.
 - No local file opening.
 - No source table UI.
