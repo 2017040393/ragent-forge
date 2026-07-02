@@ -20,11 +20,9 @@ from ragent_forge.tui.shell_models import (
 ShellAction = Literal["none", "quit", "search", "ask"]
 
 _PLANNED_NOT_WIRED_MESSAGES = {
-    "docs": "/docs dispatch is not wired yet. Use the Documents page for now.",
-    "trace": "/trace dispatch is not wired yet. Use the Trace page for now.",
-    "settings": (
-        "/settings dispatch is not wired yet. Use the Settings page for now."
-    ),
+    "docs": "/docs is unavailable in this shell context.",
+    "trace": "/trace is unavailable in this shell context.",
+    "settings": "/settings is unavailable in this shell context.",
 }
 
 _READ_ONLY_ERROR_MESSAGES = {

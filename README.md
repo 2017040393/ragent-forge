@@ -92,8 +92,8 @@ Implemented so far:
   real generation is not configured.
 - `ragent traces latest`, `ragent traces list`, and
   `ragent traces show <trace_id>` inspect local operation traces.
-- `ragent tui` opens a local Textual workbench with an experimental Shell page,
-  Documents, Search, Ask, Trace, Settings, and a contextual Inspector panel.
+- `ragent tui` opens a local Textual command shell with a composer, transcript,
+  status line, compact source display, and contextual Inspector panel.
 
 Reranking, vector databases, and agent workflows are intentionally not
 implemented yet.
@@ -419,6 +419,10 @@ include compact source lists in the transcript, and the Inspector shows details
 for the currently selected source. Interactive source navigation is not
 implemented yet.
 
+The Shell is composer-first. Use slash commands such as `/help`, `/clear`,
+`/exit`, `/mode`, `/search`, and `/ask`; the TUI intentionally avoids global
+single-key shortcuts such as `q` to quit.
+
 Use `/mode`, `/limit`, `/context`, and `/prompt` to control Shell behavior. Use
 `/help` for the command list. The TUI does not run ingest, build the semantic
 index, run retrieval eval, or edit config; use the CLI commands for those
@@ -504,11 +508,11 @@ for the latest trace, `ragent traces list` for historical trace files, and
 observability service is used. The retrieval eval trace operation is
 `retrieval_eval` and stores only compact metadata such as case counts, hit
 metrics, report path, semantic index metadata, and hybrid RRF metadata when
-relevant. The TUI displays the same local workspace status, compact recent
-chunk rows, interactive retrieval search over existing workspace data,
-read-only trace history, and read-only provider/config status. Main pages avoid
-long path spam, while the Inspector keeps full paths and selected-item details
-readable. Use `ragent traces show <trace_id>` for full trace details outside
-the compact TUI Inspector.
+relevant. The TUI Shell displays local workspace status, compact recent chunk
+rows, retrieval search over existing workspace data, read-only trace history,
+and read-only provider/config status through slash commands. Transcript and
+Inspector output keep paths and selected-source details compact. Use
+`ragent traces show <trace_id>` for full trace details outside the compact TUI
+Inspector.
 Default retrieval remains lexical; reranking, vector database integration, and
 agent workflows are still not implemented.

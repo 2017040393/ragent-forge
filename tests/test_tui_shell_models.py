@@ -11,6 +11,7 @@ from ragent_forge.tui.shell_models import (
     clear_transcript,
     create_initial_shell_state,
     format_shell_inspector,
+    format_shell_source_details,
     format_shell_status,
     format_transcript,
     format_transcript_message,
@@ -364,6 +365,93 @@ def test_format_shell_inspector_filters_disallowed_source_metadata() -> None:
     assert "do-not-show" not in text
 
 
+def test_format_shell_source_details_caps_long_preview() -> None:
+    long_preview = " ".join(f"word{i}" for i in range(80))
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="chunk-0001",
+        source_path="/knowledge/agentic_rag.md",
+        score=0.5,
+        preview=long_preview,
+    )
+
+    text = format_shell_source_details(source)
+    preview_text = text.split("preview:\n", 1)[1].split("\n\n", 1)[0]
+
+    assert len(preview_text) <= 250
+    assert "word79" not in preview_text
+    assert "..." in preview_text
+
+
+def test_format_shell_source_details_preserves_preview_indentation() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="chunk-0001",
+        source_path="/knowledge/agentic_rag.md",
+        score=0.5,
+        preview="first line\n  nested line\n    deeper line",
+    )
+
+    text = format_shell_source_details(source)
+
+    assert "  first line" in text
+    assert "    nested line" in text
+    assert "      deeper line" in text
+
+
+def test_format_shell_source_details_shows_allowlisted_retrieval_metadata() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="chunk-0001",
+        source_path="/knowledge/agentic_rag.md",
+        score=0.5,
+        preview="preview",
+        metadata={
+            "retrieval_method": "hybrid_rrf",
+            "fusion_method": "reciprocal_rank_fusion",
+            "matched_modes": ["lexical", "semantic"],
+            "lexical_rank": 1,
+            "semantic_rank": 2,
+            "hybrid_score": 0.0325,
+        },
+    )
+
+    text = format_shell_source_details(source)
+
+    assert "method: hybrid_rrf" in text
+    assert "fusion: reciprocal_rank_fusion" in text
+    assert "matched: lexical, semantic" in text
+    assert "lexical_rank: 1" in text
+    assert "semantic_rank: 2" in text
+    assert "hybrid_score: 0.0325" in text
+
+
+def test_format_shell_source_details_does_not_show_disallowed_metadata() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="chunk-0001",
+        source_path="/knowledge/agentic_rag.md",
+        score=0.5,
+        preview="preview",
+        metadata={
+            "retrieval_method": "semantic",
+            "api_key": "secret-value",
+            "token": "token-value",
+            "embedding": [1.0, 2.0, 3.0],
+            "raw_internal_note": "do-not-show",
+        },
+    )
+
+    text = format_shell_source_details(source)
+
+    assert "method: semantic" in text
+    assert "secret-value" not in text
+    assert "token-value" not in text
+    assert "[1.0, 2.0, 3.0]" not in text
+    assert "raw_internal_note" not in text
+    assert "do-not-show" not in text
+
+
 @pytest.mark.parametrize(
     ("role", "heading"),
     [
@@ -529,6 +617,79 @@ def test_format_transcript_sources_uses_compact_labels() -> None:
     assert "score=0.0325" in text
     assert "chunk=chunk-0000" in text
     assert "/very/long/path" not in text
+
+
+def test_format_transcript_sources_aligns_compact_source_labels() -> None:
+    sources = (
+        TranscriptSource(
+            rank=1,
+            chunk_id="/knowledge/agentic_rag.md::chunk-0000",
+            source_path="/very/long/path/agentic_rag.md",
+            score=2.0,
+            preview="preview",
+        ),
+        TranscriptSource(
+            rank=2,
+            chunk_id="/knowledge/rag_basics.md::chunk-0000",
+            source_path="/very/long/path/rag_basics.md",
+            score=1.0,
+            preview="preview",
+        ),
+    )
+
+    lines = format_transcript_sources(sources).splitlines()
+
+    assert lines == [
+        "Sources:",
+        "1. agentic_rag.md  score=2  chunk=chunk-0000",
+        "2. rag_basics.md   score=1  chunk=chunk-0000",
+    ]
+
+
+def test_format_transcript_sources_truncates_very_long_compact_labels() -> None:
+    long_name = "this_is_a_really_long_source_label_that_should_not_break_layout.md"
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="/knowledge/rag.md::chunk-0000",
+        source_path=f"/very/long/path/{long_name}",
+        score=0.0325,
+        preview="preview",
+    )
+
+    line = format_transcript_sources((source,)).splitlines()[1]
+    label = line.split(". ", 1)[1].split("  score=", 1)[0].rstrip()
+
+    assert len(label) <= 40
+    assert label.endswith("...")
+    assert long_name not in line
+    assert "/very/long/path" not in line
+
+
+def test_format_transcript_sources_does_not_show_metadata_or_secrets() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="/knowledge/rag.md::chunk-0000",
+        source_path="/knowledge/rag.md",
+        score=0.0325,
+        preview="preview",
+        metadata={
+            "retrieval_method": "lexical",
+            "api_key": "secret-value",
+            "secret": "secret-value",
+            "token": "token-value",
+            "embedding": [1.0, 2.0, 3.0],
+            "raw_internal_note": "do-not-show",
+        },
+    )
+
+    text = format_transcript_sources((source,))
+
+    assert "rag.md" in text
+    assert "secret-value" not in text
+    assert "token-value" not in text
+    assert "[1.0, 2.0, 3.0]" not in text
+    assert "raw_internal_note" not in text
+    assert "do-not-show" not in text
 
 
 def test_format_transcript_sources_handles_empty_sources() -> None:

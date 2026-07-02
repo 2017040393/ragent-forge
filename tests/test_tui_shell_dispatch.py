@@ -170,11 +170,9 @@ def test_apply_shell_input_invalid_prompt_appends_usage_error() -> None:
 
 def test_apply_shell_input_planned_not_wired_commands_append_messages() -> None:
     expectations = {
-        "/docs": "/docs dispatch is not wired yet. Use the Documents page for now.",
-        "/trace": "/trace dispatch is not wired yet. Use the Trace page for now.",
-        "/settings": (
-            "/settings dispatch is not wired yet. Use the Settings page for now."
-        ),
+        "/docs": "/docs is unavailable in this shell context.",
+        "/trace": "/trace is unavailable in this shell context.",
+        "/settings": "/settings is unavailable in this shell context.",
     }
 
     for command, message in expectations.items():
@@ -190,7 +188,7 @@ def test_apply_shell_input_config_without_handlers_uses_settings_fallback() -> N
 
     assert result.state.messages[-1] == TranscriptMessage(
         role="tool",
-        text="/settings dispatch is not wired yet. Use the Settings page for now.",
+        text="/settings is unavailable in this shell context.",
     )
 
 

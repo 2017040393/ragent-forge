@@ -2,6 +2,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from textual.containers import ScrollableContainer
 from textual.css.query import NoMatches
 from textual.widgets import Footer, Input, Static
 from textual.worker import WorkerState
@@ -12,7 +13,8 @@ from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 from ragent_forge.tui import main as tui_main
 from ragent_forge.tui.main import RagentForgeApp
-from ragent_forge.tui.view_models import AskPageState
+from ragent_forge.tui.shell_models import WELCOME_MESSAGE
+from ragent_forge.tui.view_models import AskPageState, SearchPageState
 
 
 def make_tui_workspace(tmp_path: Path) -> LocalWorkspace:
@@ -77,6 +79,7 @@ async def test_tui_app_opens_as_single_shell_without_old_pages(
         assert app.query_one("#shell-input", Input).placeholder == (
             "Ask a question or type /help"
         )
+        assert app.focused == app.query_one("#shell-input", Input)
         assert "Shell details" in str(
             app.query_one("#inspector-content", Static).renderable
         )
@@ -117,6 +120,7 @@ async def test_tui_app_shell_help_and_mode_commands_update_transcript(
         app._submit_shell_input()
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         assert "Slash commands" in transcript
+        assert app.focused == shell_input
 
         shell_input.value = "/mode hybrid"
         app._submit_shell_input()
@@ -124,6 +128,44 @@ async def test_tui_app_shell_help_and_mode_commands_update_transcript(
         assert "mode: hybrid" in str(
             app.query_one("#shell-status", Static).renderable
         )
+        assert app.focused == shell_input
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_clear_leaves_input_focused(tmp_path: Path) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "/help"
+        app._submit_shell_input()
+
+        shell_input.value = "/clear"
+        app._submit_shell_input()
+
+        assert app.focused == shell_input
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert "RAGentForge command shell." in transcript
+        assert "Slash commands" not in transcript
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_running_submission_preserves_input_text(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        app.shell_state = replace(app.shell_state, running=True)
+        shell_input.value = "Do not lose this"
+
+        app._submit_shell_input()
+
+        assert shell_input.value == "Do not lose this"
+        assert app.shell_state.messages[-1].text == WELCOME_MESSAGE
 
 
 @pytest.mark.anyio
@@ -246,6 +288,7 @@ async def test_tui_app_shell_ask_worker_success_appends_messages_and_selects_sou
         assert event.stopped is True
         assert app.shell_state.running is False
         assert app.query_one("#shell-input", Input).disabled is False
+        assert app.focused == app.query_one("#shell-input", Input)
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         assert "Assistant:\n  Agentic RAG adds planning." in transcript
         assert "Sources:" in transcript
@@ -293,6 +336,79 @@ async def test_tui_app_shell_search_starts_worker_and_disables_input(
         assert "status: running" in str(
             app.query_one("#shell-status", Static).renderable
         )
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_search_worker_success_refocuses_input(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    source = SearchResult(
+        chunk_id="/knowledge/agentic_rag.md::chunk-0000",
+        document_id="/knowledge/agentic_rag.md",
+        source_path="/knowledge/agentic_rag.md",
+        start_char=0,
+        end_char=42,
+        score=1.0,
+        text="Agentic RAG adds planning before retrieval.",
+        metadata={"retrieval_method": "lexical_token_overlap"},
+    )
+
+    class FakeWorker:
+        name = "shell-search"
+        result = SearchPageState(
+            query="Agentic",
+            retrieval_mode="lexical",
+            results=[source],
+            has_searched=True,
+        )
+
+    class FakeEvent:
+        state = WorkerState.SUCCESS
+        worker = FakeWorker()
+        stopped = False
+
+        def stop(self) -> None:
+            self.stopped = True
+
+    async with app.run_test():
+        app._set_shell_running(True)
+
+        event = FakeEvent()
+        app._handle_shell_search_worker_state(event)  # type: ignore[arg-type]
+
+        assert event.stopped is True
+        assert app.shell_state.running is False
+        assert app.query_one("#shell-input", Input).disabled is False
+        assert app.focused == app.query_one("#shell-input", Input)
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert "Search results for: Agentic" in transcript
+        assert "agentic_rag.md" in transcript
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_render_requests_transcript_scroll_end(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    scroll_calls: list[bool] = []
+
+    async with app.run_test():
+        container = app.query_one("#shell-transcript-container", ScrollableContainer)
+
+        def fake_scroll_end(*, animate: bool = True, **_kwargs: object) -> None:
+            scroll_calls.append(animate)
+
+        monkeypatch.setattr(container, "scroll_end", fake_scroll_end)
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "/help"
+
+        app._submit_shell_input()
+
+        assert scroll_calls == [False]
 
 
 def test_tui_app_shell_read_only_handlers_return_workspace_summaries(

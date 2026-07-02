@@ -42,6 +42,9 @@ _SOURCE_METADATA_LABELS = {
     "semantic_weight": "semantic_weight",
 }
 
+_MAX_SOURCE_LABEL_WIDTH = 40
+_MAX_SOURCE_PREVIEW_LENGTH = 240
+
 
 @dataclass(frozen=True)
 class TranscriptSource:
@@ -294,14 +297,22 @@ def format_transcript_sources(
     if not sources:
         return "Sources:\nNo sources."
 
+    labels = [
+        _truncate_tail(
+            compact_source_label(source.source_path),
+            _MAX_SOURCE_LABEL_WIDTH,
+        )
+        for source in sources
+    ]
+    label_width = max(len(label) for label in labels)
     lines = ["Sources:"]
     lines.extend(
         (
-            f"{source.rank}. {compact_source_label(source.source_path)}      "
+            f"{source.rank}. {label:<{label_width}}  "
             f"score={source.score:.4g}  "
             f"chunk={compact_chunk_label(source.chunk_id)}"
         )
-        for source in sources
+        for source, label in zip(sources, labels, strict=True)
     )
     return "\n".join(lines)
 
@@ -341,6 +352,10 @@ def format_shell_inspector(state: ShellState) -> str:
 
 
 def format_shell_source_details(source: TranscriptSource) -> str:
+    preview = _truncate_tail(
+        _safe_display_text(source.preview),
+        _MAX_SOURCE_PREVIEW_LENGTH,
+    )
     lines = [
         "Selected source",
         "",
@@ -351,7 +366,7 @@ def format_shell_source_details(source: TranscriptSource) -> str:
         "",
         "preview:",
     ]
-    lines.extend(f"  {line}" for line in source.preview.splitlines() or [""])
+    lines.extend(f"  {line}" for line in preview.splitlines() or [""])
 
     metadata_lines = _format_source_metadata(source.metadata)
     if metadata_lines:
@@ -373,6 +388,14 @@ def _format_source_metadata_value(value: Any) -> str:
     if isinstance(value, tuple):
         return ", ".join(str(item) for item in value)
     return str(value)
+
+
+def _truncate_tail(text: str, max_length: int) -> str:
+    if len(text) <= max_length:
+        return text
+    if max_length <= 3:
+        return "." * max_length
+    return f"{text[: max_length - 3]}..."
 
 
 def _welcome_message() -> TranscriptMessage:

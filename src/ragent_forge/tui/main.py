@@ -109,7 +109,7 @@ class RagentForgeApp(App[None]):
     def on_mount(self) -> None:
         self._render_shell()
         self._render_inspector()
-        self.set_focus(self.query_one("#shell-input", Input))
+        self._focus_shell_input()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "shell-input":
@@ -122,13 +122,14 @@ class RagentForgeApp(App[None]):
         self.query_one("#shell-transcript", Static).update(
             format_transcript(self.shell_state.messages)
         )
+        self._scroll_transcript_to_end()
 
     def _submit_shell_input(self) -> None:
         shell_input = self.query_one("#shell-input", Input)
         text = shell_input.value
-        shell_input.value = ""
         if self.shell_state.running:
             return
+        shell_input.value = ""
 
         result = apply_shell_input(
             self.shell_state,
@@ -147,6 +148,7 @@ class RagentForgeApp(App[None]):
             return
         self._render_shell()
         self._render_inspector()
+        self._focus_shell_input()
 
     def _run_shell_ask_from_dispatch(self, question: str) -> None:
         mode = self.shell_state.retrieval_mode
@@ -281,6 +283,7 @@ class RagentForgeApp(App[None]):
         self._set_shell_running(False)
         self._render_shell()
         self._render_inspector()
+        self._focus_shell_input()
         event.stop()
 
     def _handle_shell_search_worker_state(
@@ -307,6 +310,7 @@ class RagentForgeApp(App[None]):
         self._set_shell_running(False)
         self._render_shell()
         self._render_inspector()
+        self._focus_shell_input()
         event.stop()
 
     def _show_shell_search_worker_failure(self) -> None:
@@ -325,6 +329,15 @@ class RagentForgeApp(App[None]):
         self.query_one("#inspector-content", Static).update(
             format_shell_inspector(self.shell_state)
         )
+
+    def _focus_shell_input(self) -> None:
+        shell_input = self.query_one("#shell-input", Input)
+        if not shell_input.disabled:
+            self.set_focus(shell_input)
+
+    def _scroll_transcript_to_end(self) -> None:
+        container = self.query_one("#shell-transcript-container", ScrollableContainer)
+        container.scroll_end(animate=False, force=True, immediate=True)
 
 
 def run() -> None:

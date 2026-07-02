@@ -2,15 +2,14 @@
 
 ## Motivation
 
-The TUI has moved from a page-based workbench to a single Shell interface. The
-old structure was useful for bootstrapping Documents, Search, Ask, Trace,
-Settings, and Inspector behavior, but it increasingly felt like a management
-dashboard rather than a local RAG console.
+The TUI is a single command-first Shell interface rather than a management
+dashboard. It should feel like a local RAG console: open it, type into the
+composer, and keep the latest transcript output visible.
 
 The direction is an Ask-first / command-first local RAG console. A user
 should be able to open the TUI and immediately type a question. Secondary
-workflows should be available through slash commands instead of forcing the user
-to move through page navigation first.
+workflows should be available through slash commands without navigation chrome
+or global single-key shortcuts.
 
 ## Target Interaction Model
 
@@ -31,6 +30,7 @@ Slash commands control explicit workflows:
 - `/help` shows available commands.
 - `/clear` clears the transcript.
 - `/exit` and `/quit` exit the TUI.
+- `/q` also exits, as a slash command typed into the composer.
 
 Example:
 
@@ -60,8 +60,8 @@ Optional Inspector/details panel
 ```
 
 The Shell reuses the existing view models and formatters for read-only
-summaries, retrieval, Ask, and selected-source details without exposing the old
-page navigation.
+summaries, retrieval, Ask, and selected-source details while keeping all primary
+actions in the composer.
 
 ## Slash Commands
 
@@ -119,7 +119,7 @@ details into visible text.
 
 The transcript model foundation lives in
 `src/ragent_forge/tui/shell_models.py`. It is intentionally pure and independent
-from Textual rendering so it can support a future Shell page without changing
+from Textual rendering so it can support future Shell behavior without changing
 backend services or CLI behavior.
 
 ## Command Dispatch
@@ -134,7 +134,8 @@ return a typed value such as `ParsedTuiCommand` with:
 - optional error
 
 The UI or a future dispatcher decides what to execute. This keeps parser tests
-pure and makes it easier to add a Shell page without changing backend services.
+pure and makes it easier to extend Shell behavior without changing backend
+services.
 
 ## Worker Behavior
 
@@ -147,6 +148,19 @@ the UI thread. Worker failures should produce friendly error messages and never
 display stack traces or API keys.
 
 This design does not add new worker behavior by itself.
+
+## Composer Polish
+
+The composer should keep focus whenever input is enabled: on mount, after local
+commands, after read-only command output, and after Ask or Search workers finish
+or fail. While a worker is running, the input is disabled and should not be
+force-focused.
+
+Transcript updates should scroll to the latest output after local command
+output, clear, worker start, worker completion, and worker failure. Source lists
+should use compact, aligned labels with bounded width so long filenames do not
+stretch the transcript. Inspector previews should stay compact and should show
+only allowlisted retrieval metadata.
 
 ## Reusing Existing Services
 
@@ -180,8 +194,8 @@ Current implementation status:
 
 ## Migration Plan
 
-The old page-based TUI has been removed in favor of the single Shell interface.
-Future work should improve the Shell itself: source navigation, command
+The single Shell interface is the primary TUI surface. Future work should
+improve the Shell itself: source navigation, command
 suggestions, transcript polish, and optional richer status panels.
 
 ## Non-goals
