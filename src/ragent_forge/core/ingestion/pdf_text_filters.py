@@ -90,10 +90,11 @@ def filter_repeated_header_footer_lines(
         header_removed = 0
         footer_removed = 0
         used_candidates: list[str] = []
-        for line in page:
+        for index, line in enumerate(page):
             normalized = _normalize_line(line.text)
             candidate = candidate_by_normalized.get(normalized)
-            if candidate is None:
+            current_position = _line_position(index, len(page))
+            if candidate is None or current_position != candidate.position:
                 kept_lines.append(line.text)
                 continue
             used_candidates.append(candidate.text)

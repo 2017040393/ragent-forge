@@ -141,7 +141,7 @@ def _chunk_metadata(
     _copy_reading_order_metadata(metadata, blocks)
     _copy_table_context_metadata(metadata, blocks)
     _copy_table_dedup_metadata(metadata, blocks)
-    _copy_formula_metadata(metadata, blocks)
+    _copy_formula_metadata(metadata, blocks, chunk_text=text)
     _copy_header_footer_metadata(metadata, blocks)
     if len(text) > chunk_size:
         metadata["exceeds_chunk_size"] = True
@@ -219,6 +219,8 @@ def _copy_table_dedup_metadata(
 def _copy_formula_metadata(
     metadata: dict[str, Any],
     blocks: Sequence[DocumentBlock],
+    *,
+    chunk_text: str,
 ) -> None:
     formula_lines = _unique(
         [
@@ -229,13 +231,22 @@ def _copy_formula_metadata(
             )
         ]
     )
+    if formula_lines:
+        matching_formula_lines = [
+            formula_line
+            for formula_line in formula_lines
+            if formula_line in chunk_text
+        ]
+        if matching_formula_lines:
+            metadata["possible_formula"] = True
+            metadata["possible_formula_lines"] = matching_formula_lines[:10]
+        return
+
     has_formula = any(
         block.metadata.get("possible_formula") is True for block in blocks
     )
-    if formula_lines or has_formula:
+    if has_formula:
         metadata["possible_formula"] = True
-    if formula_lines:
-        metadata["possible_formula_lines"] = formula_lines[:10]
 
 
 def _copy_header_footer_metadata(

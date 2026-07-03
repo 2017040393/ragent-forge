@@ -229,3 +229,46 @@ def test_block_chunker_propagates_pdf_quality_metadata() -> None:
         table_chunk.metadata["table_context_strategy"]
         == "same_page_caption_before_table"
     )
+
+
+def test_block_chunker_filters_formula_metadata_for_split_chunks() -> None:
+    document = Document(
+        id="/knowledge/paper.pdf",
+        text="",
+        metadata={"source_path": "/knowledge/paper.pdf"},
+    )
+    formula_line = "RRF(d) = SUM 1 / (k + rank_i(d))"
+    blocks = (
+        DocumentBlock(
+            source_path="/knowledge/paper.pdf",
+            media_type="application/pdf",
+            page_number=4,
+            block_index=0,
+            block_type="paragraph",
+            text=f"{'A' * 79}\n{formula_line}\n{'B' * 120}",
+            metadata={
+                "reading_order_strategy": "coordinate_blocks",
+                "possible_formula": True,
+                "possible_formula_lines": [formula_line],
+            },
+        ),
+    )
+
+    chunks = BlockChunker(chunk_size=80, chunk_overlap=0).chunk(document, blocks)
+
+    chunks_with_formula = [
+        chunk for chunk in chunks if chunk.metadata.get("possible_formula") is True
+    ]
+    chunks_without_formula = [
+        chunk for chunk in chunks if chunk.metadata.get("possible_formula") is None
+    ]
+    assert len(chunks_with_formula) == 1
+    assert formula_line in chunks_with_formula[0].text
+    assert chunks_with_formula[0].metadata["possible_formula_lines"] == [
+        formula_line
+    ]
+    assert len(chunks_without_formula) == len(chunks) - 1
+    for chunk in chunks:
+        assert chunk.metadata["page_start"] == 4
+        assert chunk.metadata["page_end"] == 4
+        assert chunk.metadata["reading_order_strategy"] == "coordinate_blocks"
