@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from ragent_forge.cli import main
+from ragent_forge.cli import build_parser, main
 
 
 class FakeEmbeddingResponse:
@@ -89,6 +89,40 @@ def write_retrieval_eval_cases(
     cases_path.write_text(
         "".join(json.dumps(record) + "\n" for record in records),
         encoding="utf-8",
+    )
+
+
+def write_pdf_chunk_record(workspace_dir: Path) -> None:
+    chunks_dir = workspace_dir / "chunks"
+    chunks_dir.mkdir(parents=True)
+    record = {
+        "chunk_id": "/knowledge/paper.pdf::chunk-0000",
+        "document_id": "/knowledge/paper.pdf",
+        "source_path": "/knowledge/paper.pdf",
+        "start_char": None,
+        "end_char": None,
+        "text": "agent memory on a PDF page",
+        "metadata": {
+            "source_path": "/knowledge/paper.pdf",
+            "media_type": "application/pdf",
+            "page_start": 7,
+            "page_end": 7,
+            "block_types": ["paragraph"],
+            "extraction_method": "pdf_structured",
+        },
+    }
+    (chunks_dir / "chunks.jsonl").write_text(
+        json.dumps(record, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def test_ingest_help_mentions_pdf() -> None:
+    help_text = " ".join(build_parser().format_help().split())
+
+    assert (
+        "Ingest local Markdown/TXT/PDF knowledge folders or files."
+        in help_text
     )
 
 
@@ -456,6 +490,22 @@ def test_chunks_list_command_prints_chunk_rows_after_ingest(
     assert "rag.md::chunk-0000" in captured.out
     assert "0-5" in captured.out
     assert "abcde" in captured.out
+
+
+def test_chunks_list_command_formats_pdf_page_range(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    write_pdf_chunk_record(workspace_dir)
+
+    exit_code = main(["chunks", "list", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "paper.pdf p.7" in captured.out
+    assert "p.7" in captured.out
+    assert "None-None" not in captured.out
 
 
 def test_chunks_list_command_respects_limit_and_prints_summary(
@@ -1037,6 +1087,21 @@ def test_search_command_prints_matching_chunk_results_after_ingest(
     assert latest_trace["metadata"]["result_chunk_ids"][0].endswith(
         "rag.md::chunk-0000"
     )
+
+
+def test_search_command_formats_pdf_page_range_without_char_range(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    write_pdf_chunk_record(workspace_dir)
+
+    exit_code = main(["search", "agent", "--workspace", str(workspace_dir)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Range: p.7" in captured.out
+    assert "None-None" not in captured.out
 
 
 def test_search_command_respects_limit(tmp_path: Path, capsys) -> None:

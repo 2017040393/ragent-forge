@@ -53,6 +53,25 @@ def format_pdf_source_metadata(metadata: Mapping[str, Any] | None) -> list[str]:
     return lines
 
 
+def format_source_range(
+    start_char: int | None,
+    end_char: int | None,
+    metadata: Mapping[str, Any] | None = None,
+) -> str:
+    if isinstance(start_char, int) and isinstance(end_char, int):
+        return f"{start_char}-{end_char}"
+    if not _is_pdf_metadata(metadata):
+        return ""
+
+    page_start = _optional_int(metadata.get("page_start"))
+    page_end = _optional_int(metadata.get("page_end"))
+    if page_start is None:
+        return ""
+    if page_end is None or page_end == page_start:
+        return f"p.{page_start}"
+    return f"pp.{page_start}-{page_end}"
+
+
 def _basename(path: str) -> str:
     normalized = path.replace("\\", "/")
     name = normalized.rstrip("/").rsplit("/", 1)[-1]

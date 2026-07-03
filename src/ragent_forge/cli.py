@@ -40,7 +40,7 @@ from ragent_forge.app.services.trace_service import (
     build_search_trace,
 )
 from ragent_forge.app.services.vector_index_service import VectorIndexService
-from ragent_forge.app.source_labels import format_source_label
+from ragent_forge.app.source_labels import format_source_label, format_source_range
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
 
@@ -75,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ingest_parser = subparsers.add_parser(
         "ingest",
-        help="Ingest local Markdown/TXT knowledge folders.",
+        help="Ingest local Markdown/TXT/PDF knowledge folders or files.",
     )
     ingest_parser.add_argument("path", help="Path to a local knowledge folder or file.")
     ingest_parser.add_argument(
@@ -586,7 +586,12 @@ def _handle_chunks_show(
 def _format_char_range(chunk: dict[str, object]) -> str:
     start_char = chunk.get("start_char")
     end_char = chunk.get("end_char")
-    return f"{start_char}-{end_char}"
+    metadata = chunk.get("metadata")
+    return format_source_range(
+        start_char if isinstance(start_char, int) else None,
+        end_char if isinstance(end_char, int) else None,
+        metadata if isinstance(metadata, dict) else None,
+    )
 
 
 def _print_no_chunks(console: Console) -> None:
@@ -1074,7 +1079,11 @@ def _handle_search(
     console.print(f"Results: {len(results)}")
     console.print()
     for index, result in enumerate(results, start=1):
-        range_text = _format_search_range(result.start_char, result.end_char)
+        range_text = _format_search_range(
+            result.start_char,
+            result.end_char,
+            result.metadata,
+        )
         console.print(
             f"{index}. score={result.score:g} | {result.chunk_id}",
             soft_wrap=True,
@@ -1090,8 +1099,12 @@ def _handle_search(
     return 0
 
 
-def _format_search_range(start_char: int | None, end_char: int | None) -> str:
-    return f"{start_char}-{end_char}"
+def _format_search_range(
+    start_char: int | None,
+    end_char: int | None,
+    metadata: dict[str, object] | None = None,
+) -> str:
+    return format_source_range(start_char, end_char, metadata)
 
 
 def _handle_ask(
@@ -1220,6 +1233,7 @@ def _print_retrieved_context(
     range_text = _format_search_range(
         search_result.start_char,
         search_result.end_char,
+        search_result.metadata,
     )
     console.print(
         f"{index}. score={search_result.score:g} | {search_result.chunk_id}",
@@ -1242,6 +1256,7 @@ def _print_source_line(
     range_text = _format_search_range(
         search_result.start_char,
         search_result.end_char,
+        search_result.metadata,
     )
     console.print(f"{index}. {search_result.chunk_id}")
     console.print(

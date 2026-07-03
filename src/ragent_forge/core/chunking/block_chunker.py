@@ -34,6 +34,11 @@ class BlockChunker:
                 pending.clear()
                 self._append_chunk(document, [block], chunks)
                 continue
+            if len(block.text) > self.chunk_size:
+                self._flush(document, pending, chunks)
+                pending.clear()
+                self._split_oversized_block(document, block, chunks)
+                continue
 
             pending_text = _joined_text([*pending, block])
             if pending and len(pending_text) > self.chunk_size:
@@ -53,15 +58,36 @@ class BlockChunker:
         if blocks:
             self._append_chunk(document, blocks, chunks)
 
+    def _split_oversized_block(
+        self,
+        document: Document,
+        block: DocumentBlock,
+        chunks: list[DocumentChunk],
+    ) -> None:
+        step = self.chunk_size - self.chunk_overlap
+        start = 0
+        while start < len(block.text):
+            end = min(start + self.chunk_size, len(block.text))
+            self._append_chunk(
+                document,
+                [block],
+                chunks,
+                text_override=block.text[start:end],
+            )
+            if end == len(block.text):
+                break
+            start += step
+
     def _append_chunk(
         self,
         document: Document,
         blocks: Sequence[DocumentBlock],
         chunks: list[DocumentChunk],
+        text_override: str | None = None,
     ) -> None:
         source_path = str(document.metadata.get("source_path", document.id))
         chunk_index = len(chunks)
-        text = _joined_text(blocks)
+        text = text_override if text_override is not None else _joined_text(blocks)
         metadata = _chunk_metadata(source_path, text, self.chunk_size, blocks)
         chunks.append(
             DocumentChunk(
