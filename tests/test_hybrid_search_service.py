@@ -101,7 +101,20 @@ def test_hybrid_search_sorts_deterministically_after_score_ties() -> None:
 
 
 def test_hybrid_search_sets_fused_score_and_compact_metadata() -> None:
-    lexical = FakeSearchService([make_result("chunk-a", score=3.0)])
+    lexical = FakeSearchService(
+        [
+            make_result(
+                "chunk-a",
+                score=3.0,
+                metadata={
+                    "media_type": "application/pdf",
+                    "page_start": 7,
+                    "page_end": 7,
+                    "table_indices": [2],
+                },
+            )
+        ]
+    )
     semantic = FakeSearchService([make_result("chunk-a", score=0.7821)])
 
     result = HybridSearchService(lexical, semantic).search("agent memory", limit=1)[0]
@@ -109,6 +122,10 @@ def test_hybrid_search_sets_fused_score_and_compact_metadata() -> None:
     expected_score = (1 / 61) + (1 / 61)
     assert result.score == pytest.approx(expected_score)
     assert result.metadata == {
+        "media_type": "application/pdf",
+        "page_start": 7,
+        "page_end": 7,
+        "table_indices": [2],
         "retrieval_method": "hybrid_rrf",
         "fusion_method": "reciprocal_rank_fusion",
         "rrf_k": 60,

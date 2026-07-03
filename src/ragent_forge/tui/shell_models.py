@@ -6,6 +6,9 @@ from typing import Any, Literal, cast
 
 from ragent_forge.app.services.chunk_service import make_preview
 from ragent_forge.app.services.search_service import SearchResult
+from ragent_forge.app.source_labels import (
+    format_pdf_source_metadata as _format_pdf_source_metadata,
+)
 from ragent_forge.tui.view_models import (
     AskPageState,
     SearchPageState,
@@ -202,7 +205,10 @@ def select_previous_source(state: ShellState) -> ShellState:
 
 
 def format_selected_source_ack(source: TranscriptSource) -> str:
-    return f"selected source {source.rank}: {compact_source_label(source.source_path)}"
+    return (
+        f"selected source {source.rank}: "
+        f"{compact_source_label(source.source_path, source.metadata)}"
+    )
 
 
 def _selected_source_index(state: ShellState) -> int | None:
@@ -368,7 +374,7 @@ def format_transcript_sources(
 
     labels = [
         _truncate_tail(
-            compact_source_label(source.source_path),
+            compact_source_label(source.source_path, source.metadata),
             _MAX_SOURCE_LABEL_WIDTH,
         )
         for source in sources
@@ -401,7 +407,10 @@ def format_shell_status(state: ShellState) -> str:
 def format_shell_inspector(state: ShellState) -> str:
     prompt = "on" if state.show_prompt else "off"
     selected_source = (
-        compact_source_label(state.selected_source.source_path)
+        compact_source_label(
+            state.selected_source.source_path,
+            state.selected_source.metadata,
+        )
         if state.selected_source is not None
         else "none"
     )
@@ -429,12 +438,14 @@ def format_shell_source_details(source: TranscriptSource) -> str:
         "Selected source",
         "",
         f"rank: {source.rank}",
-        f"source: {compact_source_label(source.source_path)}",
+        f"source: {compact_source_label(source.source_path, source.metadata)}",
         f"chunk: {compact_chunk_label(source.chunk_id)}",
         f"score: {source.score:.4g}",
-        "",
-        "preview:",
     ]
+    pdf_lines = _format_pdf_source_metadata(source.metadata)
+    if pdf_lines:
+        lines.extend(pdf_lines)
+    lines.extend(["", "preview:"])
     lines.extend(f"  {line}" for line in preview.splitlines() or [""])
 
     metadata_lines = _format_source_metadata(source.metadata)

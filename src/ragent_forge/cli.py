@@ -40,6 +40,7 @@ from ragent_forge.app.services.trace_service import (
     build_search_trace,
 )
 from ragent_forge.app.services.vector_index_service import VectorIndexService
+from ragent_forge.app.source_labels import format_source_label
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
 
@@ -522,9 +523,14 @@ def _handle_chunks_list(console: Console, workspace_path: str, limit: int) -> in
     console.print("Chunk ID | Source | Range | Preview")
 
     for chunk in chunks:
+        metadata = chunk.get("metadata")
+        source_label = format_source_label(
+            str(chunk.get("source_path", "")),
+            metadata if isinstance(metadata, dict) else None,
+        )
         console.print(
             f"{chunk.get('chunk_id', '')} | "
-            f"{chunk.get('source_path', '')} | "
+            f"{source_label} | "
             f"{_format_char_range(chunk)} | "
             f"{make_preview(str(chunk.get('text', '')))}",
             soft_wrap=True,
@@ -1073,7 +1079,10 @@ def _handle_search(
             f"{index}. score={result.score:g} | {result.chunk_id}",
             soft_wrap=True,
         )
-        console.print(f"Source: {result.source_path}", soft_wrap=True)
+        console.print(
+            f"Source: {format_source_label(result.source_path, result.metadata)}",
+            soft_wrap=True,
+        )
         console.print(f"Range: {range_text}")
         console.print(f"Preview: {make_preview(result.text)}")
         console.print()
@@ -1216,7 +1225,11 @@ def _print_retrieved_context(
         f"{index}. score={search_result.score:g} | {search_result.chunk_id}",
         soft_wrap=True,
     )
-    console.print(f"Source: {search_result.source_path}", soft_wrap=True)
+    console.print(
+        "Source: "
+        f"{format_source_label(search_result.source_path, search_result.metadata)}",
+        soft_wrap=True,
+    )
     console.print(f"Range: {range_text}")
     console.print(f"Preview: {make_preview(search_result.text)}")
 
@@ -1231,7 +1244,10 @@ def _print_source_line(
         search_result.end_char,
     )
     console.print(f"{index}. {search_result.chunk_id}")
-    console.print(f"   Source: {search_result.source_path}")
+    console.print(
+        "   Source: "
+        f"{format_source_label(search_result.source_path, search_result.metadata)}"
+    )
     console.print(f"   Range: {range_text}")
     console.print(f"   Score: {search_result.score:g}")
 

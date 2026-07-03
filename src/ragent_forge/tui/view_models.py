@@ -14,6 +14,10 @@ from ragent_forge.app.services.hybrid_search_service import HybridSearchService
 from ragent_forge.app.services.search_service import LexicalSearchService, SearchResult
 from ragent_forge.app.services.semantic_search_service import SemanticSearchService
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
+from ragent_forge.app.source_labels import (
+    format_pdf_source_metadata,
+    format_source_label,
+)
 from ragent_forge.app.workspace import LocalWorkspace
 
 PageName = Literal["shell", "documents", "search", "trace", "settings", "ask", "eval"]
@@ -145,10 +149,11 @@ class _SafeTuiGenerationProvider:
             )
 
 
-def compact_source_label(source_path: str) -> str:
-    normalized = source_path.replace("\\", "/")
-    name = normalized.rstrip("/").rsplit("/", 1)[-1]
-    return name or source_path
+def compact_source_label(
+    source_path: str,
+    metadata: dict[str, Any] | None = None,
+) -> str:
+    return format_source_label(source_path, metadata)
 
 
 def compact_path_label(path: str | Path, *, max_parts: int = 2) -> str:
@@ -265,7 +270,10 @@ def _chunk_row(index: int, chunk: dict[str, Any]) -> ChunkRow:
         chunk_id=str(chunk.get("chunk_id", "")),
         document_id=str(chunk.get("document_id", "")),
         source_path=source_path,
-        source_label=compact_source_label(source_path),
+        source_label=compact_source_label(
+            source_path,
+            chunk.get("metadata") if isinstance(chunk.get("metadata"), dict) else None,
+        ),
         range_text=format_range(chunk.get("start_char"), chunk.get("end_char")),
         preview=make_preview(str(chunk.get("text", "")), max_length=72),
     )
@@ -586,7 +594,7 @@ def format_search_page(state: SearchPageState) -> str:
         for index, result in enumerate(state.results, start=1):
             lines.append(
                 f"{index} | {result.score:.4g} | "
-                f"{compact_source_label(result.source_path)} | "
+                f"{compact_source_label(result.source_path, result.metadata)} | "
                 f"{compact_chunk_label(result.chunk_id)}"
             )
     elif state.has_searched and not state.error:
@@ -625,7 +633,7 @@ def format_ask_page(state: AskPageState) -> str:
         for index, result in enumerate(state.sources, start=1):
             lines.append(
                 f"{index} | {result.score:.4g} | "
-                f"{compact_source_label(result.source_path)} | "
+                f"{compact_source_label(result.source_path, result.metadata)} | "
                 f"{compact_chunk_label(result.chunk_id)}"
             )
     elif state.has_run:
@@ -672,10 +680,11 @@ def format_search_result_inspector(
         "Search result",
         "",
         f"chunk: {compact_chunk_label(result.chunk_id)}",
-        f"source: {compact_source_label(result.source_path)}",
+        f"source: {compact_source_label(result.source_path, metadata)}",
         f"score: {result.score:.4g}",
         f"method: {metadata.get('retrieval_method', retrieval_mode)}",
     ]
+    lines.extend(format_pdf_source_metadata(metadata))
     if "fusion_method" in metadata:
         lines.extend(["", "RRF:"])
         fusion = metadata.get("fusion_method")

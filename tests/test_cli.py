@@ -100,7 +100,7 @@ def test_ingest_command_prints_statistics(
     knowledge_dir.mkdir()
     (knowledge_dir / "rag.md").write_text("abcdefghij", encoding="utf-8")
     (knowledge_dir / "notes.txt").write_text("klmnopqrst", encoding="utf-8")
-    (knowledge_dir / "skip.pdf").write_text("ignored", encoding="utf-8")
+    (knowledge_dir / "skip.bin").write_text("ignored", encoding="utf-8")
 
     workspace_dir = tmp_path / ".ragent"
 

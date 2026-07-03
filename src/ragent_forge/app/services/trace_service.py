@@ -37,6 +37,9 @@ def build_ingest_trace(
         "chunks_path": str(chunks_path),
         "summary_path": str(summary_path),
     }
+    pdf_summary = result.metadata.get("pdf")
+    if isinstance(pdf_summary, dict):
+        metadata["pdf"] = pdf_summary
     return OperationTrace(
         trace_id=f"ingest-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
         operation="ingest",
@@ -46,12 +49,13 @@ def build_ingest_trace(
         steps=[
             TraceStep(
                 name="load_documents",
-                description="Load supported Markdown/TXT documents.",
+                description="Load supported Markdown/TXT/PDF documents.",
                 inputs={"source_path": result.source_path},
-                outputs={
-                    "document_count": result.document_count,
-                    "skipped_count": result.skipped_count,
-                },
+                outputs=_ingest_load_outputs(
+                    document_count=result.document_count,
+                    skipped_count=result.skipped_count,
+                    pdf_summary=pdf_summary,
+                ),
             ),
             TraceStep(
                 name="chunk_documents",
@@ -82,6 +86,30 @@ def build_ingest_trace(
         ],
         metadata=metadata,
     )
+
+
+def _ingest_load_outputs(
+    *,
+    document_count: int,
+    skipped_count: int,
+    pdf_summary: object,
+) -> dict[str, Any]:
+    outputs: dict[str, Any] = {
+        "document_count": document_count,
+        "skipped_count": skipped_count,
+    }
+    if isinstance(pdf_summary, dict):
+        for key in (
+            "pdf_files_seen",
+            "pdf_files_ingested",
+            "pdf_pages_seen",
+            "pdf_pages_with_text",
+            "pdf_tables_extracted",
+            "pdf_empty_pages",
+        ):
+            if key in pdf_summary:
+                outputs[key] = pdf_summary[key]
+    return outputs
 
 
 def build_search_trace(

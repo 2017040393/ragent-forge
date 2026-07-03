@@ -49,6 +49,11 @@ Runtime PDF ingestion is not implemented by this document. The future v0.1.1
 implementation should add code, dependencies, and tests in small steps after
 this design is accepted.
 
+Implementation note for `Develop_PDF`: the v0.1.1 PDF Page + Table Ingestion
+MVP has been implemented on this development branch after this design was
+written. Released v0.1.0 documentation should still describe PDF support as
+future work until the v0.1.1 branch is merged and released.
+
 ## Non-Goals
 
 v0.1.1 PDF structured ingestion should explicitly exclude:
@@ -510,6 +515,11 @@ non-goals, data model, source display, trace strategy, eval considerations,
 library recommendation, and staged implementation plan.
 
 ### Step 2: PDF Page + Table Ingestion MVP
+
+Implemented on the `Develop_PDF` development branch after this design document
+was created. The implementation keeps Markdown/TXT on the existing loader and
+adds an additive PDF path with `pdfplumber`, `DocumentBlock`, PDF-aware chunks,
+page/table metadata, source labels, ingest summary warnings, and focused tests.
 
 - Add the selected PDF dependency.
 - Discover `.pdf` files during ingest.

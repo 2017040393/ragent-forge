@@ -171,6 +171,7 @@ class HybridSearchService:
             score=hybrid_score,
             text=result.text,
             metadata={
+                **_safe_representative_metadata(result.metadata),
                 "retrieval_method": "hybrid_rrf",
                 "fusion_method": "reciprocal_rank_fusion",
                 "rrf_k": self.config.rrf_k,
@@ -184,3 +185,20 @@ class HybridSearchService:
                 "semantic_weight": self.config.semantic_weight,
             },
         )
+
+
+def _safe_representative_metadata(metadata: dict[str, object]) -> dict[str, object]:
+    excluded_fragments = (
+        "api_key",
+        "secret",
+        "token",
+        "authorization",
+        "embedding",
+        "vector",
+        "text",
+    )
+    return {
+        key: value
+        for key, value in metadata.items()
+        if not any(fragment in key.lower() for fragment in excluded_fragments)
+    }
