@@ -101,6 +101,24 @@ uv run ragent search "What is Agentic RAG?" --retrieval hybrid --workspace .rage
 默认配置下，generation 使用 `null` provider。在这种模式中，`ragent ask`
 会检索并显示 context，但不会调用模型。
 
+## 截图
+
+带紧凑 source results 的 TUI Shell search：
+
+![TUI Shell search](docs/assets/v0_1/tui-shell-search.jpg)
+
+Source navigation 后的 selected-source Inspector：
+
+![TUI source inspector](docs/assets/v0_1/tui-source-inspector.jpg)
+
+TUI 中的 trace 和 settings inspection：
+
+![TUI trace and settings](docs/assets/v0_1/tui-trace-settings.jpg)
+
+Retrieval evaluation 输出：
+
+![Retrieval evaluation output](docs/assets/v0_1/tui-retrieval-eval.jpg)
+
 ## Command-First TUI
 
 `uv run ragent tui` 会打开一个 Shell 界面，包含 transcript、composer、

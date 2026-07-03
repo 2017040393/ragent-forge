@@ -174,6 +174,18 @@ Explain that ordinary text runs Shell Ask in a background worker. `/trace` and
 `/settings` are read-only inspection commands. Use `/exit`, `/quit`, or `/q`
 from the composer to quit; there are no global single-key shortcuts such as `q`.
 
+## Reference Screenshots
+
+Use these assets when presenting v0.1 in a portfolio, README, or GitHub Release:
+
+![TUI Shell search](assets/v0_1/tui-shell-search.jpg)
+
+![TUI source inspector](assets/v0_1/tui-source-inspector.jpg)
+
+![TUI trace and settings](assets/v0_1/tui-trace-settings.jpg)
+
+![Retrieval evaluation output](assets/v0_1/tui-retrieval-eval.jpg)
+
 ## What to Say During the Demo
 
 - "The source documents stay local; `.ragent` contains derived artifacts."

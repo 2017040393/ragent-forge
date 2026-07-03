@@ -98,6 +98,16 @@ uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retri
 uv run ragent tui
 ```
 
+Demo screenshots:
+
+![TUI Shell search](https://raw.githubusercontent.com/2017040393/ragent-forge/v0.1.0/docs/assets/v0_1/tui-shell-search.jpg)
+
+![TUI source inspector](https://raw.githubusercontent.com/2017040393/ragent-forge/v0.1.0/docs/assets/v0_1/tui-source-inspector.jpg)
+
+![TUI trace and settings](https://raw.githubusercontent.com/2017040393/ragent-forge/v0.1.0/docs/assets/v0_1/tui-trace-settings.jpg)
+
+![Retrieval evaluation output](https://raw.githubusercontent.com/2017040393/ragent-forge/v0.1.0/docs/assets/v0_1/tui-retrieval-eval.jpg)
+
 ## Known Limitations
 
 - Markdown/TXT are the only supported document formats.

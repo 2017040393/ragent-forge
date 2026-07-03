@@ -109,6 +109,24 @@ uv run ragent search "What is Agentic RAG?" --retrieval hybrid --workspace .rage
 With the default config, generation uses the `null` provider. In that mode
 `ragent ask` retrieves and displays context but does not call a model.
 
+## Screenshots
+
+TUI Shell search with compact source results:
+
+![TUI Shell search](docs/assets/v0_1/tui-shell-search.jpg)
+
+Selected-source Inspector after source navigation:
+
+![TUI source inspector](docs/assets/v0_1/tui-source-inspector.jpg)
+
+Trace and settings inspection in the TUI:
+
+![TUI trace and settings](docs/assets/v0_1/tui-trace-settings.jpg)
+
+Retrieval evaluation output:
+
+![Retrieval evaluation output](docs/assets/v0_1/tui-retrieval-eval.jpg)
+
 ## Command-First TUI
 
 `uv run ragent tui` opens a single Shell interface with a transcript, composer,

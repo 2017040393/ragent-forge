@@ -170,6 +170,18 @@ What is Agentic RAG?
 是只读 inspection commands。使用 composer 中的 `/exit`、`/quit` 或 `/q` 退出；
 没有 `q` 这样的全局单键快捷键。
 
+## 参考截图
+
+在作品集、README 或 GitHub Release 中展示 v0.1 时，可以使用这些 assets：
+
+![TUI Shell search](assets/v0_1/tui-shell-search.jpg)
+
+![TUI source inspector](assets/v0_1/tui-source-inspector.jpg)
+
+![TUI trace and settings](assets/v0_1/tui-trace-settings.jpg)
+
+![Retrieval evaluation output](assets/v0_1/tui-retrieval-eval.jpg)
+
 ## Demo 时可以怎么说
 
 - “源文档保持本地；`.ragent` 保存派生 artifacts。”
