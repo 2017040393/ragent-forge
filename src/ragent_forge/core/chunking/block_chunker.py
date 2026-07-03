@@ -138,6 +138,11 @@ def _chunk_metadata(
         metadata["block_type"] = block_types[0]
     if table_indices:
         metadata["table_indices"] = table_indices
+    _copy_reading_order_metadata(metadata, blocks)
+    _copy_table_context_metadata(metadata, blocks)
+    _copy_table_dedup_metadata(metadata, blocks)
+    _copy_formula_metadata(metadata, blocks)
+    _copy_header_footer_metadata(metadata, blocks)
     if len(text) > chunk_size:
         metadata["exceeds_chunk_size"] = True
     return metadata
@@ -155,6 +160,138 @@ def _optional_int(value: Any) -> int | None:
     if isinstance(value, int):
         return value
     return None
+
+
+def _copy_reading_order_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+) -> None:
+    strategies = _unique(
+        [
+            strategy
+            for block in blocks
+            for strategy in [
+                _optional_str(block.metadata.get("reading_order_strategy"))
+            ]
+            if strategy is not None
+        ]
+    )
+    if len(strategies) == 1:
+        metadata["reading_order_strategy"] = strategies[0]
+    elif len(strategies) > 1:
+        metadata["reading_order_strategy"] = "mixed"
+
+    warnings = _unique(
+        [
+            warning
+            for block in blocks
+            for warning in [_optional_str(block.metadata.get("reading_order_warning"))]
+            if warning is not None
+        ]
+    )
+    if warnings:
+        metadata["reading_order_warning"] = "; ".join(warnings)
+
+
+def _copy_table_context_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+) -> None:
+    for key in ("table_caption", "table_context", "table_context_strategy"):
+        value = _first_metadata_string(blocks, key)
+        if value:
+            metadata[key] = value
+
+
+def _copy_table_dedup_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+) -> None:
+    removed_lines = _sum_metadata_int(blocks, "table_text_dedup_removed_lines")
+    if removed_lines:
+        metadata["table_text_dedup_applied"] = True
+        metadata["table_text_dedup_removed_lines"] = removed_lines
+        strategy = _first_metadata_string(blocks, "table_text_dedup_strategy")
+        if strategy:
+            metadata["table_text_dedup_strategy"] = strategy
+
+
+def _copy_formula_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+) -> None:
+    formula_lines = _unique(
+        [
+            line
+            for block in blocks
+            for line in _metadata_string_list(
+                block.metadata.get("possible_formula_lines")
+            )
+        ]
+    )
+    has_formula = any(
+        block.metadata.get("possible_formula") is True for block in blocks
+    )
+    if formula_lines or has_formula:
+        metadata["possible_formula"] = True
+    if formula_lines:
+        metadata["possible_formula_lines"] = formula_lines[:10]
+
+
+def _copy_header_footer_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+) -> None:
+    removed_lines = _sum_metadata_int(blocks, "header_footer_removed_lines")
+    if removed_lines:
+        metadata["header_footer_filter_applied"] = True
+        metadata["header_footer_removed_lines"] = removed_lines
+    candidates = _unique(
+        [
+            candidate
+            for block in blocks
+            for candidate in _metadata_string_list(
+                block.metadata.get("header_footer_candidates")
+            )
+        ]
+    )
+    if candidates:
+        metadata["header_footer_candidates"] = candidates[:10]
+
+
+def _first_metadata_string(
+    blocks: Sequence[DocumentBlock],
+    key: str,
+) -> str | None:
+    for block in blocks:
+        value = _optional_str(block.metadata.get(key))
+        if value:
+            return value
+    return None
+
+
+def _sum_metadata_int(
+    blocks: Sequence[DocumentBlock],
+    key: str,
+) -> int:
+    return sum(
+        value
+        for block in blocks
+        for value in [_optional_int(block.metadata.get(key))]
+        if value is not None
+    )
+
+
+def _optional_str(value: Any) -> str | None:
+    if isinstance(value, str):
+        return value
+    return None
+
+
+def _metadata_string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
 
 
 def _warning_dicts(value: Any) -> list[dict[str, Any]]:

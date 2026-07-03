@@ -106,6 +106,13 @@ def _ingest_load_outputs(
             "pdf_pages_with_text",
             "pdf_tables_extracted",
             "pdf_empty_pages",
+            "pdf_reading_order_fallback_pages",
+            "pdf_table_text_dedup_pages",
+            "pdf_table_text_dedup_removed_lines",
+            "pdf_possible_formula_blocks",
+            "pdf_possible_formula_lines",
+            "pdf_suspected_headers_filtered",
+            "pdf_suspected_footers_filtered",
         ):
             if key in pdf_summary:
                 outputs[key] = pdf_summary[key]

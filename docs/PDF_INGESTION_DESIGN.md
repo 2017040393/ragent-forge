@@ -54,6 +54,48 @@ MVP has been implemented on this development branch after this design was
 written. Released v0.1.0 documentation should still describe PDF support as
 future work until the v0.1.1 branch is merged and released.
 
+## v0.1.2 PDF Extraction Quality Polish
+
+The `Develop_PDF` branch now uses v0.1.1 as the page/table ingestion MVP and
+extends it with a v0.1.2 quality-polish milestone for text-based PDFs. v0.1.1
+answers the first runtime question: can RAGentForge discover PDFs, extract
+page text and page-local tables, produce page/table-aware chunks, and show
+PDF source labels such as `paper.pdf p.7 table 2`? v0.1.2 keeps that behavior
+and improves the quality of extracted content before retrieval sees it.
+
+v0.1.2 does not add OCR, scanned-PDF support, image text recognition, PDF
+viewing, PDF opening, PDF editing, or full layout reconstruction. It remains
+local-only and deterministic, using the text layer exposed by `pdfplumber`.
+If a page has no extractable text, the extractor should keep reporting that as
+a warning instead of pretending scanned content was processed.
+
+The v0.1.2 scope is:
+
+- Reading order baseline: prefer coordinate/word-aware ordering when
+  `pdfplumber` exposes words and coordinates, preserve page boundaries, avoid
+  obvious two-column left/right interleaving, and record
+  `reading_order_strategy` plus fallback diagnostics.
+- Table caption/context enhancement: detect nearby same-page captions such as
+  `Table 2: ...`, `TABLE II ...`, or `表 1 ...`, prepend safe captions to
+  table chunk text, and store caption/context metadata without merging
+  separate tables.
+- Conservative table/text de-duplication: remove only high-confidence table
+  row text duplicated in paragraph text, never remove table blocks, and record
+  how many lines/pages were affected.
+- Formula-like text preservation: keep formula-like text from the PDF text
+  layer in paragraph blocks and tag related blocks/chunks with
+  `possible_formula` and bounded `possible_formula_lines` metadata.
+- Header/footer filtering and diagnostics: conservatively filter repeated
+  short header/footer lines across pages, preserve body text and page metadata,
+  and record counts for suspected headers/footers filtered.
+- Diagnostics propagation: carry the new quality metadata through ingest
+  summary, ingest trace metadata, chunk metadata, search results, and concise
+  TUI Inspector/source displays.
+
+These improvements are intentionally conservative. When confidence is low, the
+extractor should prefer keeping text and surfacing diagnostics over deleting
+potentially useful content.
+
 ## Non-Goals
 
 v0.1.1 PDF structured ingestion should explicitly exclude:

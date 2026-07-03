@@ -163,3 +163,69 @@ def test_block_chunker_keeps_oversized_table_block_standalone() -> None:
     assert chunks[0].metadata["block_types"] == ["table"]
     assert chunks[0].metadata["table_indices"] == [1]
     assert chunks[0].metadata["exceeds_chunk_size"] is True
+
+
+def test_block_chunker_propagates_pdf_quality_metadata() -> None:
+    document = Document(
+        id="/knowledge/paper.pdf",
+        text="",
+        metadata={"source_path": "/knowledge/paper.pdf"},
+    )
+    blocks = (
+        DocumentBlock(
+            source_path="/knowledge/paper.pdf",
+            media_type="application/pdf",
+            page_number=4,
+            block_index=0,
+            block_type="paragraph",
+            text="RRF(d) = SUM 1 / (k + rank_i(d))",
+            metadata={
+                "reading_order_strategy": "coordinate_blocks",
+                "table_text_dedup_applied": True,
+                "table_text_dedup_strategy": "cell_text_line_filter",
+                "table_text_dedup_removed_lines": 2,
+                "possible_formula": True,
+                "possible_formula_lines": ["RRF(d) = SUM 1 / (k + rank_i(d))"],
+                "header_footer_filter_applied": True,
+                "header_footer_removed_lines": 1,
+                "header_footer_candidates": ["Confidential Draft"],
+            },
+        ),
+        DocumentBlock(
+            source_path="/knowledge/paper.pdf",
+            media_type="application/pdf",
+            page_number=4,
+            block_index=1,
+            block_type="table",
+            text=(
+                "Table 2: Retrieval Evaluation Results\n\n"
+                "| Method | MRR |\n|---|---|\n| hybrid | 1.00 |"
+            ),
+            metadata={
+                "table_index": 2,
+                "table_caption": "Table 2: Retrieval Evaluation Results",
+                "table_context_strategy": "same_page_caption_before_table",
+            },
+        ),
+    )
+
+    chunks = BlockChunker(chunk_size=100, chunk_overlap=0).chunk(document, blocks)
+
+    paragraph_chunk = chunks[0]
+    table_chunk = chunks[1]
+    assert paragraph_chunk.metadata["reading_order_strategy"] == "coordinate_blocks"
+    assert paragraph_chunk.metadata["table_text_dedup_applied"] is True
+    assert paragraph_chunk.metadata["table_text_dedup_removed_lines"] == 2
+    assert paragraph_chunk.metadata["possible_formula"] is True
+    assert paragraph_chunk.metadata["possible_formula_lines"] == [
+        "RRF(d) = SUM 1 / (k + rank_i(d))"
+    ]
+    assert paragraph_chunk.metadata["header_footer_filter_applied"] is True
+    assert paragraph_chunk.metadata["header_footer_removed_lines"] == 1
+    assert table_chunk.metadata["table_caption"] == (
+        "Table 2: Retrieval Evaluation Results"
+    )
+    assert (
+        table_chunk.metadata["table_context_strategy"]
+        == "same_page_caption_before_table"
+    )

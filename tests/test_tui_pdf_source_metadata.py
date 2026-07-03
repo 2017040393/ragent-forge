@@ -29,6 +29,13 @@ def make_pdf_result() -> SearchResult:
             "block_types": ["table"],
             "block_type": "table",
             "table_indices": [2],
+            "table_caption": "Table 2: Retrieval Evaluation Results",
+            "table_context_strategy": "same_page_caption_before_table",
+            "reading_order_strategy": "coordinate_blocks",
+            "table_text_dedup_applied": True,
+            "possible_formula": True,
+            "possible_formula_lines": ["MRR = reciprocal rank mean"],
+            "header_footer_filter_applied": True,
             "retrieval_method": "lexical_token_overlap",
             "warnings": [
                 {
@@ -81,6 +88,11 @@ def test_tui_inspectors_show_pdf_page_table_metadata() -> None:
         assert "page range: 7" in text
         assert "block type: table" in text
         assert "table: 2" in text
+        assert "table caption: Table 2: Retrieval Evaluation Results" in text
+        assert "reading order: coordinate_blocks" in text
+        assert "dedup: applied" in text
+        assert "possible formula: yes" in text
+        assert "header/footer: filtered" in text
         assert "warnings: table_malformed" in text
 
 
@@ -103,3 +115,5 @@ def test_shell_source_list_and_inspector_show_pdf_metadata() -> None:
     assert "page range: 7" in inspector_text
     assert "block type: table" in inspector_text
     assert "table: 2" in inspector_text
+    assert "table caption: Table 2: Retrieval Evaluation Results" in inspector_text
+    assert "possible formula: yes" in inspector_text

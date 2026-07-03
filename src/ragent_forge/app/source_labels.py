@@ -47,6 +47,23 @@ def format_pdf_source_metadata(metadata: Mapping[str, Any] | None) -> list[str]:
     if table_text:
         lines.append(f"table: {table_text}")
 
+    table_caption = metadata.get("table_caption")
+    if isinstance(table_caption, str) and table_caption:
+        lines.append(f"table caption: {table_caption}")
+
+    reading_order = metadata.get("reading_order_strategy")
+    if isinstance(reading_order, str) and reading_order:
+        lines.append(f"reading order: {reading_order}")
+
+    if metadata.get("table_text_dedup_applied") is True:
+        lines.append("dedup: applied")
+
+    if metadata.get("possible_formula") is True:
+        lines.append("possible formula: yes")
+
+    if metadata.get("header_footer_filter_applied") is True:
+        lines.append("header/footer: filtered")
+
     warning_text = _warning_text(metadata)
     if warning_text:
         lines.append(f"warnings: {warning_text}")

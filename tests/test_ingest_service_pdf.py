@@ -6,7 +6,13 @@ from ragent_forge.app.services.ingest_service import IngestService
 from ragent_forge.app.services.search_service import LexicalSearchService
 from ragent_forge.app.services.trace_service import build_ingest_trace
 from ragent_forge.app.workspace import LocalWorkspace
-from tests.pdf_test_utils import write_table_pdf, write_text_pdf
+from tests.pdf_test_utils import (
+    write_captioned_table_pdf,
+    write_formula_pdf,
+    write_header_footer_pdf,
+    write_table_pdf,
+    write_text_pdf,
+)
 
 
 def test_ingest_service_discovers_pdf_and_preserves_markdown_behavior(
@@ -76,6 +82,28 @@ def test_ingest_service_writes_table_metadata_and_pdf_warnings(
     assert result.metadata["pdf"]["pdf_warnings"][0]["kind"] == "empty_page"
 
 
+def test_ingest_service_preserves_table_caption_in_chunk_metadata(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "captioned_table.pdf"
+    write_captioned_table_pdf(source)
+
+    result = IngestService(chunk_size=1000, chunk_overlap=0).ingest(source)
+
+    table_chunk = next(
+        chunk for chunk in result.chunks if chunk.metadata.get("block_type") == "table"
+    )
+    assert table_chunk.text.startswith("Table 2: Retrieval Evaluation Results\n\n")
+    assert (
+        table_chunk.metadata["table_caption"]
+        == "Table 2: Retrieval Evaluation Results"
+    )
+    assert (
+        table_chunk.metadata["table_context_strategy"]
+        == "same_page_caption_before_table"
+    )
+
+
 def test_pdf_ingest_summary_trace_search_and_ask_use_pdf_chunks(
     tmp_path: Path,
 ) -> None:
@@ -105,3 +133,38 @@ def test_pdf_ingest_summary_trace_search_and_ask_use_pdf_chunks(
     assert search_results[0].metadata["page_start"] == 1
     assert len(ask_result.sources) == 1
     assert ask_result.sources[0].source_path == str(source.resolve())
+
+
+def test_pdf_ingest_summary_and_trace_include_quality_diagnostics(
+    tmp_path: Path,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    write_formula_pdf(knowledge_dir / "formula.pdf")
+    write_header_footer_pdf(knowledge_dir / "header_footer.pdf")
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+
+    result = IngestService(chunk_size=1000, chunk_overlap=0).ingest(knowledge_dir)
+    chunks_path = workspace.write_chunks(result.chunks)
+    summary_path = workspace.write_ingest_summary(result)
+    trace = build_ingest_trace(
+        result=result,
+        chunks_path=chunks_path,
+        summary_path=summary_path,
+        started_at=datetime(2026, 7, 3),
+        finished_at=datetime(2026, 7, 3),
+    )
+
+    pdf_summary = result.metadata["pdf"]
+    assert pdf_summary["pdf_reading_order_strategy"] in {
+        "pdfplumber_words",
+        "coordinate_blocks",
+    }
+    assert pdf_summary["pdf_reading_order_fallback_pages"] == 0
+    assert pdf_summary["pdf_reading_order_warnings"] == []
+    assert pdf_summary["pdf_possible_formula_blocks"] == 1
+    assert pdf_summary["pdf_possible_formula_lines"] == 2
+    assert pdf_summary["pdf_suspected_headers_filtered"] == 3
+    assert pdf_summary["pdf_suspected_footers_filtered"] == 3
+    assert trace.metadata["pdf"]["pdf_possible_formula_lines"] == 2
+    assert trace.steps[0].outputs["pdf_possible_formula_blocks"] == 1

@@ -127,5 +127,66 @@ def _pdf_summary(pdf_results: list[PdfLoadResult]) -> dict[str, Any]:
             int(result.metadata.get("empty_pages", 0) or 0)
             for result in pdf_results
         ),
+        "pdf_reading_order_strategy": _pdf_reading_order_strategy(pdf_results),
+        "pdf_reading_order_fallback_pages": _pdf_metadata_sum(
+            pdf_results,
+            "reading_order_fallback_pages",
+        ),
+        "pdf_reading_order_warnings": [
+            warning
+            for result in pdf_results
+            for warning in _metadata_list(
+                result.metadata.get("reading_order_warnings")
+            )
+        ],
+        "pdf_table_text_dedup_pages": _pdf_metadata_sum(
+            pdf_results,
+            "table_text_dedup_pages",
+        ),
+        "pdf_table_text_dedup_removed_lines": _pdf_metadata_sum(
+            pdf_results,
+            "table_text_dedup_removed_lines",
+        ),
+        "pdf_possible_formula_blocks": _pdf_metadata_sum(
+            pdf_results,
+            "possible_formula_blocks",
+        ),
+        "pdf_possible_formula_lines": _pdf_metadata_sum(
+            pdf_results,
+            "possible_formula_lines",
+        ),
+        "pdf_suspected_headers_filtered": _pdf_metadata_sum(
+            pdf_results,
+            "suspected_headers_filtered",
+        ),
+        "pdf_suspected_footers_filtered": _pdf_metadata_sum(
+            pdf_results,
+            "suspected_footers_filtered",
+        ),
         "pdf_warnings": warnings,
     }
+
+
+def _pdf_reading_order_strategy(pdf_results: list[PdfLoadResult]) -> str:
+    strategies = [
+        str(result.metadata.get("reading_order_strategy"))
+        for result in pdf_results
+        if result.metadata.get("reading_order_strategy")
+    ]
+    if "coordinate_blocks" in strategies:
+        return "coordinate_blocks"
+    if "pdfplumber_words" in strategies:
+        return "pdfplumber_words"
+    if strategies:
+        return strategies[0]
+    return "pdfplumber_words"
+
+
+def _pdf_metadata_sum(pdf_results: list[PdfLoadResult], key: str) -> int:
+    return sum(int(result.metadata.get(key, 0) or 0) for result in pdf_results)
+
+
+def _metadata_list(value: object) -> list[object]:
+    if isinstance(value, list):
+        return value
+    return []
