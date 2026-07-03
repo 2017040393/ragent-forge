@@ -1,5 +1,7 @@
 # RAGentForge Architecture
 
+> Language: English | [中文](ARCHITECTURE.zh-CN.md)
+
 ## Overview
 
 RAGentForge is a local-first, inspectable RAG console. It keeps the current

@@ -1,5 +1,7 @@
 # RAGentForge Project Walkthrough
 
+> Language: English | [中文](PROJECT_WALKTHROUGH.zh-CN.md)
+
 ## What This Demo Shows
 
 This walkthrough demonstrates the current local RAG loop:

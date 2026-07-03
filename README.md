@@ -1,5 +1,7 @@
 # RAGentForge
 
+> Language: English | [中文](README.zh-CN.md)
+
 RAGentForge is a local-first and inspectable command-first RAG console for
 working with Markdown/TXT knowledge bases from the terminal. It focuses on the
 parts of RAG that should be easy to see: what was ingested, how text was
@@ -194,6 +196,12 @@ v0.1 includes local ingestion, deterministic chunks, lexical retrieval,
 semantic retrieval, hybrid RRF retrieval, optional generation, source display,
 traces, retrieval evaluation, and a command-first TUI Shell.
 
+## Release and Portfolio Materials
+
+- [v0.1 Demo Script](docs/DEMO_SCRIPT.md)
+- [v0.1 Release Notes](docs/RELEASE_NOTES_V0_1.md)
+- [Portfolio Summary](docs/PORTFOLIO_SUMMARY.md)
+
 ## Current Limitations
 
 RAGentForge v0.1 intentionally does not include BM25, reranking,
@@ -218,3 +226,6 @@ More context:
 - [docs/PROJECT_WALKTHROUGH.md](docs/PROJECT_WALKTHROUGH.md)
 - [docs/V0_1_SCOPE.md](docs/V0_1_SCOPE.md)
 - [docs/TUI_COMMAND_SHELL_DESIGN.md](docs/TUI_COMMAND_SHELL_DESIGN.md)
+- [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)
+- [docs/RELEASE_NOTES_V0_1.md](docs/RELEASE_NOTES_V0_1.md)
+- [docs/PORTFOLIO_SUMMARY.md](docs/PORTFOLIO_SUMMARY.md)

@@ -1,5 +1,7 @@
 # RAGentForge v0.1 Scope
 
+> Language: English | [中文](V0_1_SCOPE.zh-CN.md)
+
 ## v0.1 Goal
 
 RAGentForge v0.1 is a local-first, inspectable RAG MVP. Its goal is to make the

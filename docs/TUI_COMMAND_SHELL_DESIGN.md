@@ -1,5 +1,7 @@
 # TUI Command Shell Design
 
+> Language: English | [中文](TUI_COMMAND_SHELL_DESIGN.zh-CN.md)
+
 ## Motivation
 
 The TUI is a single command-first Shell interface rather than a management

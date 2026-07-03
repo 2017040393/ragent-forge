@@ -1,5 +1,7 @@
 # Related Projects
 
+> Language: English | [中文](related_projects.zh-CN.md)
+
 RAGentForge is inspired by the broader RAG, agent, and evaluation ecosystem,
 including:
 

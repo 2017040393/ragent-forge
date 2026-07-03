@@ -1,5 +1,7 @@
 # Project Positioning
 
+> Language: English | [中文](project_positioning.zh-CN.md)
+
 RAGentForge is a local-first TUI application for building inspectable Agentic
 RAG workflows over personal knowledge bases. The first users are developers who
 want to work with their own Markdown and TXT notes, project documents, learning

@@ -1,24 +1,29 @@
 # Roadmap
 
+> Language: English | [中文](roadmap.zh-CN.md)
+
 ## v0.1: Local TUI + Inspectable RAG
 
 Goals:
 - Load local Markdown/TXT files.
 - Chunk documents deterministically.
-- Add a minimal local index and retrieval path.
-- Show sources and traces in the TUI.
+- Support lexical, semantic, and hybrid retrieval.
+- Support source-grounded Ask with optional generation.
+- Add local traces and retrieval evaluation.
+- Show sources, traces, settings, and source inspection in the command-first TUI.
 
 Non-goals:
 - Real autonomous agents.
 - Cloud sync or hosted services.
 - PDF ingestion or complex document parsing.
 
-## v0.2: Hybrid Retrieval + Better Trace
+## v0.2: Retrieval Quality + Better Source Inspection
 
 Goals:
-- Combine keyword and vector retrieval.
+- Improve lexical retrieval quality beyond the current token-overlap baseline.
+- Add retrieval comparison workflows.
 - Make retrieval scores and source selection easier to inspect.
-- Improve trace display and export.
+- Improve trace display, export, and demo polish.
 
 Non-goals:
 - Enterprise search features.
