@@ -9,6 +9,8 @@ BlockType = Literal[
     "table",
     "formula",
     "list",
+    "code",
+    "blockquote",
     "caption",
     "unknown",
 ]

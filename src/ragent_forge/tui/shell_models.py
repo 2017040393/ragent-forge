@@ -7,7 +7,7 @@ from typing import Any, Literal, cast
 from ragent_forge.app.services.chunk_service import make_preview
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.source_labels import (
-    format_pdf_source_metadata as _format_pdf_source_metadata,
+    format_source_metadata as _format_structured_source_metadata,
 )
 from ragent_forge.tui.view_models import (
     AskPageState,
@@ -442,19 +442,19 @@ def format_shell_source_details(source: TranscriptSource) -> str:
         f"chunk: {compact_chunk_label(source.chunk_id)}",
         f"score: {source.score:.4g}",
     ]
-    pdf_lines = _format_pdf_source_metadata(source.metadata)
-    if pdf_lines:
-        lines.extend(pdf_lines)
+    source_metadata_lines = _format_structured_source_metadata(source.metadata)
+    if source_metadata_lines:
+        lines.extend(source_metadata_lines)
     lines.extend(["", "preview:"])
     lines.extend(f"  {line}" for line in preview.splitlines() or [""])
 
-    metadata_lines = _format_source_metadata(source.metadata)
+    metadata_lines = _format_retrieval_source_metadata(source.metadata)
     if metadata_lines:
         lines.extend(["", "Retrieval metadata", "", *metadata_lines])
     return "\n".join(lines)
 
 
-def _format_source_metadata(metadata: dict[str, Any]) -> list[str]:
+def _format_retrieval_source_metadata(metadata: dict[str, Any]) -> list[str]:
     lines: list[str] = []
     for key, label in _SOURCE_METADATA_LABELS.items():
         if key in metadata:

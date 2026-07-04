@@ -70,6 +70,16 @@ def format_pdf_source_metadata(metadata: Mapping[str, Any] | None) -> list[str]:
     return lines
 
 
+def format_source_metadata(metadata: Mapping[str, Any] | None) -> list[str]:
+    if _is_pdf_metadata(metadata):
+        return format_pdf_source_metadata(metadata)
+    if _is_markdown_metadata(metadata):
+        return _format_markdown_source_metadata(metadata)
+    if _is_text_metadata(metadata):
+        return _format_text_source_metadata(metadata)
+    return []
+
+
 def format_source_range(
     start_char: int | None,
     end_char: int | None,
@@ -97,6 +107,38 @@ def _basename(path: str) -> str:
 
 def _is_pdf_metadata(metadata: Mapping[str, Any] | None) -> bool:
     return bool(metadata and metadata.get("media_type") == "application/pdf")
+
+
+def _is_markdown_metadata(metadata: Mapping[str, Any] | None) -> bool:
+    return bool(metadata and metadata.get("media_type") == "text/markdown")
+
+
+def _is_text_metadata(metadata: Mapping[str, Any] | None) -> bool:
+    return bool(metadata and metadata.get("media_type") == "text/plain")
+
+
+def _format_markdown_source_metadata(metadata: Mapping[str, Any]) -> list[str]:
+    lines = ["type: markdown"]
+    section_title = metadata.get("section_title")
+    if isinstance(section_title, str) and section_title:
+        lines.append(f"section: {section_title}")
+
+    heading_path = _metadata_string_list(metadata.get("heading_path"))
+    if heading_path:
+        lines.append(f"heading path: {' > '.join(heading_path)}")
+
+    block_type = _block_type_text(metadata)
+    if block_type:
+        lines.append(f"block type: {block_type}")
+    return lines
+
+
+def _format_text_source_metadata(metadata: Mapping[str, Any]) -> list[str]:
+    lines = ["type: text"]
+    block_type = _block_type_text(metadata)
+    if block_type:
+        lines.append(f"block type: {block_type}")
+    return lines
 
 
 def _optional_int(value: Any) -> int | None:
@@ -151,3 +193,9 @@ def _warning_text(metadata: Mapping[str, Any]) -> str:
         if isinstance(kind, str) and kind not in kinds:
             kinds.append(kind)
     return ", ".join(kinds)
+
+
+def _metadata_string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str) and item]

@@ -272,3 +272,161 @@ def test_block_chunker_filters_formula_metadata_for_split_chunks() -> None:
         assert chunk.metadata["page_start"] == 4
         assert chunk.metadata["page_end"] == 4
         assert chunk.metadata["reading_order_strategy"] == "coordinate_blocks"
+
+
+def test_block_chunker_handles_markdown_blocks_with_char_ranges() -> None:
+    document = Document(
+        id="/knowledge/rag.md",
+        text="",
+        metadata={
+            "source_path": "/knowledge/rag.md",
+            "media_type": "text/markdown",
+        },
+    )
+    blocks = (
+        DocumentBlock(
+            source_path="/knowledge/rag.md",
+            media_type="text/markdown",
+            page_number=None,
+            block_index=0,
+            block_type="heading",
+            text="# RAG Basics",
+            metadata={
+                "media_type": "text/markdown",
+                "start_char": 0,
+                "end_char": 12,
+                "section_title": "RAG Basics",
+                "heading_path": ["RAG Basics"],
+            },
+        ),
+        DocumentBlock(
+            source_path="/knowledge/rag.md",
+            media_type="text/markdown",
+            page_number=None,
+            block_index=1,
+            block_type="paragraph",
+            text="Hybrid retrieval combines lexical and semantic evidence.",
+            metadata={
+                "media_type": "text/markdown",
+                "start_char": 14,
+                "end_char": 70,
+                "section_title": "RAG Basics",
+                "heading_path": ["RAG Basics"],
+            },
+        ),
+    )
+
+    chunks = BlockChunker(chunk_size=100, chunk_overlap=0).chunk(document, blocks)
+
+    assert len(chunks) == 1
+    assert chunks[0].metadata["media_type"] == "text/markdown"
+    assert chunks[0].metadata["block_types"] == ["heading", "paragraph"]
+    assert chunks[0].metadata["start_char"] == 0
+    assert chunks[0].metadata["end_char"] == 70
+    assert chunks[0].metadata["section_title"] == "RAG Basics"
+    assert chunks[0].metadata["heading_path"] == ["RAG Basics"]
+    assert "page_start" not in chunks[0].metadata
+    assert "page_end" not in chunks[0].metadata
+
+
+def test_block_chunker_keeps_markdown_table_standalone() -> None:
+    document = Document(
+        id="/knowledge/rag.md",
+        text="",
+        metadata={
+            "source_path": "/knowledge/rag.md",
+            "media_type": "text/markdown",
+        },
+    )
+    blocks = (
+        DocumentBlock(
+            source_path="/knowledge/rag.md",
+            media_type="text/markdown",
+            page_number=None,
+            block_index=0,
+            block_type="paragraph",
+            text="Results:",
+            metadata={
+                "media_type": "text/markdown",
+                "start_char": 0,
+                "end_char": 8,
+            },
+        ),
+        DocumentBlock(
+            source_path="/knowledge/rag.md",
+            media_type="text/markdown",
+            page_number=None,
+            block_index=1,
+            block_type="table",
+            text="| Method | MRR |\n|---|---|\n| hybrid | 1.00 |",
+            metadata={
+                "media_type": "text/markdown",
+                "start_char": 10,
+                "end_char": 56,
+                "serialization": "markdown_table",
+            },
+        ),
+        DocumentBlock(
+            source_path="/knowledge/rag.md",
+            media_type="text/markdown",
+            page_number=None,
+            block_index=2,
+            block_type="paragraph",
+            text="Done.",
+            metadata={
+                "media_type": "text/markdown",
+                "start_char": 58,
+                "end_char": 63,
+            },
+        ),
+    )
+
+    chunks = BlockChunker(chunk_size=100, chunk_overlap=0).chunk(document, blocks)
+
+    assert [chunk.metadata["block_types"] for chunk in chunks] == [
+        ["paragraph"],
+        ["table"],
+        ["paragraph"],
+    ]
+    assert chunks[1].metadata["media_type"] == "text/markdown"
+    assert chunks[1].metadata["block_type"] == "table"
+    assert chunks[1].metadata["serialization"] == "markdown_table"
+    assert chunks[1].metadata["start_char"] == 10
+    assert chunks[1].metadata["end_char"] == 56
+
+
+def test_block_chunker_handles_text_plain_blocks() -> None:
+    document = Document(
+        id="/knowledge/notes.txt",
+        text="",
+        metadata={
+            "source_path": "/knowledge/notes.txt",
+            "media_type": "text/plain",
+        },
+    )
+    blocks = (
+        DocumentBlock(
+            source_path="/knowledge/notes.txt",
+            media_type="text/plain",
+            page_number=None,
+            block_index=0,
+            block_type="paragraph",
+            text="Plain text knowledge.",
+            metadata={
+                "media_type": "text/plain",
+                "start_char": 0,
+                "end_char": 21,
+            },
+        ),
+    )
+
+    chunks = BlockChunker(chunk_size=100, chunk_overlap=0).chunk(document, blocks)
+
+    assert len(chunks) == 1
+    assert chunks[0].metadata["media_type"] == "text/plain"
+    assert chunks[0].metadata["block_types"] == ["paragraph"]
+    assert chunks[0].metadata["block_type"] == "paragraph"
+    assert chunks[0].metadata["start_char"] == 0
+    assert chunks[0].metadata["end_char"] == 21
+    assert "page_start" not in chunks[0].metadata
+    assert "page_end" not in chunks[0].metadata

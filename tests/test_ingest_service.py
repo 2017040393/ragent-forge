@@ -34,6 +34,14 @@ def test_ingests_markdown_and_txt_files_recursively(tmp_path: Path) -> None:
         "opqrs",
         "stuv",
     ]
+    assert result.chunks[0].metadata["media_type"] == "text/markdown"
+    assert result.chunks[-1].metadata["media_type"] == "text/plain"
+    for chunk in result.chunks:
+        assert "block_types" in chunk.metadata
+        assert isinstance(chunk.metadata["start_char"], int)
+        assert isinstance(chunk.metadata["end_char"], int)
+        assert "page_start" not in chunk.metadata
+        assert "page_end" not in chunk.metadata
 
 
 def test_ingests_single_supported_file(tmp_path: Path) -> None:
@@ -46,6 +54,11 @@ def test_ingests_single_supported_file(tmp_path: Path) -> None:
     assert result.chunk_count == 1
     assert result.skipped_count == 0
     assert result.documents[0].metadata["file_name"] == "single.md"
+    assert result.documents[0].metadata["media_type"] == "text/markdown"
+    assert result.chunks[0].metadata["media_type"] == "text/markdown"
+    assert result.chunks[0].metadata["block_types"] == ["paragraph"]
+    assert result.chunks[0].metadata["start_char"] == 0
+    assert result.chunks[0].metadata["end_char"] == len("local first")
 
 
 def test_ingest_service_allows_custom_chunk_size_without_overlap(
@@ -58,6 +71,8 @@ def test_ingest_service_allows_custom_chunk_size_without_overlap(
 
     assert result.chunk_count == 2
     assert [chunk.text for chunk in result.chunks] == ["abcde", "fghij"]
+    assert [chunk.metadata["start_char"] for chunk in result.chunks] == [0, 5]
+    assert [chunk.metadata["end_char"] for chunk in result.chunks] == [5, 10]
 
 
 def test_ingest_rejects_missing_path(tmp_path: Path) -> None:

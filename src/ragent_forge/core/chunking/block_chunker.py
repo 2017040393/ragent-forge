@@ -66,13 +66,20 @@ class BlockChunker:
     ) -> None:
         step = self.chunk_size - self.chunk_overlap
         start = 0
+        block_start_char = _optional_int(block.metadata.get("start_char"))
         while start < len(block.text):
             end = min(start + self.chunk_size, len(block.text))
+            char_range = (
+                (block_start_char + start, block_start_char + end)
+                if block_start_char is not None
+                else None
+            )
             self._append_chunk(
                 document,
                 [block],
                 chunks,
                 text_override=block.text[start:end],
+                char_range_override=char_range,
             )
             if end == len(block.text):
                 break
@@ -84,11 +91,18 @@ class BlockChunker:
         blocks: Sequence[DocumentBlock],
         chunks: list[DocumentChunk],
         text_override: str | None = None,
+        char_range_override: tuple[int, int] | None = None,
     ) -> None:
         source_path = str(document.metadata.get("source_path", document.id))
         chunk_index = len(chunks)
         text = text_override if text_override is not None else _joined_text(blocks)
-        metadata = _chunk_metadata(source_path, text, self.chunk_size, blocks)
+        metadata = _chunk_metadata(
+            source_path,
+            text,
+            self.chunk_size,
+            blocks,
+            char_range_override=char_range_override,
+        )
         chunks.append(
             DocumentChunk(
                 id=f"{source_path}::chunk-{chunk_index:04d}",
@@ -109,9 +123,138 @@ def _chunk_metadata(
     text: str,
     chunk_size: int,
     blocks: Sequence[DocumentBlock],
+    *,
+    char_range_override: tuple[int, int] | None = None,
 ) -> dict[str, Any]:
-    pages = [block.page_number for block in blocks if block.page_number is not None]
+    media_type = _media_type(blocks)
     block_types = _unique([block.block_type for block in blocks])
+    metadata: dict[str, Any] = {
+        "source_path": source_path,
+        "media_type": media_type,
+        "block_types": block_types,
+    }
+    if len(block_types) == 1:
+        metadata["block_type"] = block_types[0]
+    _copy_character_range_metadata(
+        metadata,
+        blocks,
+        char_range_override=char_range_override,
+    )
+    _copy_section_metadata(metadata, blocks)
+    _copy_general_metadata(metadata, blocks)
+    _copy_warning_metadata(metadata, blocks, include_empty=_is_pdf(media_type))
+
+    if _is_pdf(media_type):
+        _copy_pdf_metadata(metadata, blocks, chunk_text=text)
+
+    if len(text) > chunk_size:
+        metadata["exceeds_chunk_size"] = True
+    return metadata
+
+
+def _media_type(blocks: Sequence[DocumentBlock]) -> str:
+    for block in blocks:
+        if block.media_type:
+            return block.media_type
+    for block in blocks:
+        media_type = _optional_str(block.metadata.get("media_type"))
+        if media_type:
+            return media_type
+    return "application/octet-stream"
+
+
+def _is_pdf(media_type: str) -> bool:
+    return media_type == "application/pdf"
+
+
+def _copy_character_range_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+    *,
+    char_range_override: tuple[int, int] | None,
+) -> None:
+    if char_range_override is not None:
+        metadata["start_char"] = char_range_override[0]
+        metadata["end_char"] = char_range_override[1]
+        return
+
+    ranges = [
+        (start_char, end_char)
+        for block in blocks
+        for start_char, end_char in [
+            (
+                _optional_int(block.metadata.get("start_char")),
+                _optional_int(block.metadata.get("end_char")),
+            )
+        ]
+        if start_char is not None and end_char is not None
+    ]
+    if ranges:
+        metadata["start_char"] = min(start for start, _ in ranges)
+        metadata["end_char"] = max(end for _, end in ranges)
+
+
+def _copy_section_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+) -> None:
+    section_title = _first_metadata_string(blocks, "section_title")
+    if section_title:
+        metadata["section_title"] = section_title
+
+    heading_path = _first_metadata_string_list(blocks, "heading_path")
+    if heading_path:
+        metadata["heading_path"] = heading_path
+
+
+def _copy_general_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+) -> None:
+    for key in ("serialization", "code_language"):
+        value = _first_metadata_string(blocks, key)
+        if value:
+            metadata[key] = value
+
+    heading_levels = _unique(
+        [
+            heading_level
+            for block in blocks
+            for heading_level in [_optional_int(block.metadata.get("heading_level"))]
+            if heading_level is not None
+        ]
+    )
+    if len(heading_levels) == 1:
+        metadata["heading_level"] = heading_levels[0]
+
+
+def _copy_warning_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+    *,
+    include_empty: bool,
+) -> None:
+    warnings = [
+        warning
+        for block in blocks
+        for warning in _warning_dicts(block.metadata.get("warnings"))
+    ]
+    if warnings or include_empty:
+        metadata["warnings"] = warnings
+
+
+def _copy_pdf_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+    *,
+    chunk_text: str,
+) -> None:
+    pages = [block.page_number for block in blocks if block.page_number is not None]
+    if pages:
+        metadata["page_start"] = min(pages)
+        metadata["page_end"] = max(pages)
+    metadata["extraction_method"] = "pdf_structured"
+
     table_indices = _unique(
         [
             table_index
@@ -120,32 +263,14 @@ def _chunk_metadata(
             if table_index is not None
         ]
     )
-    warnings = [
-        warning
-        for block in blocks
-        for warning in _warning_dicts(block.metadata.get("warnings"))
-    ]
-    metadata: dict[str, Any] = {
-        "source_path": source_path,
-        "media_type": "application/pdf",
-        "page_start": min(pages) if pages else None,
-        "page_end": max(pages) if pages else None,
-        "block_types": block_types,
-        "extraction_method": "pdf_structured",
-        "warnings": warnings,
-    }
-    if len(block_types) == 1:
-        metadata["block_type"] = block_types[0]
     if table_indices:
         metadata["table_indices"] = table_indices
+
     _copy_reading_order_metadata(metadata, blocks)
     _copy_table_context_metadata(metadata, blocks)
     _copy_table_dedup_metadata(metadata, blocks)
-    _copy_formula_metadata(metadata, blocks, chunk_text=text)
+    _copy_formula_metadata(metadata, blocks, chunk_text=chunk_text)
     _copy_header_footer_metadata(metadata, blocks)
-    if len(text) > chunk_size:
-        metadata["exceeds_chunk_size"] = True
-    return metadata
 
 
 def _unique(values: Sequence[Any]) -> list[Any]:
@@ -279,6 +404,17 @@ def _first_metadata_string(
         if value:
             return value
     return None
+
+
+def _first_metadata_string_list(
+    blocks: Sequence[DocumentBlock],
+    key: str,
+) -> list[str]:
+    for block in blocks:
+        values = _metadata_string_list(block.metadata.get(key))
+        if values:
+            return values
+    return []
 
 
 def _sum_metadata_int(

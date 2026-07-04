@@ -3,25 +3,15 @@ from typing import Any
 
 from ragent_forge.app.models import IngestResult
 from ragent_forge.core.chunking.block_chunker import BlockChunker
-from ragent_forge.core.chunking.simple_chunker import SimpleChunker
-from ragent_forge.core.ingestion.markdown_loader import (
-    SUPPORTED_EXTENSIONS as TEXT_EXTENSIONS,
+from ragent_forge.core.ingestion.structured_loader import (
+    SUPPORTED_EXTENSIONS,
+    load_structured_document,
 )
-from ragent_forge.core.ingestion.markdown_loader import (
-    load_document,
-)
-from ragent_forge.core.ingestion.pdf_loader import PdfLoadResult, load_pdf_document
-
-PDF_EXTENSIONS = {".pdf"}
-SUPPORTED_EXTENSIONS = TEXT_EXTENSIONS | PDF_EXTENSIONS
+from ragent_forge.core.ingestion.structured_result import StructuredLoadResult
 
 
 class IngestService:
     def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 0) -> None:
-        self.chunker = SimpleChunker(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-        )
         self.block_chunker = BlockChunker(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -52,22 +42,27 @@ class IngestService:
 
         documents = []
         chunks = []
-        pdf_results: list[PdfLoadResult] = []
+        pdf_results: list[StructuredLoadResult] = []
+        structured_block_count = 0
+        markdown_files_ingested = 0
+        text_files_ingested = 0
         for file_path in supported_files:
-            if file_path.suffix.lower() in PDF_EXTENSIONS:
-                pdf_result = load_pdf_document(file_path)
-                pdf_results.append(pdf_result)
-                documents.append(pdf_result.document)
-                chunks.extend(
-                    self.block_chunker.chunk(
-                        pdf_result.document,
-                        pdf_result.blocks,
-                    )
+            structured_result = load_structured_document(file_path)
+            documents.append(structured_result.document)
+            structured_block_count += len(structured_result.blocks)
+            media_type = structured_result.document.metadata.get("media_type")
+            if media_type == "application/pdf":
+                pdf_results.append(structured_result)
+            elif media_type == "text/markdown":
+                markdown_files_ingested += 1
+            elif media_type == "text/plain":
+                text_files_ingested += 1
+            chunks.extend(
+                self.block_chunker.chunk(
+                    structured_result.document,
+                    structured_result.blocks,
                 )
-            else:
-                document = load_document(file_path)
-                documents.append(document)
-                chunks.extend(self.chunker.chunk(document))
+            )
 
         if not chunks:
             raise ValueError(
@@ -75,8 +70,15 @@ class IngestService:
             )
 
         metadata: dict[str, Any] = {
-            "chunk_size": self.chunker.chunk_size,
-            "chunk_overlap": self.chunker.chunk_overlap,
+            "chunk_size": self.block_chunker.chunk_size,
+            "chunk_overlap": self.block_chunker.chunk_overlap,
+            "structured_ingestion": {
+                "enabled": True,
+                "block_count": structured_block_count,
+                "markdown_files_ingested": markdown_files_ingested,
+                "text_files_ingested": text_files_ingested,
+                "pdf_files_ingested": len(pdf_results),
+            },
         }
         if pdf_results:
             metadata["pdf"] = _pdf_summary(pdf_results)
@@ -102,9 +104,9 @@ class IngestService:
         )
 
 
-def _pdf_summary(pdf_results: list[PdfLoadResult]) -> dict[str, Any]:
+def _pdf_summary(pdf_results: list[StructuredLoadResult]) -> dict[str, Any]:
     warnings = [
-        warning.to_dict()
+        _warning_to_dict(warning)
         for result in pdf_results
         for warning in result.warnings
     ]
@@ -167,7 +169,7 @@ def _pdf_summary(pdf_results: list[PdfLoadResult]) -> dict[str, Any]:
     }
 
 
-def _pdf_reading_order_strategy(pdf_results: list[PdfLoadResult]) -> str:
+def _pdf_reading_order_strategy(pdf_results: list[StructuredLoadResult]) -> str:
     strategies = [
         str(result.metadata.get("reading_order_strategy"))
         for result in pdf_results
@@ -182,7 +184,7 @@ def _pdf_reading_order_strategy(pdf_results: list[PdfLoadResult]) -> str:
     return "pdfplumber_words"
 
 
-def _pdf_metadata_sum(pdf_results: list[PdfLoadResult], key: str) -> int:
+def _pdf_metadata_sum(pdf_results: list[StructuredLoadResult], key: str) -> int:
     return sum(int(result.metadata.get(key, 0) or 0) for result in pdf_results)
 
 
@@ -190,3 +192,13 @@ def _metadata_list(value: object) -> list[object]:
     if isinstance(value, list):
         return value
     return []
+
+
+def _warning_to_dict(warning: object) -> dict[str, Any]:
+    if hasattr(warning, "to_dict"):
+        value = warning.to_dict()
+        if isinstance(value, dict):
+            return value
+    if isinstance(warning, dict):
+        return warning
+    return {"message": str(warning)}

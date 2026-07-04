@@ -117,3 +117,59 @@ def test_shell_source_list_and_inspector_show_pdf_metadata() -> None:
     assert "table: 2" in inspector_text
     assert "table caption: Table 2: Retrieval Evaluation Results" in inspector_text
     assert "possible formula: yes" in inspector_text
+
+
+def test_tui_inspectors_show_markdown_section_metadata() -> None:
+    result = SearchResult(
+        chunk_id="/knowledge/rag.md::chunk-0001",
+        document_id="/knowledge/rag.md",
+        source_path="/knowledge/rag.md",
+        score=1.0,
+        text="Hybrid retrieval combines lexical and semantic search.",
+        metadata={
+            "media_type": "text/markdown",
+            "block_types": ["paragraph"],
+            "section_title": "Hybrid Retrieval",
+            "heading_path": ["RAG Basics", "Hybrid Retrieval"],
+            "retrieval_method": "lexical_token_overlap",
+        },
+    )
+    source = TranscriptSource(
+        rank=1,
+        chunk_id=result.chunk_id,
+        source_path=result.source_path,
+        score=result.score,
+        preview=result.text,
+        metadata=result.metadata,
+    )
+
+    search_inspector = format_search_result_inspector(result, "lexical")
+    shell_inspector = format_shell_inspector(ShellState(selected_source=source))
+
+    for text in (search_inspector, shell_inspector):
+        assert "source: rag.md" in text
+        assert "type: markdown" in text
+        assert "section: Hybrid Retrieval" in text
+        assert "heading path: RAG Basics > Hybrid Retrieval" in text
+        assert "block type: paragraph" in text
+
+
+def test_tui_inspectors_show_text_source_metadata() -> None:
+    result = SearchResult(
+        chunk_id="/knowledge/notes.txt::chunk-0000",
+        document_id="/knowledge/notes.txt",
+        source_path="/knowledge/notes.txt",
+        score=1.0,
+        text="Plain notes.",
+        metadata={
+            "media_type": "text/plain",
+            "block_types": ["paragraph"],
+            "retrieval_method": "lexical_token_overlap",
+        },
+    )
+
+    inspector_text = format_search_result_inspector(result, "lexical")
+
+    assert "source: notes.txt" in inspector_text
+    assert "type: text" in inspector_text
+    assert "block type: paragraph" in inspector_text

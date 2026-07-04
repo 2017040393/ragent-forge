@@ -15,8 +15,8 @@ from ragent_forge.app.services.search_service import LexicalSearchService, Searc
 from ragent_forge.app.services.semantic_search_service import SemanticSearchService
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
 from ragent_forge.app.source_labels import (
-    format_pdf_source_metadata,
     format_source_label,
+    format_source_metadata,
 )
 from ragent_forge.app.workspace import LocalWorkspace
 
@@ -684,7 +684,7 @@ def format_search_result_inspector(
         f"score: {result.score:.4g}",
         f"method: {metadata.get('retrieval_method', retrieval_mode)}",
     ]
-    lines.extend(format_pdf_source_metadata(metadata))
+    lines.extend(format_source_metadata(metadata))
     if "fusion_method" in metadata:
         lines.extend(["", "RRF:"])
         fusion = metadata.get("fusion_method")

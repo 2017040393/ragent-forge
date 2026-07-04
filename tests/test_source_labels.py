@@ -1,4 +1,8 @@
-from ragent_forge.app.source_labels import format_source_label, format_source_range
+from ragent_forge.app.source_labels import (
+    format_source_label,
+    format_source_metadata,
+    format_source_range,
+)
 
 
 def test_format_source_label_returns_basename_without_metadata() -> None:
@@ -98,3 +102,35 @@ def test_format_source_range_formats_pdf_page_range() -> None:
 
 def test_format_source_range_returns_empty_without_range_metadata() -> None:
     assert format_source_range(None, None, {}) == ""
+
+
+def test_format_source_metadata_shows_markdown_section_details() -> None:
+    lines = format_source_metadata(
+        {
+            "media_type": "text/markdown",
+            "block_types": ["paragraph"],
+            "section_title": "Hybrid Retrieval",
+            "heading_path": ["RAG Basics", "Hybrid Retrieval"],
+        }
+    )
+
+    assert lines == [
+        "type: markdown",
+        "section: Hybrid Retrieval",
+        "heading path: RAG Basics > Hybrid Retrieval",
+        "block type: paragraph",
+    ]
+
+
+def test_format_source_metadata_shows_text_type() -> None:
+    lines = format_source_metadata(
+        {
+            "media_type": "text/plain",
+            "block_types": ["paragraph"],
+        }
+    )
+
+    assert lines == [
+        "type: text",
+        "block type: paragraph",
+    ]
