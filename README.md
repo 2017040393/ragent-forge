@@ -3,7 +3,7 @@
 > Language: English | [中文](README.zh-CN.md)
 
 RAGentForge is a local-first and inspectable command-first RAG console for
-working with Markdown/TXT knowledge bases from the terminal. It focuses on the
+working with Markdown/TXT/PDF knowledge bases from the terminal. It focuses on the
 parts of RAG that should be easy to see: what was ingested, how text was
 chunked, which sources were retrieved, what prompt was assembled, and what
 trace was produced.
@@ -30,7 +30,11 @@ reports.
 ## Features
 
 - Markdown/TXT ingestion from local files or folders.
-- Deterministic chunking into JSONL records.
+- PDF ingestion with page text, table extraction, page ranges, and source
+  quality metadata.
+- Unified structured ingestion through `DocumentBlock[] -> BlockChunker` for
+  Markdown, TXT, and PDF.
+- Deterministic chunking into JSONL records with format-aware metadata.
 - Local workspace storage under `.ragent/`.
 - Lexical retrieval over generated chunks.
 - OpenAI-compatible embedding configuration for semantic retrieval.
@@ -62,6 +66,12 @@ uv run ragent status --workspace .ragent
 uv run ragent chunks list --workspace .ragent
 ```
 
+Inspect a chunk and its structured metadata:
+
+```bash
+uv run ragent chunks show "<chunk_id>" --workspace .ragent
+```
+
 Run lexical retrieval:
 
 ```bash
@@ -82,6 +92,9 @@ directory. Use the CLI for ingest, index build, eval, and config editing.
 
 For the reproducible demo flow, see
 [docs/PROJECT_WALKTHROUGH.md](docs/PROJECT_WALKTHROUGH.md).
+
+For the structured ingestion branch demo, see
+[docs/STRUCTURED_INGESTION_DEMO.md](docs/STRUCTURED_INGESTION_DEMO.md).
 
 The short version:
 
@@ -189,6 +202,9 @@ focused core modules, and local workspace storage. The high-level pipeline is:
 ```text
 local documents
 -> ingest
+-> structured loaders
+-> Document + DocumentBlock[]
+-> BlockChunker
 -> deterministic chunks
 -> lexical / semantic / hybrid retrieval
 -> context pack
@@ -202,6 +218,9 @@ local documents
 Read the full architecture note:
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+The structured ingestion branch design note is here:
+[docs/STRUCTURED_INGESTION_DESIGN.md](docs/STRUCTURED_INGESTION_DESIGN.md).
+
 The TUI design note is here:
 [docs/TUI_COMMAND_SHELL_DESIGN.md](docs/TUI_COMMAND_SHELL_DESIGN.md).
 
@@ -214,17 +233,25 @@ v0.1 includes local ingestion, deterministic chunks, lexical retrieval,
 semantic retrieval, hybrid RRF retrieval, optional generation, source display,
 traces, retrieval evaluation, and a command-first TUI Shell.
 
+The `Develop_PDF` branch adds the v0.1.1-v0.1.3 PDF and structured ingestion
+work: PDF page/table ingestion, extraction quality polish, and a unified
+`DocumentBlock` foundation for Markdown, TXT, and PDF.
+
 ## Release and Portfolio Materials
 
 - [v0.1 Demo Script](docs/DEMO_SCRIPT.md)
 - [v0.1 Release Notes](docs/RELEASE_NOTES_V0_1.md)
+- [v0.1.3 Structured Ingestion Release Notes](docs/RELEASE_NOTES_V0_1_3.md)
+- [Structured Ingestion Demo Workflow](docs/STRUCTURED_INGESTION_DEMO.md)
+- [Structured Ingestion Design](docs/STRUCTURED_INGESTION_DESIGN.md)
 - [Portfolio Summary](docs/PORTFOLIO_SUMMARY.md)
 
 ## Current Limitations
 
 RAGentForge v0.1 intentionally does not include BM25, reranking,
 cross-encoder reranking, LLM-as-judge, answer evaluation, query expansion,
-multi-turn memory, agent tool loops, planning loops, PDF/OCR, web UI, vector
+multi-turn memory, agent tool loops, planning loops, OCR/scanned PDF support,
+PDF viewing/editing, web UI, vector
 databases, streaming, session persistence, or TUI write operations such as
 ingest/index/eval/config editing.
 
@@ -244,6 +271,9 @@ More context:
 - [docs/PROJECT_WALKTHROUGH.md](docs/PROJECT_WALKTHROUGH.md)
 - [docs/V0_1_SCOPE.md](docs/V0_1_SCOPE.md)
 - [docs/TUI_COMMAND_SHELL_DESIGN.md](docs/TUI_COMMAND_SHELL_DESIGN.md)
+- [docs/STRUCTURED_INGESTION_DESIGN.md](docs/STRUCTURED_INGESTION_DESIGN.md)
+- [docs/STRUCTURED_INGESTION_DEMO.md](docs/STRUCTURED_INGESTION_DEMO.md)
 - [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)
 - [docs/RELEASE_NOTES_V0_1.md](docs/RELEASE_NOTES_V0_1.md)
+- [docs/RELEASE_NOTES_V0_1_3.md](docs/RELEASE_NOTES_V0_1_3.md)
 - [docs/PORTFOLIO_SUMMARY.md](docs/PORTFOLIO_SUMMARY.md)

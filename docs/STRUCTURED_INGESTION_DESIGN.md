@@ -4,6 +4,11 @@ This branch adds a unified structured ingestion foundation for local knowledge
 files. It is a branch-level design note and does not claim a released version
 until the branch is merged and released.
 
+Related branch documents:
+
+- [RELEASE_NOTES_V0_1_3.md](RELEASE_NOTES_V0_1_3.md)
+- [STRUCTURED_INGESTION_DEMO.md](STRUCTURED_INGESTION_DEMO.md)
+
 ## Why This Exists
 
 PDF ingestion introduced a structured path because page text, tables, reading
