@@ -1,4 +1,4 @@
-# v0.1.3 Unified Structured Ingestion Foundation
+# v0.1-alpha-1 Unified Structured Ingestion Foundation
 
 This branch adds a unified structured ingestion foundation for local knowledge
 files. It is a branch-level design note and does not claim a released version
@@ -6,7 +6,7 @@ until the branch is merged and released.
 
 Related branch documents:
 
-- [RELEASE_NOTES_V0_1_3.md](RELEASE_NOTES_V0_1_3.md)
+- [RELEASE_NOTES_V0_1_ALPHA_1.md](RELEASE_NOTES_V0_1_ALPHA_1.md)
 - [STRUCTURED_INGESTION_DEMO.md](STRUCTURED_INGESTION_DEMO.md)
 
 ## Why This Exists
@@ -16,7 +16,7 @@ order, formulas, and extraction warnings need more context than plain character
 windows can carry. Markdown and TXT previously still used plain text chunking,
 which left the ingestion architecture split across two models.
 
-The v0.1.3 foundation makes `DocumentBlock` the common intermediate
+The v0.1-alpha-1 foundation makes `DocumentBlock` the common intermediate
 representation for supported local formats:
 
 ```text

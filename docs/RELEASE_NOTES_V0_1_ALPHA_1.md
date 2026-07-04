@@ -1,4 +1,4 @@
-# RAGentForge v0.1.3 Structured Ingestion Branch Notes
+# RAGentForge v0.1-alpha-1 Structured Ingestion Branch Notes
 
 These notes describe the `Develop_PDF` branch after the PDF and structured
 ingestion work. They are suitable as draft release notes when the branch is
@@ -60,7 +60,7 @@ representation for format-specific metadata.
 - Added possible formula metadata for formula-like lines.
 - Added extraction warning propagation into chunk metadata and inspectors.
 
-### v0.1.3 Unified Structured Ingestion Foundation
+### v0.1-alpha-1 Unified Structured Ingestion Foundation
 
 - Markdown, TXT, and PDF now all flow through `DocumentBlock[]` before chunking.
 - `IngestService` uses the structured loader layer for every supported format.

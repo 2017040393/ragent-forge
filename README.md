@@ -233,7 +233,7 @@ v0.1 includes local ingestion, deterministic chunks, lexical retrieval,
 semantic retrieval, hybrid RRF retrieval, optional generation, source display,
 traces, retrieval evaluation, and a command-first TUI Shell.
 
-The `Develop_PDF` branch adds the v0.1.1-v0.1.3 PDF and structured ingestion
+The `Develop_PDF` branch adds the v0.1-alpha-1 PDF and structured ingestion
 work: PDF page/table ingestion, extraction quality polish, and a unified
 `DocumentBlock` foundation for Markdown, TXT, and PDF.
 
@@ -241,7 +241,7 @@ work: PDF page/table ingestion, extraction quality polish, and a unified
 
 - [v0.1 Demo Script](docs/DEMO_SCRIPT.md)
 - [v0.1 Release Notes](docs/RELEASE_NOTES_V0_1.md)
-- [v0.1.3 Structured Ingestion Release Notes](docs/RELEASE_NOTES_V0_1_3.md)
+- [v0.1-alpha-1 Structured Ingestion Release Notes](docs/RELEASE_NOTES_V0_1_ALPHA_1.md)
 - [Structured Ingestion Demo Workflow](docs/STRUCTURED_INGESTION_DEMO.md)
 - [Structured Ingestion Design](docs/STRUCTURED_INGESTION_DESIGN.md)
 - [Portfolio Summary](docs/PORTFOLIO_SUMMARY.md)
@@ -275,5 +275,5 @@ More context:
 - [docs/STRUCTURED_INGESTION_DEMO.md](docs/STRUCTURED_INGESTION_DEMO.md)
 - [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)
 - [docs/RELEASE_NOTES_V0_1.md](docs/RELEASE_NOTES_V0_1.md)
-- [docs/RELEASE_NOTES_V0_1_3.md](docs/RELEASE_NOTES_V0_1_3.md)
+- [docs/RELEASE_NOTES_V0_1_ALPHA_1.md](docs/RELEASE_NOTES_V0_1_ALPHA_1.md)
 - [docs/PORTFOLIO_SUMMARY.md](docs/PORTFOLIO_SUMMARY.md)
