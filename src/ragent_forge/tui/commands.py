@@ -21,6 +21,8 @@ TuiCommandName = Literal[
     "unknown",
 ]
 
+DEFAULT_SUGGESTION_LIMIT = 8
+
 
 @dataclass(frozen=True)
 class SlashCommandSpec:
@@ -231,11 +233,25 @@ def format_tui_command_help(
 def get_tui_command_suggestion_items(
     text: str,
     *,
-    limit: int = 6,
+    limit: int = DEFAULT_SUGGESTION_LIMIT,
+    selected_index: int | None = None,
 ) -> list[SlashCommandSpec]:
     if limit <= 0:
         return []
 
+    matches = get_tui_command_suggestion_matches(text)
+    if not matches:
+        return []
+
+    start = _suggestion_window_start(
+        total_count=len(matches),
+        limit=limit,
+        selected_index=selected_index,
+    )
+    return matches[start : start + limit]
+
+
+def get_tui_command_suggestion_matches(text: str) -> list[SlashCommandSpec]:
     raw = text.lstrip()
     if not raw or not raw.startswith("/"):
         return []
@@ -244,16 +260,47 @@ def get_tui_command_suggestion_items(
     if any(character.isspace() for character in command_fragment):
         return []
 
-    return match_tui_commands(command_fragment)[:limit]
+    return match_tui_commands(command_fragment)
+
+
+def _suggestion_window_start(
+    *,
+    total_count: int,
+    limit: int,
+    selected_index: int | None,
+) -> int:
+    visible_count = min(limit, total_count)
+    if selected_index is None or total_count <= visible_count:
+        return 0
+
+    selected_match_index = selected_index % total_count
+    return min(
+        max(0, selected_match_index - visible_count + 1),
+        total_count - visible_count,
+    )
+
+
+def _is_slash_command_prefix(text: str) -> bool:
+    raw = text.lstrip()
+    if not raw or not raw.startswith("/"):
+        return False
+
+    command_fragment = raw[1:]
+    return bool(command_fragment) and not any(
+        character.isspace() for character in command_fragment
+    )
 
 
 def complete_tui_command_suggestion(
     text: str,
     *,
     selected_index: int = 0,
-    limit: int = 6,
+    limit: int = DEFAULT_SUGGESTION_LIMIT,
 ) -> str | None:
-    items = get_tui_command_suggestion_items(text, limit=limit)
+    if limit <= 0:
+        return None
+
+    items = get_tui_command_suggestion_matches(text)
     if not items:
         return None
 
@@ -264,36 +311,40 @@ def complete_tui_command_suggestion(
 def format_tui_command_suggestions(
     text: str,
     *,
-    limit: int = 6,
+    limit: int = DEFAULT_SUGGESTION_LIMIT,
     selected_index: int | None = None,
 ) -> str:
-    visible_matches = get_tui_command_suggestion_items(text, limit=limit)
-    if not visible_matches:
-        raw = text.lstrip()
-        if not raw or not raw.startswith("/"):
-            return ""
-        command_fragment = raw[1:]
-        if not command_fragment or any(
-            character.isspace() for character in command_fragment
-        ):
+    all_matches = get_tui_command_suggestion_matches(text)
+    if not all_matches:
+        if not _is_slash_command_prefix(text):
             return ""
         return "No matching commands. Type /help for the command list."
 
+    visible_matches = get_tui_command_suggestion_items(
+        text,
+        limit=limit,
+        selected_index=selected_index,
+    )
     usage_width = max(len(command.usage) for command in visible_matches)
     lines = ["Suggestions:"]
     selected_match_index = (
-        selected_index % len(visible_matches)
+        selected_index % len(all_matches)
         if selected_index is not None
         else None
     )
-    for index, command in enumerate(visible_matches):
+    window_start = _suggestion_window_start(
+        total_count=len(all_matches),
+        limit=limit,
+        selected_index=selected_index,
+    )
+    for index, command in enumerate(visible_matches, start=window_start):
         marker = ">" if index == selected_match_index else " "
         lines.append(
             f"{marker} {command.usage.ljust(usage_width)}  {command.description}"
         )
 
-    if len(match_tui_commands(text.lstrip()[1:])) > limit:
-        lines.append("  ... type more to narrow results")
+    if len(all_matches) > limit:
+        lines.append("  ... use Up/Down for more")
     return "\n".join(lines)
 
 

@@ -202,14 +202,29 @@ def test_format_tui_command_suggestions_normal_text_returns_empty() -> None:
 
 
 def test_format_tui_command_suggestions_slash_returns_limited_suggestions() -> None:
-    text = format_tui_command_suggestions("/", limit=6)
+    text = format_tui_command_suggestions("/")
 
     assert text.startswith("Suggestions:\n")
     assert "/ask <question>" in text
     assert "/search <query>" in text
+    assert "/settings" in text
+    assert "/mode lexical|semantic|hybrid" in text
+    assert "/limit <n>" not in text
+    assert _suggestion_command_count(text) == 8
+    assert "use Up/Down for more" in text
+
+
+def test_format_tui_command_suggestions_scrolls_to_selected_item() -> None:
+    text = format_tui_command_suggestions("/", selected_index=8)
+
+    assert "/ask <question>" not in text
+    assert "/search <query>" in text
     assert "/docs" in text
     assert "/trace" in text
-    assert _suggestion_command_count(text) == 6
+    assert "/mode lexical|semantic|hybrid" in text
+    assert "> /limit <n>" in text
+    assert _suggestion_command_count(text) == 8
+    assert "use Up/Down for more" in text
 
 
 def test_format_tui_command_suggestions_prefix_matches_names() -> None:
@@ -274,7 +289,7 @@ def test_format_tui_command_suggestions_limit_is_respected() -> None:
     text = format_tui_command_suggestions("/", limit=2)
 
     assert _suggestion_command_count(text) == 2
-    assert "type more to narrow results" in text
+    assert "use Up/Down for more" in text
 
 
 def test_format_tui_command_suggestions_is_deterministic() -> None:
@@ -350,4 +365,8 @@ def test_parser_handles_weird_input_without_raising(text: str) -> None:
 
 
 def _suggestion_command_count(text: str) -> int:
-    return sum(1 for line in text.splitlines() if line.startswith("  /"))
+    return sum(
+        1
+        for line in text.splitlines()
+        if line.startswith("  /") or line.startswith("> /")
+    )

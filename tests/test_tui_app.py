@@ -266,6 +266,26 @@ async def test_tui_app_shell_suggestions_can_move_selection(
 
 
 @pytest.mark.anyio
+async def test_tui_app_shell_suggestions_can_move_beyond_visible_window(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "/"
+        app._render_shell_suggestions()
+
+        for _ in range(8):
+            assert app._move_shell_suggestion(1) is True
+
+        suggestions = str(app.query_one("#shell-suggestions", Static).renderable)
+        assert "/ask <question>" not in suggestions
+        assert "> /limit <n>" in suggestions
+
+
+@pytest.mark.anyio
 async def test_tui_app_shell_tab_completes_selected_suggestion(
     tmp_path: Path,
 ) -> None:
