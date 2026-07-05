@@ -4,7 +4,7 @@ import re
 from collections import Counter, defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from ragent_forge.core.ingestion.pdf_reading_order import PdfTextLine
 
@@ -141,7 +141,10 @@ def _detect_header_footer_candidates(
         if len(values) < 2:
             continue
         positions = [position for _, position in values]
-        position = Counter(positions).most_common(1)[0][0]
+        position = cast(
+            Literal["header", "footer"],
+            Counter(positions).most_common(1)[0][0],
+        )
         text = values[0][0]
         candidates.append(
             _HeaderFooterCandidate(

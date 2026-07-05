@@ -5,6 +5,7 @@ from ragent_forge.tui.shell_models import (
     WELCOME_MESSAGE,
     ShellState,
     TranscriptMessage,
+    TranscriptRole,
     TranscriptSource,
     append_message,
     append_messages,
@@ -592,7 +593,7 @@ def test_format_shell_source_details_does_not_show_disallowed_metadata() -> None
     ],
 )
 def test_format_transcript_message_formats_all_roles(
-    role: str,
+    role: TranscriptRole,
     heading: str,
 ) -> None:
     text = format_transcript_message(TranscriptMessage(role=role, text="hello"))

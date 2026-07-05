@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Never
 
 from ragent_forge.app.models import Document
-from ragent_forge.core.ingestion.document_blocks import DocumentBlock
+from ragent_forge.core.ingestion.document_blocks import BlockType, DocumentBlock
 from ragent_forge.core.ingestion.structured_result import StructuredLoadResult
 
 MARKDOWN_EXTENSIONS = {".md"}
@@ -93,7 +94,7 @@ def _validate_supported_file(
     return source_path
 
 
-def _raise_unsupported(source_path: Path, extension: str) -> None:
+def _raise_unsupported(source_path: Path, extension: str) -> Never:
     supported = ", ".join(sorted(SUPPORTED_EXTENSIONS))
     raise ValueError(
         f"Unsupported file type '{extension}' for {source_path}. "
@@ -298,8 +299,8 @@ def _append_line_group_block(
     lines: list[_LineRecord],
     start_index: int,
     source_path: str,
-    block_type: str,
-    should_continue: Any,
+    block_type: BlockType,
+    should_continue: Callable[[_LineRecord], bool],
     metadata: dict[str, Any],
 ) -> int:
     index = start_index + 1
@@ -350,7 +351,7 @@ def _make_markdown_block(
     *,
     source_path: str,
     block_index: int,
-    block_type: str,
+    block_type: BlockType,
     text: str,
     start: int,
     end: int,
@@ -373,7 +374,7 @@ def _make_block(
     source_path: str,
     media_type: str,
     block_index: int,
-    block_type: str,
+    block_type: BlockType,
     text: str,
     start: int,
     end: int,

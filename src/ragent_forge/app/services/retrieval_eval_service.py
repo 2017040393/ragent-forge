@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, Literal, Protocol, Self
 
@@ -319,7 +319,7 @@ def _round_metric(value: float) -> float:
     return round(value, 4)
 
 
-def _format_validation_error(error: dict[str, Any]) -> str:
+def _format_validation_error(error: Mapping[str, Any]) -> str:
     location = ".".join(str(part) for part in error.get("loc", ()))
     message = str(error.get("msg", "invalid value"))
     if location:

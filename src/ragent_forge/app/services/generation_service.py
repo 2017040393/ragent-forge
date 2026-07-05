@@ -14,7 +14,9 @@ from ragent_forge.app.models import (
 
 
 class GenerationProvider(Protocol):
-    provider_name: str
+    @property
+    def provider_name(self) -> str:
+        ...
 
     def generate(self, request: GenerationRequest) -> GenerationResult:
         ...

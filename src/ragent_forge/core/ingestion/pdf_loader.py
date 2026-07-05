@@ -4,7 +4,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pdfplumber
 
@@ -278,15 +278,23 @@ def _find_page_tables(
         table_objects = page.find_tables() or []
     except Exception:
         table_objects = []
-    positioned_tables = [
-        (table.extract() or [], tuple(table.bbox) if table.bbox else None)
-        for table in table_objects
-    ]
-    positioned_tables = [(table, bbox) for table, bbox in positioned_tables if table]
+    positioned_tables: list[_TableWithBbox] = []
+    for table in table_objects:
+        raw_table = table.extract() or []
+        if not raw_table:
+            continue
+        bbox = cast(
+            tuple[float, float, float, float] | None,
+            tuple(table.bbox) if table.bbox else None,
+        )
+        positioned_tables.append((raw_table, bbox))
     if positioned_tables:
         return positioned_tables
 
-    return [(table, None) for table in page.extract_tables() or []]
+    extracted_tables: list[_TableWithBbox] = [
+        (table, None) for table in page.extract_tables() or [] if table
+    ]
+    return extracted_tables
 
 
 def _paragraph_metadata(

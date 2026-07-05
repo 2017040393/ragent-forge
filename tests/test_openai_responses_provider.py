@@ -1,3 +1,5 @@
+from typing import Any, TypedDict
+
 import httpx
 import pytest
 
@@ -7,6 +9,13 @@ from ragent_forge.app.services.generation_service import (
     OpenAIResponsesGenerationProvider,
 )
 from ragent_forge.app.services.search_service import SearchResult
+
+
+class FakeHttpCall(TypedDict):
+    url: str
+    headers: dict[str, str]
+    json: dict[str, Any]
+    timeout: int
 
 
 class FakeResponse:
@@ -26,9 +35,16 @@ class FakeHttpClient:
     def __init__(self, payload: object | None = None, error: Exception | None = None):
         self.payload = payload if payload is not None else {"output_text": "answer"}
         self.error = error
-        self.calls: list[dict[str, object]] = []
+        self.calls: list[FakeHttpCall] = []
 
-    def post(self, url: str, *, headers: dict[str, str], json, timeout: int):
+    def post(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str],
+        json: dict[str, Any],
+        timeout: int,
+    ) -> FakeResponse:
         self.calls.append(
             {
                 "url": url,
@@ -45,9 +61,16 @@ class FakeHttpClient:
 class SequencedFakeHttpClient:
     def __init__(self, outcomes: list[object]) -> None:
         self.outcomes = outcomes
-        self.calls: list[dict[str, object]] = []
+        self.calls: list[FakeHttpCall] = []
 
-    def post(self, url: str, *, headers: dict[str, str], json, timeout: int):
+    def post(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str],
+        json: dict[str, Any],
+        timeout: int,
+    ) -> object:
         self.calls.append(
             {
                 "url": url,

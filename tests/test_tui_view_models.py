@@ -424,6 +424,7 @@ def test_ask_source_inspector_includes_source_details(tmp_path: Path) -> None:
     assert "score: 1" in text
     assert "method: lexical_token_overlap" in text
     assert "full source_path:" in text
+    assert state.selected_source is not None
     assert str(Path(state.selected_source.source_path)) in text
     assert "preview:" in text
     assert "Agentic RAG" in text

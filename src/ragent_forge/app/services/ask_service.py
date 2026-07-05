@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -11,7 +11,22 @@ from ragent_forge.app.services.search_service import LexicalSearchService, Searc
 from ragent_forge.app.workspace import LocalWorkspace
 
 
-class SearchServiceProtocol:
+class ProviderNameProtocol(Protocol):
+    @property
+    def provider_name(self) -> str:
+        ...
+
+
+class GenerationServiceProtocol(Protocol):
+    @property
+    def provider(self) -> ProviderNameProtocol:
+        ...
+
+    def generate(self, context_pack: ContextPack) -> GenerationResult:
+        ...
+
+
+class SearchServiceProtocol(Protocol):
     def search(self, query: str, limit: int = 10) -> list[SearchResult]:
         ...
 
@@ -40,14 +55,18 @@ class AskService:
     def __init__(
         self,
         workspace: LocalWorkspace,
-        generation_service: GenerationService | None = None,
+        generation_service: GenerationServiceProtocol | None = None,
         search_service: SearchServiceProtocol | None = None,
         retrieval_method: str = "lexical_token_overlap",
     ) -> None:
         self.workspace = workspace
-        self.search_service = search_service or LexicalSearchService(workspace)
+        self.search_service: SearchServiceProtocol = (
+            search_service or LexicalSearchService(workspace)
+        )
         self.retrieval_method = retrieval_method
-        self.generation_service = generation_service or GenerationService()
+        self.generation_service: GenerationServiceProtocol = (
+            generation_service or GenerationService()
+        )
 
     def retrieve_context(
         self,
@@ -101,7 +120,7 @@ class AskService:
     def from_config(
         cls,
         workspace: LocalWorkspace,
-        generation_service: GenerationService | None = None,
+        generation_service: GenerationServiceProtocol | None = None,
         search_service: SearchServiceProtocol | None = None,
         retrieval_method: str = "lexical_token_overlap",
     ) -> AskService:

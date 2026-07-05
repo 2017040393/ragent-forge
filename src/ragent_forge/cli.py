@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal, cast
 
 from rich.console import Console
 
@@ -13,7 +14,12 @@ from ragent_forge.app.models import (
     ContextPack,
     WorkspaceStatus,
 )
-from ragent_forge.app.services.ask_service import AskService
+from ragent_forge.app.services.ask_service import (
+    AskService,
+)
+from ragent_forge.app.services.ask_service import (
+    SearchServiceProtocol as AskSearchServiceProtocol,
+)
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.context_service import build_generation_prompt
@@ -45,11 +51,12 @@ from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
 
 RETRIEVAL_CHOICES = ["lexical", "semantic", "hybrid"]
+RetrievalMode = Literal["lexical", "semantic", "hybrid"]
 
 
 @dataclass(frozen=True)
 class BuiltSearchService:
-    search_service: LexicalSearchService | SemanticSearchService | HybridSearchService
+    search_service: AskSearchServiceProtocol
     retrieval_method: str
     embedding_provider: str | None = None
     embedding_model: str | None = None
@@ -787,7 +794,7 @@ def _handle_index_status(console: Console, workspace_path: str) -> int:
 
 def _build_search_service_for_retrieval(
     workspace: LocalWorkspace,
-    retrieval: str,
+    retrieval: RetrievalMode,
     limit: int,
     config=None,
 ) -> BuiltSearchService:
@@ -831,6 +838,12 @@ def _build_search_service_for_retrieval(
     )
 
 
+def _as_retrieval_mode(retrieval: str) -> RetrievalMode:
+    if retrieval not in RETRIEVAL_CHOICES:
+        raise ValueError(f"Unsupported retrieval mode: {retrieval}")
+    return cast(RetrievalMode, retrieval)
+
+
 def _handle_eval_retrieval(
     console: Console,
     workspace_path: str,
@@ -866,7 +879,7 @@ def _handle_eval_retrieval(
             return 1
         built_search = _build_search_service_for_retrieval(
             workspace,
-            retrieval,
+            _as_retrieval_mode(retrieval),
             limit,
         )
 
@@ -874,7 +887,7 @@ def _handle_eval_retrieval(
             cases=cases,
             search_service=built_search.search_service,
             limit=limit,
-            retrieval_mode=retrieval,
+            retrieval_mode=cast(RetrievalMode, retrieval),
             retrieval_method=built_search.retrieval_method,
             cases_path=cases_path,
             workspace_path=workspace.root_path,
@@ -981,7 +994,10 @@ def _print_trace(console: Console, trace: dict[str, object]) -> None:
     console.print(f"Finished at: {trace.get('finished_at', '')}")
     console.print()
     console.print("Steps:")
-    for index, step in enumerate(trace.get("steps", []), start=1):
+    steps = trace.get("steps", [])
+    if not isinstance(steps, list):
+        steps = []
+    for index, step in enumerate(steps, start=1):
         step_name = step.get("name", "") if isinstance(step, dict) else ""
         console.print(f"{index}. {step_name}")
 
@@ -1031,7 +1047,7 @@ def _handle_search(
             return 1
         built_search = _build_search_service_for_retrieval(
             workspace,
-            retrieval,
+            _as_retrieval_mode(retrieval),
             limit,
         )
 
@@ -1135,7 +1151,7 @@ def _handle_ask(
             return 1
         built_search = _build_search_service_for_retrieval(
             workspace,
-            retrieval,
+            _as_retrieval_mode(retrieval),
             limit,
             config=config,
         )

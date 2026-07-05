@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypeGuard
 
 
 def format_source_label(
@@ -105,15 +105,21 @@ def _basename(path: str) -> str:
     return name or path
 
 
-def _is_pdf_metadata(metadata: Mapping[str, Any] | None) -> bool:
+def _is_pdf_metadata(
+    metadata: Mapping[str, Any] | None,
+) -> TypeGuard[Mapping[str, Any]]:
     return bool(metadata and metadata.get("media_type") == "application/pdf")
 
 
-def _is_markdown_metadata(metadata: Mapping[str, Any] | None) -> bool:
+def _is_markdown_metadata(
+    metadata: Mapping[str, Any] | None,
+) -> TypeGuard[Mapping[str, Any]]:
     return bool(metadata and metadata.get("media_type") == "text/markdown")
 
 
-def _is_text_metadata(metadata: Mapping[str, Any] | None) -> bool:
+def _is_text_metadata(
+    metadata: Mapping[str, Any] | None,
+) -> TypeGuard[Mapping[str, Any]]:
     return bool(metadata and metadata.get("media_type") == "text/plain")
 
 

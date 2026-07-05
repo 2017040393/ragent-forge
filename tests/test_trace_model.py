@@ -34,6 +34,7 @@ def test_trace_model_creation() -> None:
         latency_ms=0.0,
         metadata={"mode": "stub"},
     )
+    assert trace.answer is not None
     result = AskResult(answer=trace.answer, sources=[source], trace=trace)
 
     assert result.answer == "RAG pipeline not implemented yet."

@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from ragent_forge.app.models import GenerationResult, WorkspaceStatus
+from ragent_forge.app.models import AppConfig, GenerationResult, WorkspaceStatus
 from ragent_forge.app.services.ask_service import AskService
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
@@ -520,7 +520,7 @@ def _build_tui_retrieval_service(
     workspace: LocalWorkspace,
     mode: RetrievalMode,
     *,
-    config: Any | None = None,
+    config: AppConfig | None = None,
 ) -> _TuiRetrievalService:
     if mode == "lexical":
         return _TuiRetrievalService(
@@ -528,7 +528,7 @@ def _build_tui_retrieval_service(
             retrieval_method="lexical_token_overlap",
         )
 
-    config = config or ConfigService(workspace).load()
+    config = config if config is not None else ConfigService(workspace).load()
     semantic_search_service = SemanticSearchService(
         workspace,
         EmbeddingService.from_config(config),
@@ -549,8 +549,10 @@ def _build_tui_retrieval_service(
 
 
 def _normalize_retrieval_mode(retrieval_mode: str) -> RetrievalMode:
-    if retrieval_mode in {"semantic", "hybrid"}:
-        return retrieval_mode
+    if retrieval_mode == "semantic":
+        return "semantic"
+    if retrieval_mode == "hybrid":
+        return "hybrid"
     return "lexical"
 
 
@@ -955,7 +957,7 @@ def _missing_config_message() -> str:
 
 
 def page_for_key(key: str) -> PageName | None:
-    return {
+    pages: dict[str, PageName] = {
         "h": "shell",
         "1": "shell",
         "d": "documents",
@@ -968,4 +970,5 @@ def page_for_key(key: str) -> PageName | None:
         "5": "trace",
         "g": "settings",
         "6": "settings",
-    }.get(key)
+    }
+    return pages.get(key)

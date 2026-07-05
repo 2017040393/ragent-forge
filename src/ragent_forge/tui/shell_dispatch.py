@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from typing import Literal
+from typing import Literal, cast
 
 from ragent_forge.tui.commands import format_tui_command_help, parse_tui_input
 from ragent_forge.tui.shell_models import (
@@ -88,7 +88,11 @@ def apply_shell_input(
         return ShellDispatchResult(_apply_source_command(state, parsed.args))
     if parsed.name in {"docs", "trace", "settings"}:
         return ShellDispatchResult(
-            _apply_read_only_command(state, parsed.name, handlers)
+            _apply_read_only_command(
+                state,
+                cast(Literal["docs", "trace", "settings"], parsed.name),
+                handlers,
+            )
         )
     if parsed.name in _PLANNED_NOT_WIRED_MESSAGES:
         return ShellDispatchResult(

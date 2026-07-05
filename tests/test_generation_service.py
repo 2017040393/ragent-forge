@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pytest
 from pydantic import BaseModel
 
@@ -181,4 +183,4 @@ def test_generation_service_from_config_rejects_unsupported_provider() -> None:
     )
 
     with pytest.raises(ValueError, match="Unsupported generation provider: openai"):
-        GenerationService.from_config(config)
+        GenerationService.from_config(cast(Any, config))

@@ -140,7 +140,7 @@ def test_ask_service_uses_injected_search_service_and_retrieval_method(
         def count_chunks(self) -> int:
             return 2
 
-        def search(self, query: str, limit: int) -> list[SearchResult]:
+        def search(self, query: str, limit: int = 10) -> list[SearchResult]:
             assert query == "meaning of retrieval"
             assert limit == 1
             return [

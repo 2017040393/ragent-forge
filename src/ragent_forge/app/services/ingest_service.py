@@ -195,8 +195,9 @@ def _metadata_list(value: object) -> list[object]:
 
 
 def _warning_to_dict(warning: object) -> dict[str, Any]:
-    if hasattr(warning, "to_dict"):
-        value = warning.to_dict()
+    to_dict = getattr(warning, "to_dict", None)
+    if callable(to_dict):
+        value = to_dict()
         if isinstance(value, dict):
             return value
     if isinstance(warning, dict):
