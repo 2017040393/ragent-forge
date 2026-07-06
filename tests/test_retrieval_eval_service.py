@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from ragent_forge.app.services.evidence_span_service import EvidenceSpan
 from ragent_forge.app.services.retrieval_eval_service import (
     RetrievalEvalCase,
     RetrievalEvalService,
@@ -18,6 +19,16 @@ class FakeSearchService:
     def search(self, query: str, limit: int) -> list[SearchResult]:
         self.calls.append((query, limit))
         return self.results_by_query.get(query, [])[:limit]
+
+
+class FakeWorkspace:
+    def __init__(self, chunks: list[dict[str, object]]) -> None:
+        self.chunks = chunks
+        self.calls = 0
+
+    def read_chunks(self) -> list[dict[str, object]]:
+        self.calls += 1
+        return self.chunks
 
 
 def make_result(
@@ -39,6 +50,55 @@ def make_result(
             "embedding": [0.1, 0.2],
         },
     )
+
+
+def make_evidence_span(
+    span_id: str = "docs/rag.md::span-0001",
+    *,
+    source_path: str = "docs/rag.md",
+    start_char: int | None = 10,
+    end_char: int | None = 90,
+    page_start: int | None = None,
+    page_end: int | None = None,
+) -> EvidenceSpan:
+    return EvidenceSpan(
+        id=span_id,
+        source_path=source_path,
+        document_id=source_path,
+        start_char=start_char,
+        end_char=end_char,
+        text="Hybrid retrieval combines lexical and semantic retrieval.",
+        media_type=(
+            "application/pdf"
+            if source_path.endswith(".pdf")
+            else "text/markdown"
+        ),
+        section_title="Hybrid Retrieval",
+        heading_path=("RAG", "Hybrid Retrieval"),
+        block_types=("paragraph",),
+        page_start=page_start,
+        page_end=page_end,
+        metadata={"text_sha256": "abc123"},
+    )
+
+
+def make_chunk_record(
+    chunk_id: str,
+    *,
+    source_path: str = "docs/rag.md",
+    start_char: int | None = 0,
+    end_char: int | None = 120,
+    metadata: dict[str, object] | None = None,
+) -> dict[str, object]:
+    return {
+        "chunk_id": chunk_id,
+        "document_id": source_path,
+        "source_path": source_path,
+        "start_char": start_char,
+        "end_char": end_char,
+        "metadata": metadata or {"source_path": source_path},
+        "text": "current chunk text",
+    }
 
 
 def write_jsonl(path: Path, records: list[dict[str, object]]) -> None:
@@ -79,6 +139,60 @@ def test_load_cases_validates_deduplicates_and_preserves_unknown_metadata(
     assert cases[0].notes == "human note"
 
 
+def test_load_cases_accepts_evidence_spans_only_case(tmp_path: Path) -> None:
+    cases_path = tmp_path / "retrieval_cases.jsonl"
+    write_jsonl(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "Why does the system use hybrid retrieval?",
+                "evidence_spans": [
+                    {
+                        "id": "docs/rag.md::span-0001",
+                        "source_path": "docs/rag.md",
+                        "document_id": "docs/rag.md",
+                        "start_char": 100,
+                        "end_char": 500,
+                        "text": (
+                            "Hybrid retrieval combines lexical and semantic "
+                            "retrieval."
+                        ),
+                        "media_type": "text/markdown",
+                        "section_title": "Hybrid Retrieval",
+                        "heading_path": ["RAG", "Hybrid Retrieval"],
+                        "block_types": ["paragraph"],
+                        "page_start": None,
+                        "page_end": None,
+                        "metadata": {"text_sha256": "abc123"},
+                    }
+                ],
+                "reference_answer": (
+                    "Hybrid retrieval combines keyword matching and semantic "
+                    "matching."
+                ),
+            }
+        ],
+    )
+
+    cases = RetrievalEvalService().load_cases(cases_path)
+
+    assert len(cases) == 1
+    case = cases[0]
+    assert case.expected_chunk_ids == []
+    assert case.expected_source_paths == []
+    assert len(case.evidence_spans) == 1
+    span = case.evidence_spans[0]
+    assert span.id == "docs/rag.md::span-0001"
+    assert span.source_path == "docs/rag.md"
+    assert span.heading_path == ("RAG", "Hybrid Retrieval")
+    assert span.block_types == ("paragraph",)
+    assert "evidence_spans" not in case.metadata
+    assert case.metadata["reference_answer"] == (
+        "Hybrid retrieval combines keyword matching and semantic matching."
+    )
+
+
 def test_load_cases_rejects_invalid_json_with_line_number(tmp_path: Path) -> None:
     cases_path = tmp_path / "retrieval_cases.jsonl"
     cases_path.write_text(
@@ -107,7 +221,7 @@ def test_load_cases_rejects_invalid_json_with_line_number(tmp_path: Path) -> Non
         ),
         (
             {"id": "case-001", "query": "agent"},
-            "expected_chunk_ids or expected_source_paths",
+            "expected_chunk_ids, expected_source_paths, or evidence_spans",
         ),
     ],
 )
@@ -167,6 +281,89 @@ def test_evaluate_matches_chunk_id_before_source_path() -> None:
     assert result.reciprocal_rank == pytest.approx(0.5)
 
 
+def test_evaluate_maps_evidence_spans_to_current_chunks_and_passes_retrieval() -> None:
+    span = make_evidence_span(start_char=20, end_char=80)
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="hybrid retrieval",
+            evidence_spans=[span],
+        )
+    ]
+    workspace = FakeWorkspace(
+        [make_chunk_record("docs/rag.md::chunk-0000", start_char=0, end_char=100)]
+    )
+    search = FakeSearchService(
+        {
+            "hybrid retrieval": [
+                make_result("docs/rag.md::chunk-0000", "docs/rag.md")
+            ]
+        }
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+        workspace=workspace,
+    )
+
+    result = report.results[0]
+    assert result.passed is True
+    assert result.matched_by == "chunk_id"
+    assert result.expected_chunk_ids == ["docs/rag.md::chunk-0000"]
+    assert result.metadata["evidence_span_count"] == 1
+    assert result.metadata["mapped_expected_chunk_ids"] == [
+        "docs/rag.md::chunk-0000"
+    ]
+    assert result.metadata["unmatched_span_ids"] == []
+    assert workspace.calls == 1
+
+
+def test_evaluate_fails_when_evidence_spans_cannot_be_mapped() -> None:
+    span = make_evidence_span(
+        span_id="docs/missing.md::span-0001",
+        source_path="docs/missing.md",
+        start_char=20,
+        end_char=80,
+    )
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="missing span",
+            evidence_spans=[span],
+        )
+    ]
+    workspace = FakeWorkspace(
+        [make_chunk_record("docs/rag.md::chunk-0000", start_char=0, end_char=100)]
+    )
+    search = FakeSearchService(
+        {"missing span": [make_result("docs/rag.md::chunk-0000", "docs/rag.md")]}
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+        workspace=workspace,
+    )
+
+    result = report.results[0]
+    assert result.passed is False
+    assert result.matched_by == "none"
+    assert result.expected_chunk_ids == []
+    assert result.metadata["mapped_expected_chunk_ids"] == []
+    assert result.metadata["unmatched_span_ids"] == ["docs/missing.md::span-0001"]
+
+
 def test_evaluate_matches_source_path_when_no_chunk_match_exists() -> None:
     cases = [
         RetrievalEvalCase(
@@ -195,6 +392,102 @@ def test_evaluate_matches_source_path_when_no_chunk_match_exists() -> None:
     assert result.matched_by == "source_path"
     assert result.actual_chunk_ids == ["other::chunk-0000"]
     assert result.actual_source_paths == ["rag.md"]
+
+
+def test_evaluate_combines_manual_expected_chunk_ids_and_mapped_spans() -> None:
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="hybrid retrieval",
+            expected_chunk_ids=["manual::chunk-0001"],
+            evidence_spans=[
+                make_evidence_span(
+                    span_id="docs/rag.md::span-0001",
+                    start_char=20,
+                    end_char=80,
+                )
+            ],
+        )
+    ]
+    workspace = FakeWorkspace(
+        [make_chunk_record("mapped::chunk-0002", start_char=0, end_char=100)]
+    )
+    search = FakeSearchService(
+        {"hybrid retrieval": [make_result("mapped::chunk-0002", "docs/rag.md")]}
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+        workspace=workspace,
+    )
+
+    result = report.results[0]
+    assert result.passed is True
+    assert result.matched_by == "chunk_id"
+    assert result.expected_chunk_ids == ["manual::chunk-0001", "mapped::chunk-0002"]
+    assert result.metadata["mapped_expected_chunk_ids"] == ["mapped::chunk-0002"]
+
+
+def test_evaluate_maps_pdf_evidence_span_by_page_overlap() -> None:
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="table evidence",
+            evidence_spans=[
+                make_evidence_span(
+                    span_id="docs/paper.pdf::span-0001",
+                    source_path="docs/paper.pdf",
+                    start_char=None,
+                    end_char=None,
+                    page_start=3,
+                    page_end=4,
+                )
+            ],
+        )
+    ]
+    workspace = FakeWorkspace(
+        [
+            make_chunk_record(
+                "docs/paper.pdf::chunk-0000",
+                source_path="docs/paper.pdf",
+                start_char=None,
+                end_char=None,
+                metadata={"source_path": "docs/paper.pdf", "page_number": 4},
+            )
+        ]
+    )
+    search = FakeSearchService(
+        {
+            "table evidence": [
+                make_result("docs/paper.pdf::chunk-0000", "docs/paper.pdf")
+            ]
+        }
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+        workspace=workspace,
+    )
+
+    result = report.results[0]
+    assert result.passed is True
+    assert result.matched_by == "chunk_id"
+    assert result.expected_chunk_ids == ["docs/paper.pdf::chunk-0000"]
+    assert result.metadata["mapped_expected_chunk_ids"] == [
+        "docs/paper.pdf::chunk-0000"
+    ]
 
 
 def test_evaluate_matches_repo_relative_source_path_against_absolute_result() -> None:

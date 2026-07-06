@@ -13,11 +13,22 @@ from pydantic import (
     model_validator,
 )
 
+from ragent_forge.app.services.evidence_span_service import EvidenceSpan
+from ragent_forge.app.services.gold_chunk_mapping_service import (
+    GoldChunkMappingResult,
+    GoldChunkMappingService,
+)
 from ragent_forge.app.services.search_service import SearchResult
+from ragent_forge.app.workspace import LocalWorkspace
 
 
 class SearchServiceProtocol(Protocol):
     def search(self, query: str, limit: int) -> list[SearchResult]:
+        ...
+
+
+class WorkspaceChunksProtocol(Protocol):
+    def read_chunks(self) -> list[dict[str, Any]]:
         ...
 
 
@@ -26,6 +37,7 @@ class RetrievalEvalCase(BaseModel):
     query: str
     expected_chunk_ids: list[str] = Field(default_factory=list)
     expected_source_paths: list[str] = Field(default_factory=list)
+    evidence_spans: list[EvidenceSpan] = Field(default_factory=list)
     notes: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -52,9 +64,14 @@ class RetrievalEvalCase(BaseModel):
 
     @model_validator(mode="after")
     def _requires_at_least_one_expected_value(self) -> Self:
-        if not self.expected_chunk_ids and not self.expected_source_paths:
+        if (
+            not self.expected_chunk_ids
+            and not self.expected_source_paths
+            and not self.evidence_spans
+        ):
             raise ValueError(
-                "expected_chunk_ids or expected_source_paths must be provided"
+                "expected_chunk_ids, expected_source_paths, or evidence_spans "
+                "must be provided"
             )
         return self
 
@@ -71,6 +88,7 @@ class RetrievalEvalCaseResult(BaseModel):
     actual_chunk_ids: list[str]
     actual_source_paths: list[str]
     top_results: list[dict[str, Any]]
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RetrievalEvalReport(BaseModel):
@@ -141,19 +159,51 @@ class RetrievalEvalService:
         rrf_k: int | None = None,
         lexical_weight: float | None = None,
         semantic_weight: float | None = None,
+        workspace: WorkspaceChunksProtocol | None = None,
     ) -> RetrievalEvalReport:
         if limit < 1:
             raise ValueError("limit must be greater than 0")
         if not cases:
             raise ValueError("no eval cases found")
 
-        results = [
-            self._evaluate_case(
-                case=case,
-                search_results=search_service.search(case.query, limit),
+        chunk_records = _read_chunks_for_evidence_spans(
+            cases=cases,
+            workspace=workspace,
+            workspace_path=workspace_path,
+        )
+        gold_chunk_mapping_service = GoldChunkMappingService()
+
+        results: list[RetrievalEvalCaseResult] = []
+        for case in cases:
+            effective_expected_chunk_ids = list(case.expected_chunk_ids)
+            result_metadata: dict[str, Any] = {}
+            if case.evidence_spans:
+                mapping_result = gold_chunk_mapping_service.map(
+                    case.evidence_spans,
+                    chunk_records or [],
+                )
+                effective_expected_chunk_ids = _dedupe_preserving_order(
+                    [
+                        *case.expected_chunk_ids,
+                        *mapping_result.expected_chunk_ids,
+                    ]
+                )
+                result_metadata.update(
+                    _evidence_span_mapping_metadata(
+                        case.evidence_spans,
+                        mapping_result,
+                    )
+                )
+
+            results.append(
+                self._evaluate_case(
+                    case=case,
+                    expected_chunk_ids=effective_expected_chunk_ids,
+                    search_results=search_service.search(case.query, limit),
+                    metadata=result_metadata,
+                )
             )
-            for case in cases
-        ]
+
         passed_count = sum(1 for result in results if result.passed)
         failed_count = len(results) - passed_count
         return RetrievalEvalReport(
@@ -186,6 +236,7 @@ class RetrievalEvalService:
             "query",
             "expected_chunk_ids",
             "expected_source_paths",
+            "evidence_spans",
             "notes",
         }
         case_payload = {
@@ -213,13 +264,15 @@ class RetrievalEvalService:
         self,
         *,
         case: RetrievalEvalCase,
+        expected_chunk_ids: list[str],
         search_results: list[SearchResult],
+        metadata: dict[str, Any],
     ) -> RetrievalEvalCaseResult:
-        expected_chunk_ids = set(case.expected_chunk_ids)
+        expected_chunk_id_set = set(expected_chunk_ids)
         expected_source_paths = tuple(case.expected_source_paths)
         chunk_rank = _first_matching_rank(
             search_results,
-            lambda result: result.chunk_id in expected_chunk_ids,
+            lambda result: result.chunk_id in expected_chunk_id_set,
         )
         source_rank = None
         if chunk_rank is None:
@@ -247,12 +300,74 @@ class RetrievalEvalService:
             rank=rank,
             reciprocal_rank=(1 / rank) if rank is not None else 0.0,
             matched_by=matched_by,
-            expected_chunk_ids=case.expected_chunk_ids,
+            expected_chunk_ids=expected_chunk_ids,
             expected_source_paths=case.expected_source_paths,
             actual_chunk_ids=[result.chunk_id for result in search_results],
             actual_source_paths=[result.source_path for result in search_results],
             top_results=_compact_top_results(search_results),
+            metadata=metadata,
         )
+
+
+def _read_chunks_for_evidence_spans(
+    *,
+    cases: list[RetrievalEvalCase],
+    workspace: WorkspaceChunksProtocol | None,
+    workspace_path: str | Path,
+) -> list[dict[str, Any]] | None:
+    if not any(case.evidence_spans for case in cases):
+        return None
+    if workspace is not None:
+        return workspace.read_chunks()
+    return LocalWorkspace(workspace_path).read_chunks()
+
+
+def _evidence_span_mapping_metadata(
+    evidence_spans: list[EvidenceSpan],
+    mapping_result: GoldChunkMappingResult,
+) -> dict[str, Any]:
+    return {
+        "evidence_span_count": len(evidence_spans),
+        "evidence_spans": [
+            _evidence_span_summary(span)
+            for span in evidence_spans
+        ],
+        "mapped_expected_chunk_ids": mapping_result.expected_chunk_ids,
+        "unmatched_span_ids": mapping_result.unmatched_span_ids,
+        "span_mappings": [
+            {
+                "span_id": mapping.span_id,
+                "matched_chunk_ids": mapping.matched_chunk_ids,
+                "match_method": mapping.match_method,
+                "metadata": mapping.metadata,
+            }
+            for mapping in mapping_result.span_mappings
+        ],
+    }
+
+
+def _evidence_span_summary(span: EvidenceSpan) -> dict[str, Any]:
+    return {
+        "id": span.id,
+        "source_path": span.source_path,
+        "document_id": span.document_id,
+        "start_char": span.start_char,
+        "end_char": span.end_char,
+        "page_start": span.page_start,
+        "page_end": span.page_end,
+        "media_type": span.media_type,
+    }
+
+
+def _dedupe_preserving_order(values: list[str]) -> list[str]:
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if value in seen:
+            continue
+        deduped.append(value)
+        seen.add(value)
+    return deduped
 
 
 def _first_matching_rank(
