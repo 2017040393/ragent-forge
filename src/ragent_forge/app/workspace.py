@@ -28,6 +28,9 @@ class LocalWorkspace:
         self.latest_retrieval_eval_path = (
             self.eval_dir / "latest_retrieval_eval.json"
         )
+        self.latest_retrieval_compare_path = (
+            self.eval_dir / "latest_retrieval_compare.json"
+        )
         self.config_path = self.root_path / "config.toml"
         self.vector_index_path = self.index_dir / "vector_index.jsonl"
         self.vector_index_manifest_path = (
@@ -101,10 +104,7 @@ class LocalWorkspace:
     ) -> Path:
         self.ensure_exists()
         if report_path is None:
-            destination = self.eval_dir / (
-                "retrieval_eval_"
-                f"{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}.json"
-            )
+            destination = self._next_eval_json_path("retrieval_eval")
         else:
             destination = Path(report_path).expanduser()
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -116,6 +116,27 @@ class LocalWorkspace:
         ) + "\n"
         destination.write_text(content, encoding="utf-8")
         self.latest_retrieval_eval_path.write_text(content, encoding="utf-8")
+        return destination
+
+    def write_retrieval_compare_report(
+        self,
+        report: dict[str, Any],
+        output_path: str | Path | None = None,
+    ) -> Path:
+        self.ensure_exists()
+        if output_path is None:
+            destination = self._next_eval_json_path("retrieval_compare")
+        else:
+            destination = Path(output_path).expanduser()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        content = json.dumps(
+            report,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        ) + "\n"
+        destination.write_text(content, encoding="utf-8")
+        self.latest_retrieval_compare_path.write_text(content, encoding="utf-8")
         return destination
 
     def write_retrieval_eval_run(
@@ -280,6 +301,15 @@ class LocalWorkspace:
         index = 1
         while candidate.exists():
             candidate = self.eval_runs_dir / f"{base_name}-{index:03d}"
+            index += 1
+        return candidate
+
+    def _next_eval_json_path(self, prefix: str) -> Path:
+        base_name = f"{prefix}_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+        candidate = self.eval_dir / f"{base_name}.json"
+        index = 1
+        while candidate.exists():
+            candidate = self.eval_dir / f"{base_name}-{index:03d}.json"
             index += 1
         return candidate
 

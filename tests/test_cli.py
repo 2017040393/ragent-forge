@@ -3,7 +3,12 @@ from pathlib import Path
 
 from ragent_forge.app.services import evidence_span_service
 from ragent_forge.app.services.retrieval_eval_service import RetrievalEvalService
-from ragent_forge.cli import build_parser, main
+from ragent_forge.cli import (
+    _parse_positive_int_list,
+    _parse_retrieval_modes,
+    build_parser,
+    main,
+)
 
 
 class FakeEmbeddingResponse:
@@ -123,6 +128,41 @@ def write_retrieval_eval_cases(
         "".join(json.dumps(record) + "\n" for record in records),
         encoding="utf-8",
     )
+
+
+def test_parse_retrieval_modes_strips_dedupes_and_preserves_order() -> None:
+    assert _parse_retrieval_modes("lexical, semantic, lexical") == [
+        "lexical",
+        "semantic",
+    ]
+
+
+def test_parse_retrieval_modes_rejects_invalid_or_empty_values() -> None:
+    for value in ("lexical,bad", "lexical,,semantic", ""):
+        try:
+            _parse_retrieval_modes(value)
+        except ValueError as exc:
+            assert "--retrieval" in str(exc)
+        else:
+            raise AssertionError(f"expected invalid retrieval value: {value}")
+
+
+def test_parse_positive_int_list_strips_dedupes_and_preserves_order() -> None:
+    assert _parse_positive_int_list("1, 3, 5, 3", option_name="--limit") == [
+        1,
+        3,
+        5,
+    ]
+
+
+def test_parse_positive_int_list_rejects_invalid_values() -> None:
+    for value in ("1,0", "-1,3", "1,bad", ""):
+        try:
+            _parse_positive_int_list(value, option_name="--limit")
+        except ValueError as exc:
+            assert "--limit" in str(exc)
+        else:
+            raise AssertionError(f"expected invalid limit value: {value}")
 
 
 def write_pdf_chunk_record(workspace_dir: Path) -> None:
@@ -2015,6 +2055,251 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
         encoding="utf-8"
     )
     assert "agent memory agent" not in json.dumps(latest_trace)
+
+
+def test_eval_compare_lexical_persists_report_runs_and_failure_breakdown(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    chunks = [
+        json.loads(line)
+        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "agent memory",
+                "expected_chunk_ids": [chunks[0]["chunk_id"]],
+            },
+            {
+                "id": "case-002",
+                "query": "missing",
+                "expected_source_paths": ["missing.md"],
+            },
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "compare",
+            "--cases",
+            str(cases_path),
+            "--workspace",
+            str(workspace_dir),
+            "--retrieval",
+            "lexical",
+            "--limit",
+            "1,5",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    compare_path = workspace_dir / "eval" / "latest_retrieval_compare.json"
+    compare_text = compare_path.read_text(encoding="utf-8")
+    compare_report = json.loads(compare_text)
+    run_dirs = list((workspace_dir / "eval" / "runs").glob("retrieval-*"))
+    assert exit_code == 0
+    assert "Retrieval comparison" in captured.out
+    assert "Modes: lexical" in captured.out
+    assert "Limits: 1, 5" in captured.out
+    assert "lexical" in captured.out
+    assert "success" in captured.out
+    assert "Compare report path:" in captured.out
+    assert compare_path.is_file()
+    assert compare_report["evaluation_type"] == "retrieval_compare"
+    assert compare_report["run_count"] == 2
+    assert compare_report["success_count"] == 2
+    assert compare_report["failed_count"] == 0
+    assert [run["limit"] for run in compare_report["runs"]] == [1, 5]
+    assert all(run["status"] == "success" for run in compare_report["runs"])
+    assert all(
+        run["failure_breakdown"] == {"no_result": 1}
+        for run in compare_report["runs"]
+    )
+    assert len(run_dirs) == 2
+    assert all((run_dir / "summary.json").is_file() for run_dir in run_dirs)
+    assert "agent memory agent" not in compare_text
+    assert "embedding-secret-key" not in compare_text
+    assert '"embedding"' not in compare_text
+
+
+def test_eval_compare_records_missing_vector_index_without_fail_fast(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    chunks = [
+        json.loads(line)
+        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "agent memory",
+                "expected_chunk_ids": [chunks[0]["chunk_id"]],
+            }
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "compare",
+            "--cases",
+            str(cases_path),
+            "--workspace",
+            str(workspace_dir),
+            "--retrieval",
+            "lexical,semantic",
+            "--limit",
+            "1",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    compare_report = json.loads(
+        (workspace_dir / "eval" / "latest_retrieval_compare.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert exit_code == 0
+    assert "semantic" in captured.out
+    assert "failed" in captured.out
+    assert "vector index not found" in captured.out
+    assert compare_report["run_count"] == 2
+    assert compare_report["success_count"] == 1
+    assert compare_report["failed_count"] == 1
+    failed_run = compare_report["runs"][1]
+    assert failed_run["retrieval_mode"] == "semantic"
+    assert failed_run["status"] == "failed"
+    assert failed_run["error"] == (
+        "vector index not found; run `ragent index build` first"
+    )
+
+
+def test_eval_compare_fail_fast_stops_on_missing_vector_index(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    chunks = [
+        json.loads(line)
+        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "agent memory",
+                "expected_chunk_ids": [chunks[0]["chunk_id"]],
+            }
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "compare",
+            "--cases",
+            str(cases_path),
+            "--workspace",
+            str(workspace_dir),
+            "--retrieval",
+            "semantic,lexical",
+            "--limit",
+            "1",
+            "--fail-fast",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    compare_report = json.loads(
+        (workspace_dir / "eval" / "latest_retrieval_compare.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert exit_code == 1
+    assert "vector index not found" in captured.out
+    assert compare_report["run_count"] == 1
+    assert compare_report["success_count"] == 0
+    assert compare_report["failed_count"] == 1
+    assert compare_report["runs"][0]["retrieval_mode"] == "semantic"
 
 
 def test_eval_retrieval_semantic_succeeds_after_index_build(

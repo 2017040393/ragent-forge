@@ -39,6 +39,10 @@ from ragent_forge.app.services.hybrid_search_service import (
 )
 from ragent_forge.app.services.index_service import IndexBuildService
 from ragent_forge.app.services.ingest_service import IngestService
+from ragent_forge.app.services.retrieval_compare_service import (
+    RetrievalCompareReport,
+    RetrievalCompareRun,
+)
 from ragent_forge.app.services.retrieval_eval_service import (
     RetrievalEvalReport,
     RetrievalEvalService,
@@ -266,6 +270,40 @@ def build_parser() -> argparse.ArgumentParser:
         "--report-path",
         default=None,
         help="Optional path for the JSON retrieval eval report.",
+    )
+    retrieval_compare_parser = eval_subparsers.add_parser(
+        "compare",
+        help="Compare retrieval modes and top-k limits against JSONL cases.",
+    )
+    retrieval_compare_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to evaluate.",
+    )
+    retrieval_compare_parser.add_argument(
+        "--cases",
+        required=True,
+        help="Path to a JSONL retrieval eval cases file.",
+    )
+    retrieval_compare_parser.add_argument(
+        "--retrieval",
+        default="lexical,semantic,hybrid",
+        help="Comma-separated retrieval modes to compare.",
+    )
+    retrieval_compare_parser.add_argument(
+        "--limit",
+        default="1,3,5",
+        help="Comma-separated positive top-k limits to compare.",
+    )
+    retrieval_compare_parser.add_argument(
+        "--output",
+        default=None,
+        help="Optional path for the JSON retrieval compare report.",
+    )
+    retrieval_compare_parser.add_argument(
+        "--fail-fast",
+        action="store_true",
+        help="Stop after the first failed mode/limit run.",
     )
     eval_generate_parser = eval_subparsers.add_parser(
         "generate",
@@ -503,6 +541,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.retrieval,
                 args.limit,
                 args.report_path,
+            )
+        if args.eval_command == "compare":
+            return _handle_eval_compare(
+                console,
+                args.workspace,
+                args.cases,
+                args.retrieval,
+                args.limit,
+                args.output,
+                args.fail_fast,
             )
         if args.eval_command == "generate":
             return _handle_eval_generate(
@@ -927,6 +975,47 @@ def _as_retrieval_mode(retrieval: str) -> RetrievalMode:
     return cast(RetrievalMode, retrieval)
 
 
+def _parse_retrieval_modes(value: str) -> list[RetrievalMode]:
+    modes: list[RetrievalMode] = []
+    for raw_mode in value.split(","):
+        mode = raw_mode.strip()
+        if not mode:
+            raise ValueError("--retrieval must not contain empty values")
+        if mode not in RETRIEVAL_CHOICES:
+            choices = ", ".join(RETRIEVAL_CHOICES)
+            raise ValueError(
+                f"--retrieval contains invalid mode '{mode}'. "
+                f"Expected one of: {choices}"
+            )
+        retrieval_mode = cast(RetrievalMode, mode)
+        if retrieval_mode not in modes:
+            modes.append(retrieval_mode)
+    if not modes:
+        raise ValueError("--retrieval must include at least one mode")
+    return modes
+
+
+def _parse_positive_int_list(value: str, *, option_name: str) -> list[int]:
+    integers: list[int] = []
+    for raw_item in value.split(","):
+        item = raw_item.strip()
+        if not item:
+            raise ValueError(f"{option_name} must not contain empty values")
+        try:
+            parsed = int(item)
+        except ValueError as exc:
+            raise ValueError(
+                f"{option_name} contains non-integer value '{item}'"
+            ) from exc
+        if parsed < 1:
+            raise ValueError(f"{option_name} values must be positive integers")
+        if parsed not in integers:
+            integers.append(parsed)
+    if not integers:
+        raise ValueError(f"{option_name} must include at least one value")
+    return integers
+
+
 def _build_text_generation_client(config: AppConfig) -> TextGenerationClient:
     if config.generation.provider == "openai_responses":
         return OpenAIResponsesTextGenerationClient.from_config(config)
@@ -1108,6 +1197,179 @@ def _print_eval_generate_summary(
     )
 
 
+def _handle_eval_compare(
+    console: Console,
+    workspace_path: str,
+    cases_path: str,
+    retrieval: str,
+    limit: str,
+    output_path: str | None,
+    fail_fast: bool,
+) -> int:
+    workspace = LocalWorkspace(workspace_path)
+    eval_service = RetrievalEvalService()
+    try:
+        retrieval_modes = _parse_retrieval_modes(retrieval)
+        limits = _parse_positive_int_list(limit, option_name="--limit")
+        cases = eval_service.load_cases(cases_path)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        console.print(
+            f"Retrieval compare failed: {exc}",
+            markup=False,
+            soft_wrap=True,
+        )
+        return 1
+
+    if not workspace.has_chunks():
+        console.print(
+            "Retrieval compare failed: no chunks found. "
+            "Run ragent ingest <path> first.",
+            markup=False,
+            soft_wrap=True,
+        )
+        return 1
+
+    runs: list[RetrievalCompareRun] = []
+    stop_matrix = False
+    for retrieval_mode in retrieval_modes:
+        if stop_matrix:
+            break
+        for top_k in limits:
+            missing_vector_index = (
+                retrieval_mode in {"semantic", "hybrid"}
+                and not workspace.has_vector_index()
+            )
+            if missing_vector_index:
+                runs.append(
+                    RetrievalCompareRun(
+                        retrieval_mode=retrieval_mode,
+                        limit=top_k,
+                        status="failed",
+                        case_count=len(cases),
+                        error="vector index not found; run `ragent index build` first",
+                    )
+                )
+                if fail_fast:
+                    stop_matrix = True
+                    break
+                continue
+
+            try:
+                built_search = _build_search_service_for_retrieval(
+                    workspace,
+                    retrieval_mode,
+                    top_k,
+                )
+                report = eval_service.evaluate(
+                    cases=cases,
+                    search_service=built_search.search_service,
+                    limit=top_k,
+                    retrieval_mode=retrieval_mode,
+                    retrieval_method=built_search.retrieval_method,
+                    cases_path=cases_path,
+                    workspace_path=workspace.root_path,
+                    embedding_provider=built_search.embedding_provider,
+                    embedding_model=built_search.embedding_model,
+                    index_path=built_search.index_path,
+                    fusion_method=built_search.fusion_method,
+                    rrf_k=built_search.rrf_k,
+                    lexical_weight=built_search.lexical_weight,
+                    semantic_weight=built_search.semantic_weight,
+                )
+                report_payload = report.model_dump(mode="json")
+                written_report_path = workspace.write_retrieval_eval_report(
+                    report_payload
+                )
+                run_dir = workspace.write_retrieval_eval_run(
+                    report_payload,
+                    written_report_path,
+                )
+            except (FileNotFoundError, OSError, RuntimeError, ValueError) as exc:
+                runs.append(
+                    RetrievalCompareRun(
+                        retrieval_mode=retrieval_mode,
+                        limit=top_k,
+                        status="failed",
+                        case_count=len(cases),
+                        error=str(exc),
+                    )
+                )
+                if fail_fast:
+                    stop_matrix = True
+                    break
+                continue
+
+            runs.append(
+                RetrievalCompareRun(
+                    retrieval_mode=report.retrieval_mode,
+                    retrieval_method=report.retrieval_method,
+                    limit=report.limit,
+                    status="success",
+                    metrics=report.metrics,
+                    passed_count=report.passed_count,
+                    failed_count=report.failed_count,
+                    case_count=report.case_count,
+                    report_path=str(written_report_path),
+                    run_dir=str(run_dir),
+                    failure_breakdown=_retrieval_eval_failure_breakdown(report),
+                )
+            )
+
+    compare_report = _build_retrieval_compare_report(
+        cases_path=cases_path,
+        workspace=workspace,
+        retrieval_modes=retrieval_modes,
+        limits=limits,
+        runs=runs,
+    )
+    try:
+        compare_report_path = workspace.write_retrieval_compare_report(
+            compare_report.model_dump(mode="json"),
+            output_path,
+        )
+    except OSError as exc:
+        console.print(
+            f"Retrieval compare failed: {exc}",
+            markup=False,
+            soft_wrap=True,
+        )
+        return 1
+
+    _print_retrieval_compare_summary(
+        console,
+        compare_report,
+        compare_report_path,
+        workspace.eval_runs_dir,
+    )
+    if compare_report.success_count == 0:
+        return 1
+    if fail_fast and compare_report.failed_count > 0:
+        return 1
+    return 0
+
+
+def _build_retrieval_compare_report(
+    *,
+    cases_path: str,
+    workspace: LocalWorkspace,
+    retrieval_modes: list[RetrievalMode],
+    limits: list[int],
+    runs: list[RetrievalCompareRun],
+) -> RetrievalCompareReport:
+    success_count = sum(1 for run in runs if run.status == "success")
+    failed_count = len(runs) - success_count
+    return RetrievalCompareReport(
+        cases_path=str(Path(cases_path)),
+        workspace=str(workspace.root_path),
+        retrieval_modes=list(retrieval_modes),
+        limits=limits,
+        run_count=len(runs),
+        success_count=success_count,
+        failed_count=failed_count,
+        runs=runs,
+    )
+
+
 def _handle_eval_retrieval(
     console: Console,
     workspace_path: str,
@@ -1211,6 +1473,60 @@ def _handle_eval_retrieval(
         trace_path,
     )
     return 0
+
+
+def _print_retrieval_compare_summary(
+    console: Console,
+    report: RetrievalCompareReport,
+    compare_report_path: Path,
+    eval_runs_dir: Path,
+) -> None:
+    console.print("Retrieval comparison")
+    console.print(f"Cases: {_compare_case_count(report)}")
+    console.print(f"Modes: {', '.join(report.retrieval_modes)}")
+    console.print(f"Limits: {', '.join(str(limit) for limit in report.limits)}")
+    console.print()
+    console.print(
+        "mode      k   status   hit@k   recall@k   mrr     "
+        "avg_latency_ms   failures"
+    )
+    for run in report.runs:
+        failures = (
+            str(run.failed_count if run.failed_count is not None else 0)
+            if run.status == "success"
+            else str(run.error or "")
+        )
+        console.print(
+            f"{run.retrieval_mode:<9} "
+            f"{run.limit:<3} "
+            f"{run.status:<8} "
+            f"{_compare_metric_text(run, 'hit@k'):<7} "
+            f"{_compare_metric_text(run, 'recall@k'):<10} "
+            f"{_compare_metric_text(run, 'mrr'):<7} "
+            f"{_compare_metric_text(run, 'avg_retrieval_latency_ms'):<16} "
+            f"{failures}",
+            soft_wrap=True,
+        )
+    console.print()
+    console.print(f"Compare report path: {compare_report_path}")
+    if report.success_count > 0:
+        console.print(f"Individual run dirs: {eval_runs_dir}")
+
+
+def _compare_case_count(report: RetrievalCompareReport) -> int:
+    for run in report.runs:
+        if run.case_count is not None:
+            return run.case_count
+    return 0
+
+
+def _compare_metric_text(run: RetrievalCompareRun, metric_key: str) -> str:
+    if run.status != "success":
+        return "-"
+    metric = run.metrics.get(metric_key)
+    if metric is None:
+        return "-"
+    return f"{metric:.4f}"
 
 
 def _print_retrieval_eval_summary(
