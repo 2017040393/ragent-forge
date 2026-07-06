@@ -25,10 +25,29 @@ class FakeResponse:
         return self.payload
 
 
+class FakeSseResponse:
+    headers = {"content-type": "text/event-stream"}
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> object:
+        raise ValueError("Expecting value: line 1 column 1 (char 0)")
+
+
 class FakeHttpClient:
-    def __init__(self, payload: object | None = None, error: Exception | None = None):
+    def __init__(
+        self,
+        payload: object | None = None,
+        error: Exception | None = None,
+        response: object | None = None,
+    ):
         self.payload = payload if payload is not None else {"output_text": "answer"}
         self.error = error
+        self.response = response
         self.calls: list[FakeHttpCall] = []
 
     def post(
@@ -38,7 +57,7 @@ class FakeHttpClient:
         headers: dict[str, str],
         json: dict[str, Any],
         timeout: int,
-    ) -> FakeResponse:
+    ) -> object:
         self.calls.append(
             {
                 "url": url,
@@ -49,6 +68,8 @@ class FakeHttpClient:
         )
         if self.error is not None:
             raise self.error
+        if self.response is not None:
+            return self.response
         return FakeResponse(self.payload)
 
 
@@ -109,6 +130,70 @@ def test_openai_text_generation_client_parses_nested_output_text() -> None:
         "You are generating retrieval evaluation cases for a RAG system."
     )
     assert "reasoning" not in fake_client.calls[0]["json"]
+
+
+def test_openai_text_generation_client_parses_sse_output_text_deltas() -> None:
+    sse = "\n\n".join(
+        [
+            'event: response.output_text.delta\n'
+            'data: {"type":"response.output_text.delta","delta":"{\\"items\\":["}',
+            'event: response.output_text.delta\n'
+            'data: {"type":"response.output_text.delta","delta":"]}"}',
+            "event: response.completed\n"
+            'data: {"type":"response.completed","status":"completed"}',
+        ]
+    )
+    fake_client = FakeHttpClient(response=FakeSseResponse(sse))
+    client = OpenAIResponsesTextGenerationClient(
+        base_url="https://api.openai.com/v1",
+        model="gpt-4o-mini",
+        api_key="sk-test-secret",
+        http_client=fake_client,
+    )
+
+    text = client.generate_text("User prompt")
+
+    assert text == '{"items":[]}'
+
+
+def test_openai_text_generation_client_prefers_sse_done_text() -> None:
+    sse = "\n\n".join(
+        [
+            'event: response.output_text.delta\n'
+            'data: {"type":"response.output_text.delta","delta":"partial"}',
+            'event: response.output_text.done\n'
+            'data: {"type":"response.output_text.done","text":"complete"}',
+        ]
+    )
+    fake_client = FakeHttpClient(response=FakeSseResponse(sse))
+    client = OpenAIResponsesTextGenerationClient(
+        base_url="https://api.openai.com/v1",
+        model="gpt-4o-mini",
+        api_key="sk-test-secret",
+        http_client=fake_client,
+    )
+
+    text = client.generate_text("User prompt")
+
+    assert text == "complete"
+
+
+def test_openai_text_generation_client_rejects_sse_without_text() -> None:
+    fake_client = FakeHttpClient(
+        response=FakeSseResponse(
+            'event: response.completed\n'
+            'data: {"type":"response.completed","status":"completed"}'
+        )
+    )
+    client = OpenAIResponsesTextGenerationClient(
+        base_url="https://api.openai.com/v1",
+        model="gpt-4o-mini",
+        api_key="sk-test-secret",
+        http_client=fake_client,
+    )
+
+    with pytest.raises(RuntimeError, match="Could not parse response text"):
+        client.generate_text("User prompt")
 
 
 def test_openai_text_generation_client_sanitizes_api_key_from_errors() -> None:
