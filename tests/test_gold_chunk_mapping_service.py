@@ -154,6 +154,33 @@ def test_maps_pdf_span_by_page_overlap_when_char_offsets_are_absent() -> None:
     assert mapping.metadata["page_overlap"] == [3]
 
 
+def test_falls_back_to_page_overlap_when_char_overlap_cannot_match() -> None:
+    span = make_span(
+        source_path="/workspace/docs/paper.pdf",
+        start_char=100,
+        end_char=500,
+        page_start=2,
+        page_end=3,
+    )
+    chunks = [
+        make_chunk(
+            "chunk-1",
+            source_path="/workspace/docs/paper.pdf",
+            start_char=None,
+            end_char=None,
+            metadata={"source_path": "/workspace/docs/paper.pdf", "page_start": 3},
+        )
+    ]
+
+    result = GoldChunkMappingService().map([span], chunks)
+
+    assert result.expected_chunk_ids == ["chunk-1"]
+    mapping = result.span_mappings[0]
+    assert mapping.match_method == "page_overlap"
+    assert mapping.metadata["page_overlap"] == [3]
+    assert result.unmatched_span_ids == []
+
+
 def test_does_not_fallback_to_source_only_matching_by_default() -> None:
     span = make_span(start_char=None, end_char=None)
     chunks = [

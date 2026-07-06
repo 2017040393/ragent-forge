@@ -85,7 +85,6 @@ class GoldChunkMappingService:
             mapping = self._map_span_by_char_overlap(span, candidates, char_range)
             if mapping is not None:
                 return mapping
-            return None
 
         span_pages = _span_pages(span)
         if span_pages:
