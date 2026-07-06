@@ -1,7 +1,11 @@
+import json
 from pathlib import Path
+
+import pytest
 
 from ragent_forge.app.models import Document, IngestResult
 from ragent_forge.app.services.search_service import (
+    BM25SearchService,
     LexicalSearchService,
     score_text,
     tokenize,
@@ -26,6 +30,45 @@ def make_search_workspace(tmp_path: Path) -> LocalWorkspace:
     )
     workspace = LocalWorkspace(tmp_path / ".ragent")
     workspace.write_chunks(result.chunks)
+    return workspace
+
+
+def make_bm25_workspace(tmp_path: Path) -> LocalWorkspace:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.ensure_exists()
+    records = [
+        {
+            "chunk_id": "a::chunk-0000",
+            "document_id": "a",
+            "source_path": "a.md",
+            "start_char": 0,
+            "end_char": 24,
+            "text": "agent agent memory",
+            "metadata": {"source_path": "a.md", "section": "memory"},
+        },
+        {
+            "chunk_id": "b::chunk-0000",
+            "document_id": "b",
+            "source_path": "b.md",
+            "start_char": 25,
+            "end_char": 52,
+            "text": "agent planning",
+            "metadata": {"source_path": "b.md", "section": "planning"},
+        },
+        {
+            "chunk_id": "c::chunk-0000",
+            "document_id": "c",
+            "source_path": "c.md",
+            "start_char": 53,
+            "end_char": 79,
+            "text": "retrieval basics",
+            "metadata": {"source_path": "c.md", "section": "retrieval"},
+        },
+    ]
+    workspace.chunks_path.write_text(
+        "".join(json.dumps(record) + "\n" for record in records),
+        encoding="utf-8",
+    )
     return workspace
 
 
@@ -98,3 +141,100 @@ def test_lexical_search_empty_query_returns_empty_list(tmp_path: Path) -> None:
     workspace = make_search_workspace(tmp_path)
 
     assert LexicalSearchService(workspace).search("   ") == []
+
+
+def test_bm25_search_returns_matching_chunks_ranked_by_score(tmp_path: Path) -> None:
+    workspace = make_bm25_workspace(tmp_path)
+
+    results = BM25SearchService(workspace).search("agent memory")
+
+    assert [result.chunk_id for result in results] == [
+        "a::chunk-0000",
+        "b::chunk-0000",
+    ]
+    assert results[0].score > results[1].score
+
+
+def test_bm25_search_repeated_document_terms_affect_ranking(tmp_path: Path) -> None:
+    workspace = make_bm25_workspace(tmp_path)
+
+    results = BM25SearchService(workspace).search("agent")
+
+    assert [result.chunk_id for result in results[:2]] == [
+        "a::chunk-0000",
+        "b::chunk-0000",
+    ]
+    assert results[0].score > results[1].score
+
+
+def test_bm25_search_rare_terms_have_higher_idf_impact(tmp_path: Path) -> None:
+    workspace = make_bm25_workspace(tmp_path)
+
+    results = BM25SearchService(workspace).search("agent retrieval")
+
+    retrieval_result = next(
+        result for result in results if result.chunk_id == "c::chunk-0000"
+    )
+    planning_result = next(
+        result for result in results if result.chunk_id == "b::chunk-0000"
+    )
+    assert retrieval_result.score > planning_result.score
+
+
+def test_bm25_search_empty_query_returns_empty_list(tmp_path: Path) -> None:
+    workspace = make_bm25_workspace(tmp_path)
+
+    assert BM25SearchService(workspace).search("   ") == []
+
+
+def test_bm25_search_rejects_negative_limit(tmp_path: Path) -> None:
+    workspace = make_bm25_workspace(tmp_path)
+
+    with pytest.raises(ValueError, match="limit must be greater than or equal to 0"):
+        BM25SearchService(workspace).search("agent", limit=-1)
+
+
+def test_bm25_search_sorts_ties_by_chunk_id(tmp_path: Path) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.ensure_exists()
+    records = [
+        {
+            "chunk_id": "b::chunk-0000",
+            "document_id": "b",
+            "source_path": "b.md",
+            "text": "agent memory",
+            "metadata": {"source_path": "b.md"},
+        },
+        {
+            "chunk_id": "a::chunk-0000",
+            "document_id": "a",
+            "source_path": "a.md",
+            "text": "agent memory",
+            "metadata": {"source_path": "a.md"},
+        },
+    ]
+    workspace.chunks_path.write_text(
+        "".join(json.dumps(record) + "\n" for record in records),
+        encoding="utf-8",
+    )
+
+    results = BM25SearchService(workspace).search("agent")
+
+    assert [result.chunk_id for result in results] == [
+        "a::chunk-0000",
+        "b::chunk-0000",
+    ]
+
+
+def test_bm25_search_preserves_result_fields(tmp_path: Path) -> None:
+    workspace = make_bm25_workspace(tmp_path)
+
+    result = BM25SearchService(workspace).search("memory")[0]
+
+    assert result.chunk_id == "a::chunk-0000"
+    assert result.document_id == "a"
+    assert result.source_path == "a.md"
+    assert result.start_char == 0
+    assert result.end_char == 24
+    assert result.metadata == {"source_path": "a.md", "section": "memory"}
+    assert result.text == "agent agent memory"

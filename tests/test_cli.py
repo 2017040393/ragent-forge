@@ -131,8 +131,9 @@ def write_retrieval_eval_cases(
 
 
 def test_parse_retrieval_modes_strips_dedupes_and_preserves_order() -> None:
-    assert _parse_retrieval_modes("lexical, semantic, lexical") == [
+    assert _parse_retrieval_modes("lexical, bm25, semantic, bm25") == [
         "lexical",
+        "bm25",
         "semantic",
     ]
 
@@ -1240,6 +1241,55 @@ def test_search_command_explicit_lexical_mode_works(
     assert "rag.md::chunk-0000" in captured.out
 
 
+def test_search_command_bm25_mode_works_after_ingest(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "search",
+            "agent memory",
+            "--retrieval",
+            "bm25",
+            "--workspace",
+            str(workspace_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    latest_trace = json.loads(
+        (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
+    )
+    assert exit_code == 0
+    assert "Retrieval mode: bm25" in captured.out
+    assert "rag.md::chunk-0000" in captured.out
+    assert latest_trace["operation"] == "search"
+    assert latest_trace["metadata"]["retrieval_mode"] == "bm25"
+    assert latest_trace["metadata"]["scoring_method"] == "bm25"
+
+
 def test_search_command_semantic_mode_works_after_index_build(
     tmp_path: Path,
     capsys,
@@ -2057,6 +2107,75 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
     assert "agent memory agent" not in json.dumps(latest_trace)
 
 
+def test_eval_retrieval_bm25_works_without_vector_index(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    chunks = [
+        json.loads(line)
+        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "agent memory",
+                "expected_chunk_ids": [chunks[0]["chunk_id"]],
+            }
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "retrieval",
+            "--cases",
+            str(cases_path),
+            "--workspace",
+            str(workspace_dir),
+            "--retrieval",
+            "bm25",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    report = json.loads(
+        (workspace_dir / "eval" / "latest_retrieval_eval.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert exit_code == 0
+    assert "Retrieval mode: bm25" in captured.out
+    assert report["retrieval_mode"] == "bm25"
+    assert report["retrieval_method"] == "bm25"
+    assert report["passed_count"] == 1
+
+
 def test_eval_compare_lexical_persists_report_runs_and_failure_breakdown(
     tmp_path: Path,
     capsys,
@@ -2148,6 +2267,80 @@ def test_eval_compare_lexical_persists_report_runs_and_failure_breakdown(
     assert "agent memory agent" not in compare_text
     assert "embedding-secret-key" not in compare_text
     assert '"embedding"' not in compare_text
+
+
+def test_eval_compare_supports_bm25_runs_without_vector_index(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "agent memory agent\nretrieval basics",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    assert (
+        main(
+            [
+                "ingest",
+                str(knowledge_dir),
+                "--chunk-size",
+                "20",
+                "--workspace",
+                str(workspace_dir),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    chunks = [
+        json.loads(line)
+        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    cases_path = tmp_path / "eval" / "retrieval_cases.jsonl"
+    write_retrieval_eval_cases(
+        cases_path,
+        [
+            {
+                "id": "case-001",
+                "query": "agent memory",
+                "expected_chunk_ids": [chunks[0]["chunk_id"]],
+            }
+        ],
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "compare",
+            "--cases",
+            str(cases_path),
+            "--workspace",
+            str(workspace_dir),
+            "--retrieval",
+            "lexical,bm25",
+            "--limit",
+            "1,5",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    compare_report = json.loads(
+        (workspace_dir / "eval" / "latest_retrieval_compare.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    bm25_runs = [
+        run for run in compare_report["runs"] if run["retrieval_mode"] == "bm25"
+    ]
+    assert exit_code == 0
+    assert "Modes: lexical, bm25" in captured.out
+    assert len(bm25_runs) == 2
+    assert all(run["status"] == "success" for run in bm25_runs)
+    assert all(run["retrieval_method"] == "bm25" for run in bm25_runs)
 
 
 def test_eval_compare_records_missing_vector_index_without_fail_fast(

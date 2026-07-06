@@ -47,7 +47,11 @@ from ragent_forge.app.services.retrieval_eval_service import (
     RetrievalEvalReport,
     RetrievalEvalService,
 )
-from ragent_forge.app.services.search_service import LexicalSearchService, SearchResult
+from ragent_forge.app.services.search_service import (
+    BM25SearchService,
+    LexicalSearchService,
+    SearchResult,
+)
 from ragent_forge.app.services.semantic_search_service import SemanticSearchService
 from ragent_forge.app.services.text_generation_client import (
     OpenAIResponsesTextGenerationClient,
@@ -65,8 +69,8 @@ from ragent_forge.app.source_labels import format_source_label, format_source_ra
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
 
-RETRIEVAL_CHOICES = ["lexical", "semantic", "hybrid"]
-RetrievalMode = Literal["lexical", "semantic", "hybrid"]
+RETRIEVAL_CHOICES = ["lexical", "bm25", "semantic", "hybrid"]
+RetrievalMode = Literal["lexical", "bm25", "semantic", "hybrid"]
 
 
 @dataclass(frozen=True)
@@ -287,7 +291,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     retrieval_compare_parser.add_argument(
         "--retrieval",
-        default="lexical,semantic,hybrid",
+        default="lexical,bm25,semantic,hybrid",
         help="Comma-separated retrieval modes to compare.",
     )
     retrieval_compare_parser.add_argument(
@@ -961,6 +965,12 @@ def _build_search_service_for_retrieval(
             lexical_weight=hybrid_config.lexical_weight,
             semantic_weight=hybrid_config.semantic_weight,
             candidate_limit=hybrid_search_service.candidate_limit_for(limit),
+        )
+
+    if retrieval == "bm25":
+        return BuiltSearchService(
+            search_service=BM25SearchService(workspace),
+            retrieval_method="bm25",
         )
 
     return BuiltSearchService(

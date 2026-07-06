@@ -579,13 +579,13 @@ def _build_search_steps(
         read_chunks_step,
         TraceStep(
             name="tokenize_query",
-            description="Normalize and tokenize the lexical search query.",
+            description=_search_tokenize_description(retrieval_mode),
             inputs={"query": query},
-            outputs={"scoring_method": "lexical_token_overlap"},
+            outputs={"scoring_method": retrieval_method},
         ),
         TraceStep(
             name="score_chunks",
-            description="Score chunks by lexical token overlap.",
+            description=_search_score_description(retrieval_mode),
             inputs={"total_chunks": total_chunks},
             outputs={"matched_chunks": len(result_chunk_ids)},
         ),
@@ -666,7 +666,21 @@ def _search_rank_description(retrieval_mode: str) -> str:
         return "Sort hybrid RRF results by fused score, best rank, and chunk id."
     if retrieval_mode == "semantic":
         return "Sort semantic search results by score and deterministic chunk id."
+    if retrieval_mode == "bm25":
+        return "Sort BM25 search results by score and deterministic chunk id."
     return "Sort results by score and deterministic chunk id."
+
+
+def _search_tokenize_description(retrieval_mode: str) -> str:
+    if retrieval_mode == "bm25":
+        return "Normalize and tokenize the BM25 search query."
+    return "Normalize and tokenize the lexical search query."
+
+
+def _search_score_description(retrieval_mode: str) -> str:
+    if retrieval_mode == "bm25":
+        return "Score chunks with BM25."
+    return "Score chunks by lexical token overlap."
 
 
 def _ask_retrieval_description(retrieval_mode: str) -> str:
@@ -674,6 +688,8 @@ def _ask_retrieval_description(retrieval_mode: str) -> str:
         return "Retrieve context chunks with hybrid lexical and semantic search."
     if retrieval_mode == "semantic":
         return "Retrieve context chunks with semantic vector search."
+    if retrieval_mode == "bm25":
+        return "Retrieve context chunks with BM25 lexical search."
     return "Retrieve context chunks with lexical search."
 
 

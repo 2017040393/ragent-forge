@@ -113,7 +113,7 @@ class RetrievalEvalCaseResult(BaseModel):
 
 class RetrievalEvalReport(BaseModel):
     evaluation_type: Literal["retrieval"] = "retrieval"
-    retrieval_mode: Literal["lexical", "semantic", "hybrid"]
+    retrieval_mode: Literal["lexical", "bm25", "semantic", "hybrid"]
     retrieval_method: str
     limit: int
     case_count: int
@@ -168,7 +168,7 @@ class RetrievalEvalService:
         cases: list[RetrievalEvalCase],
         search_service: SearchServiceProtocol,
         limit: int,
-        retrieval_mode: Literal["lexical", "semantic", "hybrid"],
+        retrieval_mode: Literal["lexical", "bm25", "semantic", "hybrid"],
         retrieval_method: str,
         cases_path: str | Path,
         workspace_path: str | Path,
