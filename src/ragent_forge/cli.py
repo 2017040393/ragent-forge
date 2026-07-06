@@ -348,7 +348,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     console = Console()
 
-    if args.command == "tui":
+    if args.command is None or args.command == "tui":
         RagentForgeApp().run()
         return 0
 
