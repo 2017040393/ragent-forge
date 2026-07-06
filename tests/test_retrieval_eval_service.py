@@ -606,6 +606,74 @@ def test_evaluate_computes_hit_rates_and_mrr() -> None:
     assert report.metrics["mrr"] == pytest.approx(0.4444)
 
 
+def test_evaluate_computes_recall_latency_and_context_metrics() -> None:
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="partial",
+            expected_chunk_ids=["a::chunk-0000", "b::chunk-0001"],
+        ),
+        RetrievalEvalCase(
+            id="case-002",
+            query="full",
+            expected_chunk_ids=["c::chunk-0002"],
+        ),
+    ]
+    search = FakeSearchService(
+        {
+            "partial": [
+                make_result(
+                    "a::chunk-0000",
+                    "a.md",
+                    text="abcdefghi",
+                )
+            ],
+            "full": [
+                make_result(
+                    "x::chunk-0000",
+                    "x.md",
+                    text="wxyz",
+                ),
+                make_result(
+                    "c::chunk-0002",
+                    "c.md",
+                    text="abcde",
+                ),
+            ],
+        }
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+    )
+
+    first = report.results[0]
+    second = report.results[1]
+    assert first.retrieved_count == 1
+    assert first.expected_chunk_count == 2
+    assert first.recall == pytest.approx(0.5)
+    assert first.retrieval_latency_ms >= 0.0
+    assert first.retrieved_context_chars == 9
+    assert first.estimated_context_tokens == 3
+    assert second.retrieved_count == 2
+    assert second.expected_chunk_count == 1
+    assert second.recall == pytest.approx(1.0)
+    assert second.retrieval_latency_ms >= 0.0
+    assert second.retrieved_context_chars == 9
+    assert second.estimated_context_tokens == 3
+    assert report.metrics["recall@k"] == pytest.approx(0.75)
+    assert report.metrics["avg_retrieval_latency_ms"] >= 0.0
+    assert report.metrics["avg_retrieved_count"] == pytest.approx(1.5)
+    assert report.metrics["avg_retrieved_context_chars"] == pytest.approx(9.0)
+    assert report.metrics["avg_estimated_context_tokens"] == pytest.approx(3.0)
+
+
 def test_evaluate_rejects_non_positive_limit() -> None:
     with pytest.raises(ValueError, match="limit must be greater than 0"):
         RetrievalEvalService().evaluate(

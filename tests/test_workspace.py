@@ -226,6 +226,145 @@ def test_write_trace_writes_trace_and_latest_trace_json(tmp_path: Path) -> None:
     assert latest_record == trace_record
 
 
+def test_write_retrieval_eval_run_writes_summary_cases_and_failures(
+    tmp_path: Path,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    report = {
+        "evaluation_type": "retrieval",
+        "retrieval_mode": "lexical",
+        "retrieval_method": "lexical_token_overlap",
+        "limit": 5,
+        "case_count": 2,
+        "passed_count": 1,
+        "failed_count": 1,
+        "metrics": {
+            "hit@1": 0.5,
+            "hit@3": 0.5,
+            "hit@5": 0.5,
+            "hit@k": 0.5,
+            "mrr": 0.5,
+            "recall@k": 0.25,
+            "avg_retrieval_latency_ms": 1.25,
+            "avg_retrieved_count": 1.0,
+            "avg_retrieved_context_chars": 42.0,
+            "avg_estimated_context_tokens": 11.0,
+        },
+        "cases_path": "eval/retrieval_cases.jsonl",
+        "workspace": ".ragent",
+        "results": [
+            {
+                "id": "case-001",
+                "query": "agent memory",
+                "passed": True,
+                "rank": 1,
+                "matched_by": "chunk_id",
+                "expected_chunk_ids": ["a::chunk-0000"],
+                "expected_source_paths": [],
+                "actual_chunk_ids": ["a::chunk-0000"],
+                "actual_source_paths": ["a.md"],
+                "top_results": [
+                    {
+                        "rank": 1,
+                        "chunk_id": "a::chunk-0000",
+                        "source_path": "a.md",
+                        "score": 1.0,
+                        "text": "full chunk text must stay out",
+                        "embedding": [0.1],
+                    }
+                ],
+                "metadata": {"retrieved_count": 1},
+            },
+            {
+                "id": "case-002",
+                "query": "missing",
+                "passed": False,
+                "rank": None,
+                "matched_by": "none",
+                "expected_chunk_ids": ["b::chunk-0001"],
+                "expected_source_paths": [],
+                "actual_chunk_ids": ["c::chunk-0002"],
+                "actual_source_paths": ["c.md"],
+                "top_results": [
+                    {
+                        "rank": 1,
+                        "chunk_id": "c::chunk-0002",
+                        "source_path": "c.md",
+                        "score": 0.2,
+                        "api_key": "secret-key-must-stay-out",
+                    }
+                ],
+                "metadata": {"retrieved_count": 1},
+            },
+        ],
+    }
+
+    run_dir = workspace.write_retrieval_eval_run(report)
+
+    assert run_dir.parent == workspace.eval_runs_dir
+    assert run_dir.name.startswith("retrieval-")
+    assert (run_dir / "summary.json").is_file()
+    assert (run_dir / "summary.md").is_file()
+    assert (run_dir / "cases.jsonl").is_file()
+    assert (run_dir / "failures.jsonl").is_file()
+
+    summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
+    cases = [
+        json.loads(line)
+        for line in (run_dir / "cases.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    failures = [
+        json.loads(line)
+        for line in (run_dir / "failures.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    run_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            run_dir / "summary.md",
+            run_dir / "cases.jsonl",
+            run_dir / "failures.jsonl",
+        )
+    )
+    assert summary["metrics"]["recall@k"] == 0.25
+    assert "| recall@k | 0.2500 |" in (
+        run_dir / "summary.md"
+    ).read_text(encoding="utf-8")
+    assert cases == [
+        {
+            "id": "case-001",
+            "query": "agent memory",
+            "passed": True,
+            "rank": 1,
+            "matched_by": "chunk_id",
+            "expected_chunk_ids": ["a::chunk-0000"],
+            "expected_source_paths": [],
+            "actual_chunk_ids": ["a::chunk-0000"],
+            "actual_source_paths": ["a.md"],
+            "metadata": {"retrieved_count": 1},
+        },
+        {
+            "id": "case-002",
+            "query": "missing",
+            "passed": False,
+            "rank": None,
+            "matched_by": "none",
+            "expected_chunk_ids": ["b::chunk-0001"],
+            "expected_source_paths": [],
+            "actual_chunk_ids": ["c::chunk-0002"],
+            "actual_source_paths": ["c.md"],
+            "metadata": {"retrieved_count": 1},
+        },
+    ]
+    assert failures == [cases[1]]
+    assert "full chunk text must stay out" not in run_text
+    assert '"embedding"' not in run_text
+    assert "secret-key-must-stay-out" not in run_text
+
+
 def test_read_latest_trace_reads_valid_trace_json(tmp_path: Path) -> None:
     workspace = LocalWorkspace(tmp_path / ".ragent")
     trace = OperationTrace(

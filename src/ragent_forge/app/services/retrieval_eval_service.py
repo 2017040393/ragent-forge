@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import math
+import time
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, Literal, Protocol, Self
@@ -88,6 +90,12 @@ class RetrievalEvalCaseResult(BaseModel):
     actual_chunk_ids: list[str]
     actual_source_paths: list[str]
     top_results: list[dict[str, Any]]
+    retrieved_count: int
+    expected_chunk_count: int
+    recall: float
+    retrieval_latency_ms: float
+    retrieved_context_chars: int
+    estimated_context_tokens: int
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -195,11 +203,17 @@ class RetrievalEvalService:
                     )
                 )
 
+            retrieval_started_at = time.perf_counter()
+            search_results = search_service.search(case.query, limit)
+            retrieval_latency_ms = (
+                time.perf_counter() - retrieval_started_at
+            ) * 1000
             results.append(
                 self._evaluate_case(
                     case=case,
                     expected_chunk_ids=effective_expected_chunk_ids,
-                    search_results=search_service.search(case.query, limit),
+                    search_results=search_results,
+                    retrieval_latency_ms=retrieval_latency_ms,
                     metadata=result_metadata,
                 )
             )
@@ -266,6 +280,7 @@ class RetrievalEvalService:
         case: RetrievalEvalCase,
         expected_chunk_ids: list[str],
         search_results: list[SearchResult],
+        retrieval_latency_ms: float,
         metadata: dict[str, Any],
     ) -> RetrievalEvalCaseResult:
         expected_chunk_id_set = set(expected_chunk_ids)
@@ -293,6 +308,13 @@ class RetrievalEvalService:
         else:
             matched_by = "none"
 
+        retrieved_expected_chunk_count = len(
+            expected_chunk_id_set.intersection(
+                result.chunk_id for result in search_results
+            )
+        )
+        expected_chunk_count = len(expected_chunk_ids)
+        retrieved_context_chars = sum(len(result.text) for result in search_results)
         return RetrievalEvalCaseResult(
             id=case.id,
             query=case.query,
@@ -305,6 +327,16 @@ class RetrievalEvalService:
             actual_chunk_ids=[result.chunk_id for result in search_results],
             actual_source_paths=[result.source_path for result in search_results],
             top_results=_compact_top_results(search_results),
+            retrieved_count=len(search_results),
+            expected_chunk_count=expected_chunk_count,
+            recall=(
+                _round_metric(retrieved_expected_chunk_count / expected_chunk_count)
+                if expected_chunk_count > 0
+                else 0.0
+            ),
+            retrieval_latency_ms=_round_metric(retrieval_latency_ms),
+            retrieved_context_chars=retrieved_context_chars,
+            estimated_context_tokens=math.ceil(retrieved_context_chars / 4),
             metadata=metadata,
         )
 
@@ -421,12 +453,28 @@ def _compute_metrics(
         return _round_metric(hits / case_count)
 
     mrr = sum(result.reciprocal_rank for result in results) / case_count
+    recall = sum(result.recall for result in results) / case_count
+    avg_retrieval_latency_ms = (
+        sum(result.retrieval_latency_ms for result in results) / case_count
+    )
+    avg_retrieved_count = sum(result.retrieved_count for result in results) / case_count
+    avg_retrieved_context_chars = (
+        sum(result.retrieved_context_chars for result in results) / case_count
+    )
+    avg_estimated_context_tokens = (
+        sum(result.estimated_context_tokens for result in results) / case_count
+    )
     return {
         "hit@1": hit_at(1),
         "hit@3": hit_at(3),
         "hit@5": hit_at(5),
         "hit@k": hit_at(limit),
         "mrr": _round_metric(mrr),
+        "recall@k": _round_metric(recall),
+        "avg_retrieval_latency_ms": _round_metric(avg_retrieval_latency_ms),
+        "avg_retrieved_count": _round_metric(avg_retrieved_count),
+        "avg_retrieved_context_chars": _round_metric(avg_retrieved_context_chars),
+        "avg_estimated_context_tokens": _round_metric(avg_estimated_context_tokens),
     }
 
 

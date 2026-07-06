@@ -1168,6 +1168,10 @@ def _handle_eval_retrieval(
             report_payload,
             report_path,
         )
+        run_dir = workspace.write_retrieval_eval_run(
+            report_payload,
+            written_report_path,
+        )
     except (FileNotFoundError, OSError, RuntimeError, ValueError) as exc:
         console.print(
             f"Retrieval eval failed: {exc}",
@@ -1187,6 +1191,7 @@ def _handle_eval_retrieval(
         failed_count=report.failed_count,
         metrics=report.metrics,
         report_path=written_report_path,
+        run_dir=run_dir,
         started_at=started_at,
         finished_at=finished_at,
         embedding_provider=built_search.embedding_provider,
@@ -1202,6 +1207,7 @@ def _handle_eval_retrieval(
         console,
         report,
         written_report_path,
+        run_dir,
         trace_path,
     )
     return 0
@@ -1211,6 +1217,7 @@ def _print_retrieval_eval_summary(
     console: Console,
     report: RetrievalEvalReport,
     report_path: Path,
+    run_dir: Path,
     trace_path: Path,
 ) -> None:
     console.print("Retrieval evaluation")
@@ -1226,6 +1233,19 @@ def _print_retrieval_eval_summary(
     console.print(f"hit@5: {report.metrics['hit@5']:.4f}")
     console.print(f"hit@{report.limit} requested: {report.metrics['hit@k']:.4f}")
     console.print(f"MRR: {report.metrics['mrr']:.4f}")
+    console.print(f"recall@{report.limit} requested: {report.metrics['recall@k']:.4f}")
+    console.print(
+        f"Avg retrieval latency: {report.metrics['avg_retrieval_latency_ms']:.4f} ms"
+    )
+    console.print(f"Avg retrieved count: {report.metrics['avg_retrieved_count']:.4f}")
+    console.print(
+        "Avg retrieved context chars: "
+        f"{report.metrics['avg_retrieved_context_chars']:.4f}"
+    )
+    console.print(
+        "Avg estimated context tokens: "
+        f"{report.metrics['avg_estimated_context_tokens']:.4f}"
+    )
     console.print()
     failed_results = [result for result in report.results if not result.passed]
     if not failed_results:
@@ -1247,6 +1267,7 @@ def _print_retrieval_eval_summary(
         console.print(f"  actual top{report.limit}: {actual_top}")
     console.print()
     console.print(f"Report path: {report_path}")
+    console.print(f"Run directory: {run_dir}")
     console.print(f"Saved trace to: {trace_path}")
 
 

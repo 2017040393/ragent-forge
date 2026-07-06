@@ -1938,11 +1938,36 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
     assert "hit@3: 0.5000" in captured.out
     assert "hit@5 requested: 0.5000" in captured.out
     assert "MRR: 0.5000" in captured.out
+    assert "recall@5 requested:" in captured.out
+    assert "Avg retrieval latency:" in captured.out
     assert "Failed cases:" in captured.out
     assert "- case-002 | rank: none | query: missing" in captured.out
     assert "Report path:" in captured.out
+    assert "Run directory:" in captured.out
     assert "Saved trace to:" in captured.out
     assert report_path.is_file()
+    run_dirs = list((workspace_dir / "eval" / "runs").glob("retrieval-*"))
+    assert len(run_dirs) == 1
+    run_dir = run_dirs[0]
+    assert (run_dir / "summary.json").is_file()
+    assert (run_dir / "summary.md").is_file()
+    assert (run_dir / "cases.jsonl").is_file()
+    assert (run_dir / "failures.jsonl").is_file()
+    run_summary = json.loads(
+        (run_dir / "summary.json").read_text(encoding="utf-8")
+    )
+    run_cases = [
+        json.loads(line)
+        for line in (run_dir / "cases.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    run_failures = [
+        json.loads(line)
+        for line in (run_dir / "failures.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
     assert report["evaluation_type"] == "retrieval"
     assert report["retrieval_mode"] == "lexical"
     assert report["retrieval_method"] == "lexical_token_overlap"
@@ -1950,11 +1975,34 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
     assert report["passed_count"] == 1
     assert report["failed_count"] == 1
     assert report["metrics"]["hit@k"] == 0.5
+    assert "recall@k" in report["metrics"]
+    assert "avg_retrieval_latency_ms" in report["metrics"]
+    assert run_summary == report
+    assert [record["id"] for record in run_cases] == ["case-001", "case-002"]
+    assert [record["id"] for record in run_failures] == ["case-002"]
+    assert set(run_cases[0]) == {
+        "id",
+        "query",
+        "passed",
+        "rank",
+        "matched_by",
+        "expected_chunk_ids",
+        "expected_source_paths",
+        "actual_chunk_ids",
+        "actual_source_paths",
+        "metadata",
+    }
     assert latest_trace["operation"] == "retrieval_eval"
     assert latest_trace["metadata"]["retrieval_mode"] == "lexical"
     assert latest_trace["metadata"]["case_count"] == 2
     assert "embedding_provider" not in latest_trace["metadata"]
     assert "agent memory agent" not in report_text
+    assert "agent memory agent" not in (run_dir / "cases.jsonl").read_text(
+        encoding="utf-8"
+    )
+    assert "agent memory agent" not in (run_dir / "failures.jsonl").read_text(
+        encoding="utf-8"
+    )
     assert "agent memory agent" not in json.dumps(latest_trace)
 
 

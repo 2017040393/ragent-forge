@@ -21,6 +21,7 @@ class LocalWorkspace:
         self.traces_dir = self.root_path / "traces"
         self.index_dir = self.root_path / "index"
         self.eval_dir = self.root_path / "eval"
+        self.eval_runs_dir = self.eval_dir / "runs"
         self.chunks_path = self.chunks_dir / "chunks.jsonl"
         self.latest_summary_path = self.ingest_dir / "latest_summary.json"
         self.latest_trace_path = self.traces_dir / "latest_trace.json"
@@ -54,6 +55,7 @@ class LocalWorkspace:
         self.traces_dir.mkdir(parents=True, exist_ok=True)
         self.index_dir.mkdir(parents=True, exist_ok=True)
         self.eval_dir.mkdir(parents=True, exist_ok=True)
+        self.eval_runs_dir.mkdir(parents=True, exist_ok=True)
 
     def write_chunks(self, chunks: list[DocumentChunk]) -> Path:
         self.ensure_exists()
@@ -115,6 +117,46 @@ class LocalWorkspace:
         destination.write_text(content, encoding="utf-8")
         self.latest_retrieval_eval_path.write_text(content, encoding="utf-8")
         return destination
+
+    def write_retrieval_eval_run(
+        self,
+        report: dict[str, Any],
+        report_path: str | Path | None = None,
+    ) -> Path:
+        self.ensure_exists()
+        run_dir = self._next_retrieval_eval_run_dir()
+        run_dir.mkdir(parents=True)
+
+        summary_json_path = run_dir / "summary.json"
+        summary_md_path = run_dir / "summary.md"
+        cases_jsonl_path = run_dir / "cases.jsonl"
+        failures_jsonl_path = run_dir / "failures.jsonl"
+
+        summary_json_path.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        summary_md_path.write_text(
+            self._retrieval_eval_summary_markdown(
+                report,
+                summary_json_path=summary_json_path,
+                cases_jsonl_path=cases_jsonl_path,
+                failures_jsonl_path=failures_jsonl_path,
+                report_path=Path(report_path) if report_path is not None else None,
+            ),
+            encoding="utf-8",
+        )
+
+        compact_cases = [
+            self._compact_retrieval_eval_case(result)
+            for result in _list_of_dicts(report.get("results"))
+        ]
+        self._write_jsonl_records(cases_jsonl_path, compact_cases)
+        self._write_jsonl_records(
+            failures_jsonl_path,
+            [record for record in compact_cases if not record["passed"]],
+        )
+        return run_dir
 
     def read_chunks(self) -> list[dict[str, Any]]:
         records: list[dict[str, Any]] = []
@@ -231,3 +273,136 @@ class LocalWorkspace:
         if not summary_exists:
             missing_files.append(str(self.latest_summary_path))
         return missing_files
+
+    def _next_retrieval_eval_run_dir(self) -> Path:
+        base_name = f"retrieval-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+        candidate = self.eval_runs_dir / base_name
+        index = 1
+        while candidate.exists():
+            candidate = self.eval_runs_dir / f"{base_name}-{index:03d}"
+            index += 1
+        return candidate
+
+    def _retrieval_eval_summary_markdown(
+        self,
+        report: dict[str, Any],
+        *,
+        summary_json_path: Path,
+        cases_jsonl_path: Path,
+        failures_jsonl_path: Path,
+        report_path: Path | None,
+    ) -> str:
+        metrics = _dict_value(report.get("metrics"))
+        failed_count = _int_value(report.get("failed_count"))
+        lines = [
+            "# Retrieval Eval Run",
+            "",
+            f"- Retrieval mode: {report.get('retrieval_mode', '')}",
+            f"- Retrieval method: {report.get('retrieval_method', '')}",
+            f"- Cases: {_int_value(report.get('case_count'))}",
+            f"- Passed: {_int_value(report.get('passed_count'))}",
+            f"- Failed: {failed_count}",
+            "",
+            "## Metrics",
+            "",
+            "| Metric | Value |",
+            "| --- | ---: |",
+        ]
+        for key in sorted(metrics):
+            value = metrics[key]
+            if isinstance(value, int | float):
+                lines.append(f"| {key} | {float(value):.4f} |")
+            else:
+                lines.append(f"| {key} | {value} |")
+
+        lines.extend(
+            [
+                "",
+                "## Report Paths",
+                "",
+                f"- summary.json: {summary_json_path}",
+                f"- cases.jsonl: {cases_jsonl_path}",
+                f"- failures.jsonl: {failures_jsonl_path}",
+            ]
+        )
+        if report_path is not None:
+            lines.append(f"- compatibility report: {report_path}")
+        lines.extend(
+            [
+                "",
+                f"Top failure count: {min(failed_count, 5)}",
+                "",
+            ]
+        )
+        return "\n".join(lines)
+
+    def _compact_retrieval_eval_case(self, result: dict[str, Any]) -> dict[str, Any]:
+        metadata = _dict_value(result.get("metadata"))
+        per_case_metric_keys = (
+            "retrieved_count",
+            "expected_chunk_count",
+            "recall",
+            "retrieval_latency_ms",
+            "retrieved_context_chars",
+            "estimated_context_tokens",
+        )
+        compact_metadata = dict(metadata)
+        for key in per_case_metric_keys:
+            if key in result:
+                compact_metadata[key] = result[key]
+        return {
+            "id": str(result.get("id", "")),
+            "query": str(result.get("query", "")),
+            "passed": bool(result.get("passed", False)),
+            "rank": result.get("rank"),
+            "matched_by": str(result.get("matched_by", "")),
+            "expected_chunk_ids": _string_list(result.get("expected_chunk_ids")),
+            "expected_source_paths": _string_list(result.get("expected_source_paths")),
+            "actual_chunk_ids": _string_list(result.get("actual_chunk_ids")),
+            "actual_source_paths": _string_list(result.get("actual_source_paths")),
+            "metadata": compact_metadata,
+        }
+
+    def _write_jsonl_records(
+        self,
+        path: Path,
+        records: list[dict[str, Any]],
+    ) -> None:
+        lines = [
+            json.dumps(record, ensure_ascii=False, sort_keys=True)
+            for record in records
+        ]
+        content = "\n".join(lines)
+        if content:
+            content = f"{content}\n"
+        path.write_text(content, encoding="utf-8")
+
+
+def _dict_value(value: object) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return {str(key): item for key, item in value.items()}
+    return {}
+
+
+def _int_value(value: object) -> int:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        return value
+    return 0
+
+
+def _list_of_dicts(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [
+        {str(key): item for key, item in item.items()}
+        for item in value
+        if isinstance(item, dict)
+    ]
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value]

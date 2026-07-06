@@ -203,6 +203,7 @@ def build_retrieval_eval_trace(
     report_path: Path,
     started_at: datetime,
     finished_at: datetime,
+    run_dir: Path | None = None,
     fusion_method: str | None = None,
     rrf_k: int | None = None,
     lexical_weight: float | None = None,
@@ -229,6 +230,17 @@ def build_retrieval_eval_trace(
         "mrr": metrics["mrr"],
         "report_path": str(report_path),
     }
+    for metric_key in (
+        "recall@k",
+        "avg_retrieval_latency_ms",
+        "avg_retrieved_count",
+        "avg_retrieved_context_chars",
+        "avg_estimated_context_tokens",
+    ):
+        if metric_key in metrics:
+            metadata[metric_key] = metrics[metric_key]
+    if run_dir is not None:
+        metadata["run_dir"] = str(run_dir)
     if retrieval_mode == "semantic":
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
@@ -270,18 +282,21 @@ def build_retrieval_eval_trace(
             ),
             TraceStep(
                 name="compute_metrics",
-                description="Compute hit-rate and reciprocal-rank metrics.",
+                description="Compute hit-rate, recall, latency, and context metrics.",
                 inputs={"case_count": case_count},
                 outputs=metrics,
             ),
             TraceStep(
                 name="write_eval_report",
-                description="Write the compact retrieval eval report.",
+                description="Write retrieval eval compatibility and run reports.",
                 inputs={
                     "evaluation_type": "retrieval",
                     "case_count": case_count,
                 },
-                outputs={"report_path": str(report_path)},
+                outputs={
+                    "report_path": str(report_path),
+                    "run_dir": str(run_dir) if run_dir is not None else None,
+                },
             ),
             TraceStep(
                 name="render_eval_summary",
