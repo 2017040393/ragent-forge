@@ -319,6 +319,81 @@ def test_pdf_table_blocks_keep_table_spans_standalone_and_metadata_rich(
     assert paragraph_span.metadata["header_footer_candidates"] == ["Confidential"]
 
 
+def test_short_standalone_table_span_is_kept_but_short_paragraph_is_filtered(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pdf = tmp_path / "short_table.pdf"
+    pdf.write_bytes(b"%PDF-1.4\nfake")
+    resolved_path = str(pdf.resolve())
+    document = Document(
+        id=resolved_path,
+        text="tiny note\n\n| A |\n|---|\n| 1 |",
+        metadata={
+            "source_path": resolved_path,
+            "media_type": "application/pdf",
+        },
+    )
+    short_paragraph = DocumentBlock(
+        source_path=resolved_path,
+        media_type="application/pdf",
+        page_number=1,
+        block_index=0,
+        block_type="paragraph",
+        text="tiny note",
+        metadata={
+            "page_number": 1,
+            "media_type": "application/pdf",
+            "extraction_method": "pdfplumber",
+        },
+    )
+    short_table = DocumentBlock(
+        source_path=resolved_path,
+        media_type="application/pdf",
+        page_number=1,
+        block_index=1,
+        block_type="table",
+        text="| A |\n|---|\n| 1 |",
+        metadata={
+            "page_number": 1,
+            "media_type": "application/pdf",
+            "table_index": 1,
+            "row_count": 1,
+            "column_count": 1,
+            "serialization": "markdown_table",
+            "extraction_method": "pdfplumber",
+        },
+    )
+
+    def fake_load_structured_document(path: str | Path) -> StructuredLoadResult:
+        assert Path(path) == pdf
+        return StructuredLoadResult(
+            document=document,
+            blocks=(short_paragraph, short_table),
+            metadata=document.metadata,
+        )
+
+    monkeypatch.setattr(
+        evidence_span_service,
+        "load_structured_document",
+        fake_load_structured_document,
+    )
+
+    spans = EvidenceSpanService(
+        min_chars=80,
+        max_chars=1000,
+        include_pdf=True,
+    ).extract(pdf)
+
+    assert len(spans) == 1
+    span = spans[0]
+    assert span.block_types == ("table",)
+    assert span.text == "| A |\n|---|\n| 1 |"
+    assert span.metadata["below_min_chars_allowed"] is True
+    assert span.metadata["table_indices"] == [1]
+    assert "tiny note" not in span.text
+
+
 def test_extract_raises_clear_errors_for_missing_or_unsupported_paths(
     tmp_path: Path,
 ) -> None:

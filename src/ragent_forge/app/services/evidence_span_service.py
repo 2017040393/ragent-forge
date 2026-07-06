@@ -257,7 +257,8 @@ class EvidenceSpanService:
         else:
             raw_trimmed = False
 
-        if len(text) < self.min_chars:
+        below_min_chars_allowed = _allows_below_min_chars(blocks)
+        if len(text) < self.min_chars and not below_min_chars_allowed:
             return None
 
         source_path = _metadata_string(
@@ -306,6 +307,8 @@ class EvidenceSpanService:
                 page_end=page_end,
                 page_numbers=page_numbers,
             )
+        if below_min_chars_allowed and len(text) < self.min_chars:
+            metadata["below_min_chars_allowed"] = True
         if raw_trimmed:
             metadata["raw_char_trimmed"] = True
 
@@ -498,6 +501,10 @@ def _unique_block_types(blocks: Sequence[DocumentBlock]) -> tuple[str, ...]:
         if block.block_type not in block_types:
             block_types.append(block.block_type)
     return tuple(block_types)
+
+
+def _allows_below_min_chars(blocks: Sequence[DocumentBlock]) -> bool:
+    return len(blocks) == 1 and blocks[0].block_type == "table"
 
 
 def _coalesced_metadata_string(
