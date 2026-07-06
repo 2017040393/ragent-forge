@@ -187,17 +187,66 @@ uv run ragent traces show "<trace_id>" --workspace .ragent
 Use `traces list` to find a trace id for `traces show`. CLI ingest, index
 build, search, ask, and retrieval eval workflows write traces.
 
-## Step 11: Run Retrieval Evaluation
+## Step 11: Generate and Run Retrieval Evaluation
 
-Lexical eval:
+You can evaluate retrieval with a checked-in JSONL file or generate a fresh
+span-based dataset from the source documents.
+
+### Use Checked-In Cases
+
+Lexical eval over the small demo case file:
 
 ```bash
 uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
 ```
 
-Semantic and hybrid eval require a vector index:
+### Generate Cases From Source Documents
+
+`eval generate` extracts evidence spans from source documents, asks the
+configured generation provider for synthetic questions, and writes JSONL cases
+that `eval retrieval` can load.
+
+Start with a dry run. This counts spans and estimates case count without calling
+the generation provider:
 
 ```bash
+uv run ragent eval generate --source examples/knowledge --workspace .ragent --output .ragent/eval/generated_cases.jsonl --questions-per-span 2 --max-cases 10 --dry-run
+```
+
+Before generating for real, make sure `.ragent/config.toml` has a real
+generation provider. The default `null` provider is fine for dry runs, search,
+and retrieval eval, but real dataset generation requires
+`generation.provider = "openai_responses"` plus its model, base URL, and API key.
+
+Generate the dataset:
+
+```bash
+uv run ragent eval generate --source examples/knowledge --workspace .ragent --output .ragent/eval/generated_cases.jsonl --questions-per-span 2 --max-cases 10 --overwrite
+```
+
+Then evaluate retrieval against the generated cases:
+
+```bash
+uv run ragent eval retrieval --cases .ragent/eval/generated_cases.jsonl --retrieval lexical --workspace .ragent --limit 5
+```
+
+The generated cases reference evidence spans from the source documents. Run
+`ragent ingest` on the same source before `eval retrieval` so the current
+workspace chunks can be matched back to those spans.
+
+For text-based PDFs, opt in explicitly:
+
+```bash
+uv run ragent eval generate --source examples/knowledge --workspace .ragent --output .ragent/eval/generated_pdf_cases.jsonl --questions-per-span 2 --max-cases 10 --include-pdf --overwrite
+```
+
+### Evaluate Semantic or Hybrid Retrieval
+
+Semantic and hybrid eval require a vector index built from the same workspace
+chunks:
+
+```bash
+uv run ragent index build --workspace .ragent
 uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval semantic --workspace .ragent
 uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval hybrid --workspace .ragent
 ```

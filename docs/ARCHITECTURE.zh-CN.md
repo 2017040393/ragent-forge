@@ -147,9 +147,14 @@ TUI `/trace` command 会展示 latest trace 的精简只读摘要。
 
 ### Evaluation Flow
 
+`ragent eval generate --source <path>` 通过 structured ingestion loader 加载
+支持的源文档，抽取稳定 evidence spans，调用已配置的 text generation provider，
+并写出 JSONL cases。Markdown 和 TXT 默认启用；text-based PDF extraction 需要
+显式加 `--include-pdf`。
+
 `ragent eval retrieval --cases <path>` 加载 JSONL cases，运行选定 retrieval
-mode，检查 expected chunk ids 或 source paths，写入精简 report，并写入
-retrieval eval trace。
+mode，把 span-based cases 映射回当前 workspace chunks，检查 expected chunk ids
+或 source paths，写入精简 report，并写入 retrieval eval trace。
 
 Semantic 和 hybrid eval 需要和 semantic/hybrid search 相同的 vector index。
 

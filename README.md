@@ -108,6 +108,26 @@ uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retri
 uv run ragent tui
 ```
 
+To generate retrieval eval cases from the source documents first, initialize
+config if needed, set `[generation] provider = "openai_responses"` in
+`.ragent/config.toml`, dry-run span extraction, write the generated JSONL, then
+run retrieval eval against the same ingested workspace:
+
+```bash
+uv run ragent config init --workspace .ragent
+uv run ragent ingest examples/knowledge --workspace .ragent
+uv run ragent eval generate --source examples/knowledge --workspace .ragent --output .ragent/eval/generated_cases.jsonl --questions-per-span 2 --max-cases 10 --dry-run
+uv run ragent eval generate --source examples/knowledge --workspace .ragent --output .ragent/eval/generated_cases.jsonl --questions-per-span 2 --max-cases 10 --overwrite
+uv run ragent eval retrieval --cases .ragent/eval/generated_cases.jsonl --workspace .ragent --retrieval lexical --limit 5
+```
+
+`eval generate --dry-run` does not call a model. Without `--dry-run`,
+`eval generate` extracts evidence spans directly from Markdown/TXT source files
+and calls the configured generation provider. Add `--include-pdf` when the
+source includes text-based PDFs. `eval retrieval` then maps those evidence spans
+back to the current workspace chunks, so run `ragent ingest` on the same source
+documents before evaluating.
+
 Semantic and hybrid retrieval require an embedding provider in
 `.ragent/config.toml` and a built vector index:
 

@@ -183,17 +183,63 @@ uv run ragent traces show "<trace_id>" --workspace .ragent
 用 `traces list` 找到 trace id，再传给 `traces show`。CLI ingest、index build、
 search、ask 和 retrieval eval workflows 会写入 traces。
 
-## Step 11: 运行 Retrieval Evaluation
+## Step 11: 生成并运行 Retrieval Evaluation
 
-Lexical eval：
+你可以用仓库里已经写好的 JSONL cases，也可以先从 source documents 自动生成
+一份 span-based eval dataset，再交给 `eval retrieval` 评估。
+
+### 使用仓库内置 Cases
+
+对小型 demo case 文件运行 lexical eval：
 
 ```bash
 uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
 ```
 
-Semantic 和 hybrid eval 需要 vector index：
+### 从 Source Documents 生成 Cases
+
+`eval generate` 会从源文档抽取 evidence spans，调用已配置的 generation provider
+生成 synthetic questions，并写出 `eval retrieval` 可以读取的 JSONL cases。
+
+先 dry run。它只统计 spans 和预估 case 数量，不调用 generation provider：
 
 ```bash
+uv run ragent eval generate --source examples/knowledge --workspace .ragent --output .ragent/eval/generated_cases.jsonl --questions-per-span 2 --max-cases 10 --dry-run
+```
+
+真正生成前，需要确认 `.ragent/config.toml` 里配置了真实 generation provider。
+默认的 `null` provider 可以用于 dry run、search 和 retrieval eval，但真实 dataset
+generation 需要 `generation.provider = "openai_responses"`，并配置对应的 model、
+base URL 和 API key。
+
+生成 dataset：
+
+```bash
+uv run ragent eval generate --source examples/knowledge --workspace .ragent --output .ragent/eval/generated_cases.jsonl --questions-per-span 2 --max-cases 10 --overwrite
+```
+
+然后用生成出来的 cases 运行 retrieval eval：
+
+```bash
+uv run ragent eval retrieval --cases .ragent/eval/generated_cases.jsonl --retrieval lexical --workspace .ragent --limit 5
+```
+
+生成出来的 cases 引用的是 source documents 里的 evidence spans。运行
+`eval retrieval` 前，需要先对同一批 source documents 执行 `ragent ingest`，
+这样当前 workspace chunks 才能映射回这些 spans。
+
+如果 source 里包含 text-based PDF，需要显式加 `--include-pdf`：
+
+```bash
+uv run ragent eval generate --source examples/knowledge --workspace .ragent --output .ragent/eval/generated_pdf_cases.jsonl --questions-per-span 2 --max-cases 10 --include-pdf --overwrite
+```
+
+### 评估 Semantic 或 Hybrid Retrieval
+
+Semantic 和 hybrid eval 需要基于同一个 workspace chunks 构建 vector index：
+
+```bash
+uv run ragent index build --workspace .ragent
 uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval semantic --workspace .ragent
 uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval hybrid --workspace .ragent
 ```

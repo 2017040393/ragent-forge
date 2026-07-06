@@ -159,9 +159,16 @@ The TUI `/trace` command shows a compact read-only summary of the latest trace.
 
 ### Evaluation Flow
 
+`ragent eval generate --source <path>` loads supported source documents through
+the structured ingestion loader, extracts stable evidence spans, calls the
+configured text generation provider, and writes JSONL cases. Markdown and TXT
+are included by default; text-based PDF extraction is opt-in with
+`--include-pdf`.
+
 `ragent eval retrieval --cases <path>` loads JSONL cases, runs the selected
-retrieval mode, checks expected chunk ids or source paths, writes a compact
-report, and writes a retrieval eval trace.
+retrieval mode, maps span-based cases back to current workspace chunks, checks
+expected chunk ids or source paths, writes a compact report, and writes a
+retrieval eval trace.
 
 Semantic and hybrid eval require the same vector index as semantic and hybrid
 search.
