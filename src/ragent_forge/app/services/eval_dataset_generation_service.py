@@ -210,8 +210,10 @@ class EvalDatasetGenerationService:
         items = payload.get("items")
         if not isinstance(items, list):
             raise ValueError("items must be a list")
-        if not items:
-            raise ValueError("items must contain at least one item")
+        if len(items) != self.questions_per_span:
+            raise ValueError(
+                f"items must contain exactly {self.questions_per_span} items"
+            )
 
         return [
             self._parse_generated_item(item, index)

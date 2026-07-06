@@ -262,6 +262,113 @@ def test_missing_or_non_list_items_are_rejected() -> None:
     assert non_list_items.skipped_count == 1
 
 
+def test_too_few_items_are_rejected() -> None:
+    service = EvalDatasetGenerationService(
+        generator=FakeGenerator(
+            [
+                _items_response(
+                    [
+                        {
+                            "query": "Only one question?",
+                            "reference_answer": "Only one answer.",
+                            "question_type": "factual",
+                            "difficulty": "easy",
+                        }
+                    ]
+                )
+            ]
+        ),
+        questions_per_span=2,
+    )
+
+    report = service.generate([make_span()])
+
+    assert report.cases == []
+    assert report.skipped_count == 1
+    assert report.errors[0]["message"] == "items must contain exactly 2 items"
+
+
+def test_too_many_items_are_rejected() -> None:
+    service = EvalDatasetGenerationService(
+        generator=FakeGenerator(
+            [
+                _items_response(
+                    [
+                        {
+                            "query": "First question?",
+                            "reference_answer": "First answer.",
+                            "question_type": "factual",
+                            "difficulty": "easy",
+                        },
+                        {
+                            "query": "Second question?",
+                            "reference_answer": "Second answer.",
+                            "question_type": "reasoning",
+                            "difficulty": "medium",
+                        },
+                        {
+                            "query": "Third question?",
+                            "reference_answer": "Third answer.",
+                            "question_type": "comparison",
+                            "difficulty": "hard",
+                        },
+                    ]
+                )
+            ]
+        ),
+        questions_per_span=2,
+    )
+
+    report = service.generate([make_span()])
+
+    assert report.cases == []
+    assert report.skipped_count == 1
+    assert report.errors[0]["message"] == "items must contain exactly 2 items"
+
+
+def test_exact_questions_per_span_item_count_still_works() -> None:
+    service = EvalDatasetGenerationService(
+        generator=FakeGenerator(
+            [
+                _items_response(
+                    [
+                        {
+                            "query": "First question?",
+                            "reference_answer": "First answer.",
+                            "question_type": "factual",
+                            "difficulty": "easy",
+                        },
+                        {
+                            "query": "Second question?",
+                            "reference_answer": "Second answer.",
+                            "question_type": "reasoning",
+                            "difficulty": "medium",
+                        },
+                        {
+                            "query": "Third question?",
+                            "reference_answer": "Third answer.",
+                            "question_type": "comparison",
+                            "difficulty": "hard",
+                        },
+                    ]
+                )
+            ]
+        ),
+        questions_per_span=3,
+    )
+
+    report = service.generate([make_span()])
+
+    assert report.generated_count == 3
+    assert report.skipped_count == 0
+    assert report.errors == []
+    assert [case.id for case in report.cases] == [
+        "synthetic-span-000001",
+        "synthetic-span-000002",
+        "synthetic-span-000003",
+    ]
+
+
 def test_write_jsonl_refuses_to_overwrite_existing_file(tmp_path: Path) -> None:
     case = EvalDatasetGenerationService(
         generator=FakeGenerator(
