@@ -257,6 +257,8 @@ def test_write_retrieval_eval_run_writes_summary_cases_and_failures(
                 "id": "case-001",
                 "query": "agent memory",
                 "passed": True,
+                "failure_type": None,
+                "failure_reason": None,
                 "rank": 1,
                 "matched_by": "chunk_id",
                 "expected_chunk_ids": ["a::chunk-0000"],
@@ -279,6 +281,11 @@ def test_write_retrieval_eval_run_writes_summary_cases_and_failures(
                 "id": "case-002",
                 "query": "missing",
                 "passed": False,
+                "failure_type": "low_rank",
+                "failure_reason": (
+                    "Expected chunks were not found within the evaluated "
+                    "top-k results."
+                ),
                 "rank": None,
                 "matched_by": "none",
                 "expected_chunk_ids": ["b::chunk-0001"],
@@ -330,14 +337,17 @@ def test_write_retrieval_eval_run_writes_summary_cases_and_failures(
         )
     )
     assert summary["metrics"]["recall@k"] == 0.25
-    assert "| recall@k | 0.2500 |" in (
-        run_dir / "summary.md"
-    ).read_text(encoding="utf-8")
+    summary_markdown = (run_dir / "summary.md").read_text(encoding="utf-8")
+    assert "| recall@k | 0.2500 |" in summary_markdown
+    assert "## Failure Breakdown" in summary_markdown
+    assert "| low_rank | 1 |" in summary_markdown
     assert cases == [
         {
             "id": "case-001",
             "query": "agent memory",
             "passed": True,
+            "failure_type": None,
+            "failure_reason": None,
             "rank": 1,
             "matched_by": "chunk_id",
             "expected_chunk_ids": ["a::chunk-0000"],
@@ -350,6 +360,10 @@ def test_write_retrieval_eval_run_writes_summary_cases_and_failures(
             "id": "case-002",
             "query": "missing",
             "passed": False,
+            "failure_type": "low_rank",
+            "failure_reason": (
+                "Expected chunks were not found within the evaluated top-k results."
+            ),
             "rank": None,
             "matched_by": "none",
             "expected_chunk_ids": ["b::chunk-0001"],

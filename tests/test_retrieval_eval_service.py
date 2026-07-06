@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from ragent_forge.app.services import retrieval_eval_service
 from ragent_forge.app.services.evidence_span_service import EvidenceSpan
 from ragent_forge.app.services.retrieval_eval_service import (
     RetrievalEvalCase,
@@ -279,6 +280,8 @@ def test_evaluate_matches_chunk_id_before_source_path() -> None:
     assert result.rank == 2
     assert result.matched_by == "chunk_id"
     assert result.reciprocal_rank == pytest.approx(0.5)
+    assert result.failure_type is None
+    assert result.failure_reason is None
 
 
 def test_evaluate_maps_evidence_spans_to_current_chunks_and_passes_retrieval() -> None:
@@ -362,6 +365,10 @@ def test_evaluate_fails_when_evidence_spans_cannot_be_mapped() -> None:
     assert result.expected_chunk_ids == []
     assert result.metadata["mapped_expected_chunk_ids"] == []
     assert result.metadata["unmatched_span_ids"] == ["docs/missing.md::span-0001"]
+    assert result.failure_type == "unmapped_evidence"
+    assert result.failure_reason == (
+        "Evidence spans could not be mapped to current chunks."
+    )
 
 
 def test_evaluate_matches_source_path_when_no_chunk_match_exists() -> None:
@@ -554,6 +561,137 @@ def test_evaluate_records_failed_cases_and_empty_retrieval_results() -> None:
     assert result.actual_chunk_ids == []
     assert result.actual_source_paths == []
     assert result.top_results == []
+    assert result.failure_type == "no_result"
+    assert result.failure_reason == "No retrieval results returned."
+
+
+def test_evaluate_classifies_failed_case_when_expected_source_is_missed() -> None:
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="missing source",
+            expected_source_paths=["docs/expected.md"],
+        )
+    ]
+    search = FakeSearchService(
+        {"missing source": [make_result("other::chunk-0000", "docs/other.md")]}
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+    )
+
+    result = report.results[0]
+    assert result.passed is False
+    assert result.failure_type == "missed_source"
+    assert (
+        result.failure_reason
+        == "Retrieved results did not include any expected source path."
+    )
+
+
+def test_evaluate_classifies_wrong_section_for_mapped_span_source_match() -> None:
+    span = make_evidence_span(start_char=20, end_char=80)
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="wrong section",
+            evidence_spans=[span],
+        )
+    ]
+    workspace = FakeWorkspace(
+        [
+            make_chunk_record(
+                "docs/rag.md::chunk-0000",
+                source_path="docs/rag.md",
+                start_char=0,
+                end_char=100,
+            )
+        ]
+    )
+    search = FakeSearchService(
+        {
+            "wrong section": [
+                make_result("docs/rag.md::chunk-0009", "docs/rag.md")
+            ]
+        }
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+        workspace=workspace,
+    )
+
+    result = report.results[0]
+    assert result.passed is False
+    assert result.expected_chunk_ids == ["docs/rag.md::chunk-0000"]
+    assert result.failure_type == "wrong_section"
+    assert (
+        result.failure_reason
+        == "Expected source was retrieved, but no expected chunk was found in top-k."
+    )
+
+
+def test_evaluate_classifies_low_rank_when_expected_chunks_are_missing() -> None:
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="low rank",
+            expected_chunk_ids=["docs/rag.md::chunk-0000"],
+        )
+    ]
+    search = FakeSearchService(
+        {"low rank": [make_result("docs/other.md::chunk-0000", "docs/other.md")]}
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+    )
+
+    result = report.results[0]
+    assert result.passed is False
+    assert result.failure_type == "low_rank"
+    assert (
+        result.failure_reason
+        == "Expected chunks were not found within the evaluated top-k results."
+    )
+
+
+def test_classify_failure_falls_back_to_unknown_for_unmatched_shape() -> None:
+    case = RetrievalEvalCase(
+        id="case-001",
+        query="ambiguous",
+        evidence_spans=[make_evidence_span()],
+    )
+
+    failure_type, failure_reason = retrieval_eval_service._classify_failure(
+        case=case,
+        expected_chunk_ids=[],
+        search_results=[make_result("other::chunk-0000", "docs/rag.md")],
+        matched_by="none",
+        metadata={},
+    )
+
+    assert failure_type == "unknown"
+    assert failure_reason == "No deterministic failure heuristic matched."
 
 
 def test_evaluate_computes_hit_rates_and_mrr() -> None:

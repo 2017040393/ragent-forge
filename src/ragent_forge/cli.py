@@ -1163,7 +1163,7 @@ def _handle_eval_retrieval(
             lexical_weight=built_search.lexical_weight,
             semantic_weight=built_search.semantic_weight,
         )
-        report_payload = report.model_dump(mode="json", exclude_none=True)
+        report_payload = report.model_dump(mode="json")
         written_report_path = workspace.write_retrieval_eval_report(
             report_payload,
             report_path,
@@ -1265,10 +1265,28 @@ def _print_retrieval_eval_summary(
         console.print(f"  expected chunks: {result.expected_chunk_ids}")
         console.print(f"  expected sources: {result.expected_source_paths}")
         console.print(f"  actual top{report.limit}: {actual_top}")
+    failure_breakdown = _retrieval_eval_failure_breakdown(report)
+    if failure_breakdown:
+        console.print()
+        console.print("Failure breakdown:")
+        for failure_type, count in sorted(failure_breakdown.items()):
+            console.print(f"- {failure_type}: {count}")
     console.print()
     console.print(f"Report path: {report_path}")
     console.print(f"Run directory: {run_dir}")
     console.print(f"Saved trace to: {trace_path}")
+
+
+def _retrieval_eval_failure_breakdown(
+    report: RetrievalEvalReport,
+) -> dict[str, int]:
+    breakdown: dict[str, int] = {}
+    for result in report.results:
+        if result.passed:
+            continue
+        failure_type = result.failure_type or "unknown"
+        breakdown[failure_type] = breakdown.get(failure_type, 0) + 1
+    return breakdown
 
 
 def _print_trace(console: Console, trace: dict[str, object]) -> None:

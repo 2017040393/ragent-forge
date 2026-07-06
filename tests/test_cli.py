@@ -1942,6 +1942,8 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
     assert "Avg retrieval latency:" in captured.out
     assert "Failed cases:" in captured.out
     assert "- case-002 | rank: none | query: missing" in captured.out
+    assert "Failure breakdown:" in captured.out
+    assert "- no_result: 1" in captured.out
     assert "Report path:" in captured.out
     assert "Run directory:" in captured.out
     assert "Saved trace to:" in captured.out
@@ -1977,6 +1979,13 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
     assert report["metrics"]["hit@k"] == 0.5
     assert "recall@k" in report["metrics"]
     assert "avg_retrieval_latency_ms" in report["metrics"]
+    assert report["results"][0]["failure_type"] is None
+    assert report["results"][0]["failure_reason"] is None
+    assert report["results"][1]["failure_type"] == "no_result"
+    assert (
+        report["results"][1]["failure_reason"]
+        == "No retrieval results returned."
+    )
     assert run_summary == report
     assert [record["id"] for record in run_cases] == ["case-001", "case-002"]
     assert [record["id"] for record in run_failures] == ["case-002"]
@@ -1984,6 +1993,8 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
         "id",
         "query",
         "passed",
+        "failure_type",
+        "failure_reason",
         "rank",
         "matched_by",
         "expected_chunk_ids",

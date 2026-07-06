@@ -23,6 +23,16 @@ from ragent_forge.app.services.gold_chunk_mapping_service import (
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.workspace import LocalWorkspace
 
+MatchedBy = Literal["chunk_id", "source_path", "none"]
+FailureType = Literal[
+    "no_result",
+    "unmapped_evidence",
+    "missed_source",
+    "wrong_section",
+    "low_rank",
+    "unknown",
+]
+
 
 class SearchServiceProtocol(Protocol):
     def search(self, query: str, limit: int) -> list[SearchResult]:
@@ -84,7 +94,9 @@ class RetrievalEvalCaseResult(BaseModel):
     passed: bool
     rank: int | None = None
     reciprocal_rank: float = 0.0
-    matched_by: Literal["chunk_id", "source_path", "none"]
+    matched_by: MatchedBy
+    failure_type: FailureType | None = None
+    failure_reason: str | None = None
     expected_chunk_ids: list[str]
     expected_source_paths: list[str]
     actual_chunk_ids: list[str]
@@ -308,6 +320,13 @@ class RetrievalEvalService:
         else:
             matched_by = "none"
 
+        failure_type, failure_reason = _classify_failure(
+            case=case,
+            expected_chunk_ids=expected_chunk_ids,
+            search_results=search_results,
+            matched_by=matched_by,
+            metadata=metadata,
+        )
         retrieved_expected_chunk_count = len(
             expected_chunk_id_set.intersection(
                 result.chunk_id for result in search_results
@@ -322,6 +341,8 @@ class RetrievalEvalService:
             rank=rank,
             reciprocal_rank=(1 / rank) if rank is not None else 0.0,
             matched_by=matched_by,
+            failure_type=failure_type,
+            failure_reason=failure_reason,
             expected_chunk_ids=expected_chunk_ids,
             expected_source_paths=case.expected_source_paths,
             actual_chunk_ids=[result.chunk_id for result in search_results],
@@ -418,6 +439,90 @@ def _source_path_matches(actual_path: str, expected_paths: tuple[str, ...]) -> b
         actual == expected or actual.endswith(f"/{expected}")
         for expected in (_normalize_eval_path(path) for path in expected_paths)
     )
+
+
+def _classify_failure(
+    *,
+    case: RetrievalEvalCase,
+    expected_chunk_ids: list[str],
+    search_results: list[SearchResult],
+    matched_by: MatchedBy,
+    metadata: dict[str, Any],
+) -> tuple[FailureType | None, str | None]:
+    if matched_by != "none":
+        return None, None
+
+    if not search_results:
+        return "no_result", "No retrieval results returned."
+
+    unmatched_span_ids = _metadata_string_list(metadata, "unmatched_span_ids")
+    if case.evidence_spans and unmatched_span_ids and not expected_chunk_ids:
+        return (
+            "unmapped_evidence",
+            "Evidence spans could not be mapped to current chunks.",
+        )
+
+    expected_source_paths = _expected_source_paths_for_failure(case)
+    if expected_source_paths and not any(
+        _source_path_matches(result.source_path, expected_source_paths)
+        for result in search_results
+    ):
+        return (
+            "missed_source",
+            "Retrieved results did not include any expected source path.",
+        )
+
+    expected_chunk_id_set = set(expected_chunk_ids)
+    no_expected_chunk_retrieved = bool(expected_chunk_id_set) and all(
+        result.chunk_id not in expected_chunk_id_set for result in search_results
+    )
+    mapped_expected_chunk_ids = _metadata_string_list(
+        metadata,
+        "mapped_expected_chunk_ids",
+    )
+    evidence_source_paths = _evidence_span_source_paths(case)
+    if (
+        no_expected_chunk_retrieved
+        and mapped_expected_chunk_ids
+        and evidence_source_paths
+        and any(
+            _source_path_matches(result.source_path, evidence_source_paths)
+            for result in search_results
+        )
+    ):
+        return (
+            "wrong_section",
+            "Expected source was retrieved, but no expected chunk was found in top-k.",
+        )
+
+    if no_expected_chunk_retrieved:
+        return (
+            "low_rank",
+            "Expected chunks were not found within the evaluated top-k results.",
+        )
+
+    return "unknown", "No deterministic failure heuristic matched."
+
+
+def _expected_source_paths_for_failure(
+    case: RetrievalEvalCase,
+) -> tuple[str, ...]:
+    if case.expected_source_paths:
+        return tuple(case.expected_source_paths)
+    return _evidence_span_source_paths(case)
+
+
+def _evidence_span_source_paths(case: RetrievalEvalCase) -> tuple[str, ...]:
+    return tuple(
+        _dedupe_preserving_order([span.source_path for span in case.evidence_spans])
+    )
+
+
+def _metadata_string_list(metadata: dict[str, Any], key: str) -> list[str]:
+    value = metadata.get(key)
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
 
 
 def _normalize_eval_path(path: str) -> str:

@@ -318,6 +318,26 @@ class LocalWorkspace:
         lines.extend(
             [
                 "",
+                "## Failure Breakdown",
+                "",
+            ]
+        )
+        failure_breakdown = _failure_breakdown(report)
+        if failure_breakdown:
+            lines.extend(
+                [
+                    "| Failure Type | Count |",
+                    "| --- | ---: |",
+                ]
+            )
+            for failure_type, count in sorted(failure_breakdown.items()):
+                lines.append(f"| {failure_type} | {count} |")
+        else:
+            lines.append("No failed cases.")
+
+        lines.extend(
+            [
+                "",
                 "## Report Paths",
                 "",
                 f"- summary.json: {summary_json_path}",
@@ -354,6 +374,8 @@ class LocalWorkspace:
             "id": str(result.get("id", "")),
             "query": str(result.get("query", "")),
             "passed": bool(result.get("passed", False)),
+            "failure_type": _optional_string(result.get("failure_type")),
+            "failure_reason": _optional_string(result.get("failure_reason")),
             "rank": result.get("rank"),
             "matched_by": str(result.get("matched_by", "")),
             "expected_chunk_ids": _string_list(result.get("expected_chunk_ids")),
@@ -400,6 +422,22 @@ def _list_of_dicts(value: object) -> list[dict[str, Any]]:
         for item in value
         if isinstance(item, dict)
     ]
+
+
+def _failure_breakdown(report: dict[str, Any]) -> dict[str, int]:
+    breakdown: dict[str, int] = {}
+    for result in _list_of_dicts(report.get("results")):
+        if bool(result.get("passed", False)):
+            continue
+        failure_type = _optional_string(result.get("failure_type")) or "unknown"
+        breakdown[failure_type] = breakdown.get(failure_type, 0) + 1
+    return breakdown
+
+
+def _optional_string(value: object) -> str | None:
+    if isinstance(value, str) and value:
+        return value
+    return None
 
 
 def _string_list(value: object) -> list[str]:
