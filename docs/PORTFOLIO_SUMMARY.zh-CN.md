@@ -36,9 +36,9 @@ hybrid retrieval modes, and can run source-grounded Ask with either
 retrieval-only output or optional OpenAI Responses-compatible generation.
 
 The project also includes CLI operation traces, retrieval evaluation with hit@k
-and MRR, and a command-first Textual TUI with background Ask/Search workers,
-inline command suggestions, compact source lists, source navigation, and an
-Inspector panel.
+and MRR, 不绑定当前 chunk ids 的 span-based synthetic eval generation，以及
+command-first Textual TUI with background Ask/Search workers, inline command
+suggestions, compact source lists, source navigation, and an Inspector panel.
 
 ## Resume Bullets
 
@@ -46,6 +46,7 @@ Inspector panel.
 - Implemented a command-first Textual TUI with background Ask/Search workers, inline command suggestions, source navigation, and an Inspector panel.
 - Designed local JSONL workspace storage for chunks, vector index, traces, and retrieval evaluation reports to make RAG workflows inspectable and reproducible.
 - Added retrieval evaluation with hit@k and MRR over JSONL cases to measure retrieval behavior before adding heavier ranking or answer-evaluation features.
+- Added span-based synthetic eval generation so datasets can be reused across chunking, retrieval, and ranking experiments.
 
 ## Interview Talking Points
 
@@ -78,6 +79,8 @@ Inspector panel.
 - 默认 `null` generation provider 下的 retrieval-only Ask behavior。
 - 用于 operation inspection 的 CLI traces。
 - 基于 JSONL cases 的 hit@k 和 MRR retrieval evaluation。
+- Span-based generated eval cases 将测试数据集和当前 chunk store 解耦，便于比较
+  chunking 与 retrieval strategies。
 - 使用 background workers 运行 Ask 和 Search 的 Textual TUI。
 
 ## Architecture Highlights

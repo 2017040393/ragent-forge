@@ -152,6 +152,10 @@ TUI `/trace` command 会展示 latest trace 的精简只读摘要。
 并写出 JSONL cases。Markdown 和 TXT 默认启用；text-based PDF extraction 需要
 显式加 `--include-pdf`。
 
+这些 generated cases 是 span-based，而不是 chunk-id-based。因此 eval dataset
+可以跨 chunk-size 和 chunk-overlap 调整继续复用，同时仍然检查当前 retrieval
+system 是否返回覆盖同一份 source evidence 的 chunks。
+
 `ragent eval retrieval --cases <path>` 加载 JSONL cases，运行选定 retrieval
 mode，把 span-based cases 映射回当前 workspace chunks，检查 expected chunk ids
 或 source paths，写入精简 report，并写入 retrieval eval trace。

@@ -188,6 +188,16 @@ search、ask 和 retrieval eval workflows 会写入 traces。
 你可以用仓库里已经写好的 JSONL cases，也可以先从 source documents 自动生成
 一份 span-based eval dataset，再交给 `eval retrieval` 评估。
 
+当你想比较 retrieval 或 chunking 策略时，span-based generation 是更灵活的路径。
+生成出来的 cases 指向稳定的 source evidence spans，而不是固定 chunk ids；
+`eval retrieval` 会把这些 spans 映射到当前 workspace 里的 chunks。
+
+这个循环是：
+
+1. 抽取 evidence spans，并生成 synthetic eval cases。
+2. 针对当前 chunks 运行 retrieval eval。
+3. 跨 retrieval 或 chunking 策略比较 hit@k 和 MRR。
+
 ### 使用仓库内置 Cases
 
 对小型 demo case 文件运行 lexical eval：

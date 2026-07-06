@@ -165,6 +165,11 @@ configured text generation provider, and writes JSONL cases. Markdown and TXT
 are included by default; text-based PDF extraction is opt-in with
 `--include-pdf`.
 
+Those generated cases are span-based rather than chunk-id-based. The eval
+dataset can therefore survive chunk-size and chunk-overlap changes while still
+checking whether the current retrieval system returns chunks that cover the
+same source evidence.
+
 `ragent eval retrieval --cases <path>` loads JSONL cases, runs the selected
 retrieval mode, maps span-based cases back to current workspace chunks, checks
 expected chunk ids or source paths, writes a compact report, and writes a

@@ -47,6 +47,8 @@ reports.
 - Local operation traces for CLI ingest, index build, search, ask, and
   retrieval eval workflows.
 - Retrieval evaluation with hit@k and MRR.
+- Span-based synthetic eval generation from stable source evidence instead of
+  fixed chunk ids.
 - Command-first Textual TUI Shell with command suggestions, source navigation,
   and an Inspector panel.
 
@@ -108,10 +110,23 @@ uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retri
 uv run ragent tui
 ```
 
-To generate retrieval eval cases from the source documents first, initialize
-config if needed, set `[generation] provider = "openai_responses"` in
-`.ragent/config.toml`, dry-run span extraction, write the generated JSONL, then
-run retrieval eval against the same ingested workspace:
+## Span-Based Synthetic Eval Generation
+
+RAGentForge can generate retrieval evaluation cases from stable source
+evidence spans instead of hand-written fixed chunk ids. This makes the dataset
+useful across chunk-size, chunk-overlap, retrieval-mode, and ranking changes:
+the cases keep pointing at source evidence, while `eval retrieval` maps that
+evidence onto the current workspace chunks.
+
+The workflow is:
+
+1. Extract evidence spans and generate synthetic eval cases.
+2. Run retrieval eval against the current chunks.
+3. Compare metrics across retrieval and chunking strategies.
+
+Initialize config if needed, set `[generation] provider = "openai_responses"`
+in `.ragent/config.toml`, dry-run span extraction, write the generated JSONL,
+then run retrieval eval against the same ingested workspace:
 
 ```bash
 uv run ragent config init --workspace .ragent

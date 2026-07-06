@@ -192,6 +192,17 @@ build, search, ask, and retrieval eval workflows write traces.
 You can evaluate retrieval with a checked-in JSONL file or generate a fresh
 span-based dataset from the source documents.
 
+Span-based generation is the more flexible path when you want to compare
+retrieval or chunking strategies. The generated cases point at stable source
+evidence spans instead of fixed chunk ids, and `eval retrieval` maps those
+spans onto whatever chunks exist in the current workspace.
+
+The loop is:
+
+1. Extract evidence spans and generate synthetic eval cases.
+2. Run retrieval eval against current chunks.
+3. Compare hit@k and MRR across retrieval or chunking strategies.
+
 ### Use Checked-In Cases
 
 Lexical eval over the small demo case file:
