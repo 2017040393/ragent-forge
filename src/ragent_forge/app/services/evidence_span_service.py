@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from ragent_forge.core.ingestion.document_blocks import DocumentBlock
 from ragent_forge.core.ingestion.structured_loader import (
@@ -16,6 +17,7 @@ from ragent_forge.core.ingestion.structured_result import StructuredLoadResult
 DEFAULT_INCLUDE_BLOCK_TYPES = frozenset(
     {"paragraph", "list", "table", "code", "blockquote"}
 )
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -30,6 +32,8 @@ class EvidenceSpan:
     section_title: str | None
     heading_path: tuple[str, ...]
     block_types: tuple[str, ...]
+    page_start: int | None = None
+    page_end: int | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -123,8 +127,12 @@ class EvidenceSpanService:
     ) -> list[EvidenceSpan]:
         spans: list[EvidenceSpan] = []
         span_index = 0
+        if _result_media_type(structured_result) == "application/pdf":
+            block_groups = self._pdf_block_groups(structured_result.blocks)
+        else:
+            block_groups = self._useful_block_groups(structured_result.blocks)
 
-        for block_group in self._useful_block_groups(structured_result.blocks):
+        for block_group in block_groups:
             for window in self._block_windows(block_group):
                 span = self._span_from_blocks(
                     structured_result=structured_result,
@@ -137,6 +145,43 @@ class EvidenceSpanService:
                 span_index += 1
 
         return spans
+
+    def _pdf_block_groups(
+        self,
+        blocks: Sequence[DocumentBlock],
+    ) -> list[list[DocumentBlock]]:
+        groups: list[list[DocumentBlock]] = []
+        pending: list[DocumentBlock] = []
+        pending_page: int | None = None
+
+        for block in blocks:
+            if not self._is_useful_block(block):
+                if pending:
+                    groups.append(pending)
+                    pending = []
+                    pending_page = None
+                continue
+
+            if block.block_type == "table":
+                if pending:
+                    groups.append(pending)
+                    pending = []
+                    pending_page = None
+                groups.append([block])
+                continue
+
+            block_page = _block_page_number(block)
+            if pending and block_page != pending_page:
+                groups.append(pending)
+                pending = []
+
+            pending.append(block)
+            pending_page = block_page
+
+        if pending:
+            groups.append(pending)
+
+        return groups
 
     def _useful_block_groups(
         self,
@@ -202,6 +247,10 @@ class EvidenceSpanService:
         if not blocks:
             return None
 
+        media_type = _result_media_type(structured_result)
+        if media_type is None:
+            media_type = blocks[0].media_type
+
         text = _joined_block_text(blocks)
         if len(text) > self.max_chars:
             text, raw_trimmed = _trim_text(text, self.max_chars)
@@ -218,21 +267,22 @@ class EvidenceSpanService:
             source_path = blocks[0].source_path
 
         document_id = structured_result.document.id
-        media_type = _metadata_string(
-            structured_result.document.metadata.get("media_type")
-        )
-        if media_type is None:
-            media_type = blocks[0].media_type
-
         start_char = _optional_int(blocks[0].metadata.get("start_char"))
         end_char = _optional_int(blocks[-1].metadata.get("end_char"))
-        if raw_trimmed and start_char is not None:
+        if raw_trimmed and media_type == "application/pdf":
+            start_char = None
+            end_char = None
+        elif raw_trimmed and start_char is not None:
             end_char = start_char + len(text)
 
         heading_path = _metadata_string_tuple(blocks[0].metadata.get("heading_path"))
         section_title = _metadata_string(blocks[0].metadata.get("section_title"))
         block_types = _unique_block_types(blocks)
         block_indices = [block.block_index for block in blocks]
+        page_numbers = _page_numbers(blocks)
+        page_start = min(page_numbers) if page_numbers else None
+        page_end = max(page_numbers) if page_numbers else None
+        offsets_available = start_char is not None and end_char is not None
 
         metadata: dict[str, Any] = {
             "source_path": source_path,
@@ -245,7 +295,17 @@ class EvidenceSpanService:
             "block_count": len(blocks),
             "start_block_index": block_indices[0],
             "end_block_index": block_indices[-1],
+            "offsets_available": offsets_available,
+            "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
         }
+        if media_type == "application/pdf":
+            _copy_pdf_metadata(
+                metadata,
+                blocks,
+                page_start=page_start,
+                page_end=page_end,
+                page_numbers=page_numbers,
+            )
         if raw_trimmed:
             metadata["raw_char_trimmed"] = True
 
@@ -260,6 +320,8 @@ class EvidenceSpanService:
             section_title=section_title,
             heading_path=heading_path,
             block_types=block_types,
+            page_start=page_start,
+            page_end=page_end,
             metadata=metadata,
         )
 
@@ -270,6 +332,116 @@ class EvidenceSpanService:
         if self.include_pdf:
             return "Markdown/TXT/PDF"
         return "Markdown/TXT"
+
+
+def _copy_pdf_metadata(
+    metadata: dict[str, Any],
+    blocks: Sequence[DocumentBlock],
+    *,
+    page_start: int | None,
+    page_end: int | None,
+    page_numbers: list[int],
+) -> None:
+    metadata["page_start"] = page_start
+    metadata["page_end"] = page_end
+    metadata["page_numbers"] = page_numbers
+
+    for key in ("extraction_method", "reading_order_strategy"):
+        value = _coalesced_metadata_string(blocks, key)
+        if value:
+            metadata[key] = value
+
+    reading_order_warning = _joined_unique_metadata_strings(
+        blocks,
+        "reading_order_warning",
+    )
+    if reading_order_warning:
+        metadata["reading_order_warning"] = reading_order_warning
+
+    warnings = [
+        warning
+        for block in blocks
+        for warning in _warning_dicts(block.metadata.get("warnings"))
+    ]
+    if warnings:
+        metadata["warnings"] = warnings
+
+    table_indices = _unique(
+        [
+            table_index
+            for block in blocks
+            for table_index in [_optional_int(block.metadata.get("table_index"))]
+            if table_index is not None
+        ]
+    )
+    if table_indices:
+        metadata["table_indices"] = table_indices
+
+    for key in (
+        "table_caption",
+        "table_context",
+        "table_context_strategy",
+        "serialization",
+        "table_text_dedup_strategy",
+    ):
+        value = _first_metadata_string(blocks, key)
+        if value:
+            metadata[key] = value
+
+    for key in ("row_count", "column_count"):
+        value = _first_metadata_int(blocks, key)
+        if value is not None:
+            metadata[key] = value
+
+    possible_formula_lines = _unique(
+        [
+            line
+            for block in blocks
+            for line in _metadata_string_list(
+                block.metadata.get("possible_formula_lines")
+            )
+        ]
+    )
+    if any(block.metadata.get("possible_formula") is True for block in blocks):
+        metadata["possible_formula"] = True
+    if possible_formula_lines:
+        metadata["possible_formula_lines"] = possible_formula_lines[:10]
+
+    table_dedup_removed_lines = _sum_metadata_int(
+        blocks,
+        "table_text_dedup_removed_lines",
+    )
+    if (
+        any(block.metadata.get("table_text_dedup_applied") is True for block in blocks)
+        or table_dedup_removed_lines
+    ):
+        metadata["table_text_dedup_applied"] = True
+        metadata["table_text_dedup_removed_lines"] = table_dedup_removed_lines
+
+    header_footer_removed_lines = _sum_metadata_int(
+        blocks,
+        "header_footer_removed_lines",
+    )
+    if (
+        any(
+            block.metadata.get("header_footer_filter_applied") is True
+            for block in blocks
+        )
+        or header_footer_removed_lines
+    ):
+        metadata["header_footer_filter_applied"] = True
+        metadata["header_footer_removed_lines"] = header_footer_removed_lines
+        header_footer_candidates = _unique(
+            [
+                candidate
+                for block in blocks
+                for candidate in _metadata_string_list(
+                    block.metadata.get("header_footer_candidates")
+                )
+            ]
+        )
+        if header_footer_candidates:
+            metadata["header_footer_candidates"] = header_footer_candidates[:10]
 
 
 def _joined_block_text(blocks: Sequence[DocumentBlock]) -> str:
@@ -294,12 +466,108 @@ def _group_key(block: DocumentBlock) -> tuple[str, ...]:
     return ()
 
 
+def _result_media_type(result: StructuredLoadResult) -> str | None:
+    media_type = _metadata_string(result.document.metadata.get("media_type"))
+    if media_type:
+        return media_type
+    if result.blocks:
+        return result.blocks[0].media_type
+    return None
+
+
+def _page_numbers(blocks: Sequence[DocumentBlock]) -> list[int]:
+    return _unique(
+        [
+            page_number
+            for block in blocks
+            for page_number in [_block_page_number(block)]
+            if page_number is not None
+        ]
+    )
+
+
+def _block_page_number(block: DocumentBlock) -> int | None:
+    if block.page_number is not None:
+        return block.page_number
+    return _optional_int(block.metadata.get("page_number"))
+
+
 def _unique_block_types(blocks: Sequence[DocumentBlock]) -> tuple[str, ...]:
     block_types: list[str] = []
     for block in blocks:
         if block.block_type not in block_types:
             block_types.append(block.block_type)
     return tuple(block_types)
+
+
+def _coalesced_metadata_string(
+    blocks: Sequence[DocumentBlock],
+    key: str,
+) -> str | None:
+    values = _unique(
+        [
+            value
+            for block in blocks
+            for value in [_metadata_string(block.metadata.get(key))]
+            if value is not None
+        ]
+    )
+    if len(values) == 1:
+        return values[0]
+    if len(values) > 1:
+        return "mixed"
+    return None
+
+
+def _joined_unique_metadata_strings(
+    blocks: Sequence[DocumentBlock],
+    key: str,
+) -> str | None:
+    values = _unique(
+        [
+            value
+            for block in blocks
+            for value in [_metadata_string(block.metadata.get(key))]
+            if value is not None
+        ]
+    )
+    if values:
+        return "; ".join(values)
+    return None
+
+
+def _first_metadata_string(
+    blocks: Sequence[DocumentBlock],
+    key: str,
+) -> str | None:
+    for block in blocks:
+        value = _metadata_string(block.metadata.get(key))
+        if value:
+            return value
+    return None
+
+
+def _first_metadata_int(
+    blocks: Sequence[DocumentBlock],
+    key: str,
+) -> int | None:
+    for block in blocks:
+        value = _optional_int(block.metadata.get(key))
+        if value is not None:
+            return value
+    return None
+
+
+def _sum_metadata_int(
+    blocks: Sequence[DocumentBlock],
+    key: str,
+) -> int:
+    return sum(
+        value
+        for block in blocks
+        for value in [_optional_int(block.metadata.get(key))]
+        if value is not None
+    )
 
 
 def _metadata_string(value: object) -> str | None:
@@ -316,12 +584,39 @@ def _metadata_string_tuple(value: object) -> tuple[str, ...]:
     return ()
 
 
+def _metadata_string_list(value: object) -> list[str]:
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, str) and item]
+    if isinstance(value, tuple):
+        return [item for item in value if isinstance(item, str) and item]
+    return []
+
+
+def _warning_dicts(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+
+    warnings: list[dict[str, Any]] = []
+    for item in value:
+        if isinstance(item, dict):
+            warnings.append(dict(item))
+    return warnings
+
+
 def _optional_int(value: object) -> int | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
         return value
     return None
+
+
+def _unique(values: Sequence[T]) -> list[T]:
+    unique_values: list[T] = []
+    for value in values:
+        if value not in unique_values:
+            unique_values.append(value)
+    return unique_values
 
 
 def _is_workspace_chunks_file(root: Path, file_path: Path) -> bool:

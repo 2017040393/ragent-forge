@@ -1,9 +1,15 @@
+import hashlib
 from pathlib import Path
 
 import pytest
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
+from ragent_forge.app.models import Document
 from ragent_forge.app.services import evidence_span_service
 from ragent_forge.app.services.evidence_span_service import EvidenceSpanService
+from ragent_forge.core.ingestion.document_blocks import DocumentBlock
+from ragent_forge.core.ingestion.structured_result import StructuredLoadResult
 
 
 def test_extracts_markdown_spans_with_section_metadata(tmp_path: Path) -> None:
@@ -167,6 +173,152 @@ def test_pdf_is_skipped_by_default_and_attempted_when_enabled(
     assert loaded_file_names == ["guide.md", "paper.pdf"]
 
 
+def test_include_pdf_extracts_page_aware_spans_from_generated_pdf(
+    tmp_path: Path,
+) -> None:
+    pdf = tmp_path / "two_pages.pdf"
+    _write_two_page_pdf(pdf)
+
+    spans = EvidenceSpanService(
+        min_chars=20,
+        max_chars=1000,
+        include_pdf=True,
+    ).extract(pdf)
+
+    assert len(spans) == 2
+    assert [span.page_start for span in spans] == [1, 2]
+    assert [span.page_end for span in spans] == [1, 2]
+    assert all(span.media_type == "application/pdf" for span in spans)
+    assert all(span.start_char is None for span in spans)
+    assert all(span.end_char is None for span in spans)
+    assert all(span.metadata["offsets_available"] is False for span in spans)
+    assert all("text_sha256" in span.metadata for span in spans)
+    assert spans[0].metadata["page_numbers"] == [1]
+    assert spans[1].metadata["page_numbers"] == [2]
+    assert spans[0].metadata["extraction_method"] == "pdfplumber"
+    assert "First page evidence" in spans[0].text
+    assert "Second page evidence" not in spans[0].text
+    assert "Second page evidence" in spans[1].text
+    assert spans[0].metadata["text_sha256"] == hashlib.sha256(
+        spans[0].text.encode("utf-8")
+    ).hexdigest()
+
+
+def test_pdf_table_blocks_keep_table_spans_standalone_and_metadata_rich(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pdf = tmp_path / "tables.pdf"
+    pdf.write_bytes(b"%PDF-1.4\nfake")
+    resolved_path = str(pdf.resolve())
+    document = Document(
+        id=resolved_path,
+        text="Intro paragraph\n\n| Metric | Value |\n|---|---|\n| Recall | 0.8 |",
+        metadata={
+            "source_path": resolved_path,
+            "media_type": "application/pdf",
+        },
+    )
+    paragraph = DocumentBlock(
+        source_path=resolved_path,
+        media_type="application/pdf",
+        page_number=3,
+        block_index=0,
+        block_type="paragraph",
+        text="Intro paragraph for the table page.",
+        metadata={
+            "page_number": 3,
+            "media_type": "application/pdf",
+            "extraction_method": "pdfplumber",
+            "reading_order_strategy": "coordinate_blocks",
+            "reading_order_warning": "minor overlap",
+            "possible_formula": True,
+            "possible_formula_lines": ["E = mc^2"],
+            "table_text_dedup_applied": True,
+            "table_text_dedup_strategy": "line_exact_match",
+            "table_text_dedup_removed_lines": 2,
+            "header_footer_filter_applied": True,
+            "header_footer_removed_lines": 1,
+            "header_footer_candidates": ["Confidential"],
+        },
+    )
+    table = DocumentBlock(
+        source_path=resolved_path,
+        media_type="application/pdf",
+        page_number=3,
+        block_index=1,
+        block_type="table",
+        text="| Metric | Value |\n|---|---|\n| Recall | 0.8 |",
+        metadata={
+            "page_number": 3,
+            "media_type": "application/pdf",
+            "table_index": 2,
+            "table_caption": "Table 2: Retrieval quality",
+            "table_context": "Metrics section",
+            "table_context_strategy": "same_page_caption_before_table",
+            "row_count": 2,
+            "column_count": 2,
+            "serialization": "markdown_table",
+            "extraction_method": "pdfplumber",
+            "warnings": [
+                {
+                    "source_path": resolved_path,
+                    "page": 3,
+                    "kind": "table_malformed",
+                    "message": "Extracted table had inconsistent row widths.",
+                }
+            ],
+        },
+    )
+
+    def fake_load_structured_document(path: str | Path) -> StructuredLoadResult:
+        assert Path(path) == pdf
+        return StructuredLoadResult(
+            document=document,
+            blocks=(paragraph, table),
+            metadata=document.metadata,
+        )
+
+    monkeypatch.setattr(
+        evidence_span_service,
+        "load_structured_document",
+        fake_load_structured_document,
+    )
+
+    spans = EvidenceSpanService(
+        min_chars=10,
+        max_chars=1000,
+        include_pdf=True,
+    ).extract(pdf)
+
+    assert [span.block_types for span in spans] == [("paragraph",), ("table",)]
+    table_span = spans[1]
+    assert table_span.page_start == 3
+    assert table_span.page_end == 3
+    assert table_span.metadata["page_numbers"] == [3]
+    assert table_span.metadata["table_indices"] == [2]
+    assert table_span.metadata["table_caption"] == "Table 2: Retrieval quality"
+    assert table_span.metadata["table_context"] == "Metrics section"
+    assert (
+        table_span.metadata["table_context_strategy"]
+        == "same_page_caption_before_table"
+    )
+    assert table_span.metadata["row_count"] == 2
+    assert table_span.metadata["column_count"] == 2
+    assert table_span.metadata["serialization"] == "markdown_table"
+    assert table_span.metadata["warnings"][0]["kind"] == "table_malformed"
+    assert table_span.metadata["offsets_available"] is False
+    paragraph_span = spans[0]
+    assert paragraph_span.metadata["reading_order_warning"] == "minor overlap"
+    assert paragraph_span.metadata["possible_formula"] is True
+    assert paragraph_span.metadata["possible_formula_lines"] == ["E = mc^2"]
+    assert paragraph_span.metadata["table_text_dedup_applied"] is True
+    assert paragraph_span.metadata["table_text_dedup_removed_lines"] == 2
+    assert paragraph_span.metadata["header_footer_filter_applied"] is True
+    assert paragraph_span.metadata["header_footer_removed_lines"] == 1
+    assert paragraph_span.metadata["header_footer_candidates"] == ["Confidential"]
+
+
 def test_extract_raises_clear_errors_for_missing_or_unsupported_paths(
     tmp_path: Path,
 ) -> None:
@@ -180,3 +332,19 @@ def test_extract_raises_clear_errors_for_missing_or_unsupported_paths(
 
     with pytest.raises(ValueError, match="No supported Markdown/TXT files found"):
         service.extract(unsupported)
+
+
+def _write_two_page_pdf(path: Path) -> None:
+    pdf = canvas.Canvas(str(path), pagesize=letter)
+    pdf.drawString(
+        72,
+        740,
+        "First page evidence explains lexical retrieval and local inspection.",
+    )
+    pdf.showPage()
+    pdf.drawString(
+        72,
+        740,
+        "Second page evidence explains semantic retrieval and page boundaries.",
+    )
+    pdf.save()
