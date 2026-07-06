@@ -1638,6 +1638,59 @@ def test_eval_generate_writes_span_based_jsonl(
     assert loaded_cases[0].expected_chunk_ids == []
 
 
+def test_eval_generate_fails_when_no_cases_are_generated(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "# Guide\n\n"
+        "Hybrid retrieval combines lexical and semantic retrieval while "
+        "keeping source evidence inspectable.",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    write_generation_config(workspace_dir)
+    output_path = tmp_path / "generated_cases.jsonl"
+    fake_generator = FakeEvalTextGenerationClient(["not-json"])
+
+    def build_fake_text_generation_client(config):
+        assert config.generation.provider == "openai_responses"
+        return fake_generator
+
+    monkeypatch.setattr(
+        "ragent_forge.cli._build_text_generation_client",
+        build_fake_text_generation_client,
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "generate",
+            "--source",
+            str(knowledge_dir),
+            "--workspace",
+            str(workspace_dir),
+            "--output",
+            str(output_path),
+            "--questions-per-span",
+            "1",
+            "--min-evidence-chars",
+            "20",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert not output_path.exists()
+    assert "Eval generation failed: no eval cases were generated." in captured.out
+    assert "Spans skipped: 1" in captured.out
+    assert "Error count: 1" in captured.out
+    assert "invalid JSON response" in captured.out
+
+
 def test_eval_generate_respects_overwrite_flag(
     tmp_path: Path,
     capsys,

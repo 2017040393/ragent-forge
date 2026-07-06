@@ -998,6 +998,9 @@ def _handle_eval_generate(
             generator=text_generation_client,
             questions_per_span=questions_per_span,
         ).generate(spans, max_cases=max_cases)
+        if report.generated_count == 0:
+            _print_eval_generate_empty_failure(console, report)
+            return 1
         written_output_path = write_jsonl(
             report.cases,
             output,
@@ -1053,6 +1056,22 @@ def _print_eval_generate_dry_run_summary(
     console.print(f"questions_per_span: {questions_per_span}")
     console.print(f"max_cases: {max_cases_text}")
     console.print(f"Estimated max generated cases: {estimated_cases}")
+
+
+def _print_eval_generate_empty_failure(
+    console: Console,
+    report: EvalDatasetGenerationReport,
+) -> None:
+    console.print("Eval generation failed: no eval cases were generated.")
+    console.print(f"Spans skipped: {report.skipped_count}")
+    console.print(f"Error count: {len(report.errors)}")
+    if not report.errors:
+        return
+    console.print("Errors:")
+    for error in report.errors[:5]:
+        span_id = str(error.get("span_id", ""))
+        message = str(error.get("message", ""))
+        console.print(f"- {span_id}: {message}", soft_wrap=True)
 
 
 def _print_eval_generate_summary(
