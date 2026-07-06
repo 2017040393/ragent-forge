@@ -11,6 +11,7 @@ from typing import Literal, cast
 from rich.console import Console
 
 from ragent_forge.app.models import (
+    AppConfig,
     ContextPack,
     WorkspaceStatus,
 )
@@ -24,6 +25,13 @@ from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.context_service import build_generation_prompt
 from ragent_forge.app.services.embedding_service import EmbeddingService
+from ragent_forge.app.services.eval_dataset_generation_service import (
+    EvalDatasetGenerationReport,
+    EvalDatasetGenerationService,
+    TextGenerationClient,
+    write_jsonl,
+)
+from ragent_forge.app.services.evidence_span_service import EvidenceSpanService
 from ragent_forge.app.services.generation_service import GenerationService
 from ragent_forge.app.services.hybrid_search_service import (
     HybridSearchConfig,
@@ -37,6 +45,9 @@ from ragent_forge.app.services.retrieval_eval_service import (
 )
 from ragent_forge.app.services.search_service import LexicalSearchService, SearchResult
 from ragent_forge.app.services.semantic_search_service import SemanticSearchService
+from ragent_forge.app.services.text_generation_client import (
+    OpenAIResponsesTextGenerationClient,
+)
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
 from ragent_forge.app.services.trace_service import (
     build_ask_retrieval_trace,
@@ -256,6 +267,64 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional path for the JSON retrieval eval report.",
     )
+    eval_generate_parser = eval_subparsers.add_parser(
+        "generate",
+        help="Generate span-based synthetic retrieval eval JSONL cases.",
+    )
+    eval_generate_parser.add_argument(
+        "--source",
+        required=True,
+        help="Path to a source document file or directory.",
+    )
+    eval_generate_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory for configuration.",
+    )
+    eval_generate_parser.add_argument(
+        "--output",
+        required=True,
+        help="Path to write generated JSONL eval cases.",
+    )
+    eval_generate_parser.add_argument(
+        "--questions-per-span",
+        type=int,
+        default=2,
+        help="Synthetic questions to generate for each evidence span.",
+    )
+    eval_generate_parser.add_argument(
+        "--max-cases",
+        type=int,
+        default=None,
+        help="Optional maximum number of generated eval cases.",
+    )
+    eval_generate_parser.add_argument(
+        "--min-evidence-chars",
+        type=int,
+        default=250,
+        help="Minimum evidence span characters.",
+    )
+    eval_generate_parser.add_argument(
+        "--max-evidence-chars",
+        type=int,
+        default=1200,
+        help="Maximum evidence span characters.",
+    )
+    eval_generate_parser.add_argument(
+        "--include-pdf",
+        action="store_true",
+        help="Opt in to experimental PDF evidence span extraction.",
+    )
+    eval_generate_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite an existing output JSONL file.",
+    )
+    eval_generate_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Extract spans and print counts without calling the LLM.",
+    )
 
     index_parser = subparsers.add_parser(
         "index",
@@ -434,6 +503,20 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.retrieval,
                 args.limit,
                 args.report_path,
+            )
+        if args.eval_command == "generate":
+            return _handle_eval_generate(
+                console,
+                args.workspace,
+                args.source,
+                args.output,
+                args.questions_per_span,
+                args.max_cases,
+                args.min_evidence_chars,
+                args.max_evidence_chars,
+                args.include_pdf,
+                args.overwrite,
+                args.dry_run,
             )
         parser.print_help()
         return 0
@@ -842,6 +925,168 @@ def _as_retrieval_mode(retrieval: str) -> RetrievalMode:
     if retrieval not in RETRIEVAL_CHOICES:
         raise ValueError(f"Unsupported retrieval mode: {retrieval}")
     return cast(RetrievalMode, retrieval)
+
+
+def _build_text_generation_client(config: AppConfig) -> TextGenerationClient:
+    if config.generation.provider == "openai_responses":
+        return OpenAIResponsesTextGenerationClient.from_config(config)
+    raise ValueError(f"Unsupported generation provider: {config.generation.provider}")
+
+
+def _handle_eval_generate(
+    console: Console,
+    workspace_path: str,
+    source_path: str,
+    output_path: str,
+    questions_per_span: int,
+    max_cases: int | None,
+    min_evidence_chars: int,
+    max_evidence_chars: int,
+    include_pdf: bool,
+    overwrite: bool,
+    dry_run: bool,
+) -> int:
+    try:
+        if questions_per_span < 1:
+            raise ValueError("questions_per_span must be greater than 0")
+        if max_cases is not None and max_cases < 0:
+            raise ValueError("max_cases must be greater than or equal to 0")
+        output = Path(output_path)
+        if output.exists() and not overwrite and not dry_run:
+            raise FileExistsError(f"Output JSONL already exists: {output}")
+
+        workspace = LocalWorkspace(workspace_path)
+        config = ConfigService(workspace).load()
+        if config.generation.provider == "null" and not dry_run:
+            console.print(
+                "Eval generation failed: generation provider is not configured. "
+                "Set generation.provider to openai_responses or use --dry-run.",
+                markup=False,
+                soft_wrap=True,
+            )
+            return 1
+
+        spans = EvidenceSpanService(
+            min_chars=min_evidence_chars,
+            max_chars=max_evidence_chars,
+            include_pdf=include_pdf,
+        ).extract(source_path)
+        if not spans:
+            console.print(
+                "Eval generation failed: "
+                f"no evidence spans extracted from {source_path}",
+                markup=False,
+                soft_wrap=True,
+            )
+            return 1
+
+        if dry_run:
+            _print_eval_generate_dry_run_summary(
+                console=console,
+                source_path=source_path,
+                span_count=len(spans),
+                include_pdf=include_pdf,
+                min_evidence_chars=min_evidence_chars,
+                max_evidence_chars=max_evidence_chars,
+                questions_per_span=questions_per_span,
+                max_cases=max_cases,
+            )
+            return 0
+
+        text_generation_client = _build_text_generation_client(config)
+        report = EvalDatasetGenerationService(
+            generator=text_generation_client,
+            questions_per_span=questions_per_span,
+        ).generate(spans, max_cases=max_cases)
+        written_output_path = write_jsonl(
+            report.cases,
+            output,
+            overwrite=overwrite,
+        )
+    except (
+        FileExistsError,
+        FileNotFoundError,
+        OSError,
+        RuntimeError,
+        ValueError,
+    ) as exc:
+        console.print(
+            f"Eval generation failed: {exc}",
+            markup=False,
+            soft_wrap=True,
+        )
+        return 1
+
+    _print_eval_generate_summary(
+        console=console,
+        source_path=source_path,
+        output_path=written_output_path,
+        span_count=len(spans),
+        report=report,
+        workspace_path=workspace_path,
+    )
+    return 0
+
+
+def _print_eval_generate_dry_run_summary(
+    *,
+    console: Console,
+    source_path: str,
+    span_count: int,
+    include_pdf: bool,
+    min_evidence_chars: int,
+    max_evidence_chars: int,
+    questions_per_span: int,
+    max_cases: int | None,
+) -> None:
+    estimated_cases = span_count * questions_per_span
+    if max_cases is not None:
+        estimated_cases = min(estimated_cases, max_cases)
+    max_cases_text = str(max_cases) if max_cases is not None else "none"
+
+    console.print("Eval dataset generation dry run")
+    console.print(f"Source: {source_path}", soft_wrap=True)
+    console.print(f"Evidence spans extracted: {span_count}")
+    console.print(f"include_pdf: {include_pdf}")
+    console.print(f"min_evidence_chars: {min_evidence_chars}")
+    console.print(f"max_evidence_chars: {max_evidence_chars}")
+    console.print(f"questions_per_span: {questions_per_span}")
+    console.print(f"max_cases: {max_cases_text}")
+    console.print(f"Estimated max generated cases: {estimated_cases}")
+
+
+def _print_eval_generate_summary(
+    *,
+    console: Console,
+    source_path: str,
+    output_path: Path,
+    span_count: int,
+    report: EvalDatasetGenerationReport,
+    workspace_path: str,
+) -> None:
+    console.print("Eval dataset generation")
+    console.print(f"Source: {source_path}", soft_wrap=True)
+    console.print(f"Output: {output_path}", soft_wrap=True)
+    console.print(f"Evidence spans extracted: {span_count}")
+    console.print(f"Cases generated: {report.generated_count}")
+    console.print(f"Spans skipped: {report.skipped_count}")
+    console.print(f"Error count: {len(report.errors)}")
+    console.print(f"Generation method: {report.metadata['generation_method']}")
+
+    if report.errors:
+        console.print("Errors:")
+        for error in report.errors[:5]:
+            span_id = str(error.get("span_id", ""))
+            message = str(error.get("message", ""))
+            console.print(f"- {span_id}: {message}", soft_wrap=True)
+
+    console.print()
+    console.print(
+        "Next: "
+        f"ragent eval retrieval --cases {output_path} --workspace {workspace_path} "
+        "--retrieval lexical --limit 5",
+        soft_wrap=True,
+    )
 
 
 def _handle_eval_retrieval(

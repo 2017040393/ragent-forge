@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from ragent_forge.app.services import evidence_span_service
+from ragent_forge.app.services.retrieval_eval_service import RetrievalEvalService
 from ragent_forge.cli import build_parser, main
 
 
@@ -79,6 +81,37 @@ def write_embedding_config(workspace_dir: Path) -> None:
         ),
         encoding="utf-8",
     )
+
+
+def write_generation_config(workspace_dir: Path) -> None:
+    workspace_dir.mkdir(parents=True, exist_ok=True)
+    (workspace_dir / "config.toml").write_text(
+        (
+            "[generation]\n"
+            'provider = "openai_responses"\n'
+            'base_url = "https://api.openai.com/v1"\n'
+            'model = "gpt-4o-mini"\n'
+            'api_key = "generation-secret-key"\n'
+            "timeout_seconds = 60\n"
+            "temperature = 0.2\n"
+            "\n"
+            "[embedding]\n"
+            'provider = "none"\n'
+        ),
+        encoding="utf-8",
+    )
+
+
+class FakeEvalTextGenerationClient:
+    def __init__(self, responses: list[str]) -> None:
+        self.responses = responses
+        self.calls: list[tuple[str, str | None]] = []
+
+    def generate_text(self, prompt: str, system_prompt: str | None = None) -> str:
+        self.calls.append((prompt, system_prompt))
+        if not self.responses:
+            raise AssertionError("unexpected eval generator call")
+        return self.responses.pop(0)
 
 
 def write_retrieval_eval_cases(
@@ -1380,6 +1413,399 @@ def test_search_command_hybrid_mode_missing_index_fails_without_new_trace(
         "Run `ragent index build` first."
     ) in captured.out
     assert latest_trace_path.read_text(encoding="utf-8") == ingest_trace
+
+
+def test_eval_generate_parser_accepts_expected_args() -> None:
+    args = build_parser().parse_args(
+        [
+            "eval",
+            "generate",
+            "--source",
+            "knowledge",
+            "--workspace",
+            ".ragent",
+            "--output",
+            "cases.jsonl",
+            "--questions-per-span",
+            "3",
+            "--max-cases",
+            "9",
+            "--min-evidence-chars",
+            "20",
+            "--max-evidence-chars",
+            "900",
+            "--include-pdf",
+            "--overwrite",
+            "--dry-run",
+        ]
+    )
+
+    assert args.command == "eval"
+    assert args.eval_command == "generate"
+    assert args.source == "knowledge"
+    assert args.workspace == ".ragent"
+    assert args.output == "cases.jsonl"
+    assert args.questions_per_span == 3
+    assert args.max_cases == 9
+    assert args.min_evidence_chars == 20
+    assert args.max_evidence_chars == 900
+    assert args.include_pdf is True
+    assert args.overwrite is True
+    assert args.dry_run is True
+
+
+def test_eval_generate_dry_run_extracts_spans_without_calling_generator(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "# Guide\n\n"
+        "Hybrid retrieval keeps evidence spans independent from chunk ids.",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    output_path = tmp_path / "cases.jsonl"
+
+    def fail_build_text_generation_client(config):
+        raise AssertionError("dry-run must not build a generator")
+
+    monkeypatch.setattr(
+        "ragent_forge.cli._build_text_generation_client",
+        fail_build_text_generation_client,
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "generate",
+            "--source",
+            str(knowledge_dir),
+            "--workspace",
+            str(workspace_dir),
+            "--output",
+            str(output_path),
+            "--questions-per-span",
+            "2",
+            "--max-cases",
+            "5",
+            "--min-evidence-chars",
+            "20",
+            "--dry-run",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Eval dataset generation dry run" in captured.out
+    assert "Evidence spans extracted: 1" in captured.out
+    assert "include_pdf: False" in captured.out
+    assert "questions_per_span: 2" in captured.out
+    assert "max_cases: 5" in captured.out
+    assert "Estimated max generated cases: 2" in captured.out
+    assert not output_path.exists()
+
+
+def test_eval_generate_null_provider_fails_before_generation(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "# Guide\n\n"
+        "Hybrid retrieval keeps evidence spans independent from chunk ids.",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    output_path = tmp_path / "cases.jsonl"
+
+    def fail_build_text_generation_client(config):
+        raise AssertionError("null provider must not build a generator")
+
+    monkeypatch.setattr(
+        "ragent_forge.cli._build_text_generation_client",
+        fail_build_text_generation_client,
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "generate",
+            "--source",
+            str(knowledge_dir),
+            "--workspace",
+            str(workspace_dir),
+            "--output",
+            str(output_path),
+            "--min-evidence-chars",
+            "20",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Eval generation failed:" in captured.out
+    assert "generation provider is not configured" in captured.out
+    assert not output_path.exists()
+
+
+def test_eval_generate_writes_span_based_jsonl(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "# Guide\n\n"
+        "Hybrid retrieval combines lexical and semantic retrieval while "
+        "keeping source evidence inspectable.",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    write_generation_config(workspace_dir)
+    output_path = tmp_path / "generated_cases.jsonl"
+    fake_generator = FakeEvalTextGenerationClient(
+        [
+            json.dumps(
+                {
+                    "items": [
+                        {
+                            "query": "How does hybrid retrieval use evidence?",
+                            "reference_answer": (
+                                "It combines lexical and semantic retrieval "
+                                "while keeping source evidence inspectable."
+                            ),
+                            "question_type": "reasoning",
+                            "difficulty": "medium",
+                        }
+                    ]
+                }
+            )
+        ]
+    )
+
+    def build_fake_text_generation_client(config):
+        assert config.generation.provider == "openai_responses"
+        return fake_generator
+
+    monkeypatch.setattr(
+        "ragent_forge.cli._build_text_generation_client",
+        build_fake_text_generation_client,
+    )
+
+    exit_code = main(
+        [
+            "eval",
+            "generate",
+            "--source",
+            str(knowledge_dir),
+            "--workspace",
+            str(workspace_dir),
+            "--output",
+            str(output_path),
+            "--questions-per-span",
+            "1",
+            "--min-evidence-chars",
+            "20",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    records = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+    ]
+    loaded_cases = RetrievalEvalService().load_cases(output_path)
+    assert exit_code == 0
+    assert "Eval dataset generation" in captured.out
+    assert "Cases generated: 1" in captured.out
+    assert "ragent eval retrieval --cases" in captured.out
+    assert len(fake_generator.calls) == 1
+    assert fake_generator.calls[0][1] == (
+        "You are generating retrieval evaluation cases for a RAG system."
+    )
+    assert len(records) == 1
+    assert records[0]["id"] == "synthetic-span-000001"
+    assert "evidence_spans" in records[0]
+    assert "expected_chunk_ids" not in records[0]
+    assert "expected_source_paths" not in records[0]
+    assert loaded_cases[0].evidence_spans[0].source_path.endswith("rag.md")
+    assert loaded_cases[0].expected_chunk_ids == []
+
+
+def test_eval_generate_respects_overwrite_flag(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "rag.md").write_text(
+        "# Guide\n\nEvidence spans should be written to JSONL.",
+        encoding="utf-8",
+    )
+    workspace_dir = tmp_path / ".ragent"
+    write_generation_config(workspace_dir)
+    output_path = tmp_path / "generated_cases.jsonl"
+    output_path.write_text("existing\n", encoding="utf-8")
+    fake_generators: list[FakeEvalTextGenerationClient] = []
+
+    def build_fake_text_generation_client(config):
+        fake_generator = FakeEvalTextGenerationClient(
+            [
+                json.dumps(
+                    {
+                        "items": [
+                            {
+                                "query": "What gets written?",
+                                "reference_answer": "Evidence spans are written.",
+                                "question_type": "factual",
+                                "difficulty": "easy",
+                            }
+                        ]
+                    }
+                )
+            ]
+        )
+        fake_generators.append(fake_generator)
+        return fake_generator
+
+    monkeypatch.setattr(
+        "ragent_forge.cli._build_text_generation_client",
+        build_fake_text_generation_client,
+    )
+
+    blocked_exit_code = main(
+        [
+            "eval",
+            "generate",
+            "--source",
+            str(knowledge_dir),
+            "--workspace",
+            str(workspace_dir),
+            "--output",
+            str(output_path),
+            "--questions-per-span",
+            "1",
+            "--min-evidence-chars",
+            "20",
+        ]
+    )
+    blocked_output = capsys.readouterr()
+    blocked_output_text = output_path.read_text(encoding="utf-8")
+    blocked_fake_generators = list(fake_generators)
+
+    overwrite_exit_code = main(
+        [
+            "eval",
+            "generate",
+            "--source",
+            str(knowledge_dir),
+            "--workspace",
+            str(workspace_dir),
+            "--output",
+            str(output_path),
+            "--questions-per-span",
+            "1",
+            "--min-evidence-chars",
+            "20",
+            "--overwrite",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert blocked_exit_code == 1
+    assert "Output JSONL already exists" in blocked_output.out
+    assert blocked_output_text == "existing\n"
+    assert blocked_fake_generators == []
+    assert overwrite_exit_code == 0
+    assert "Cases generated: 1" in captured.out
+    assert json.loads(output_path.read_text(encoding="utf-8"))["id"] == (
+        "synthetic-span-000001"
+    )
+    assert len(fake_generators) == 1
+
+
+def test_eval_generate_pdf_is_skipped_by_default_and_attempted_when_enabled(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    knowledge_dir = tmp_path / "knowledge"
+    knowledge_dir.mkdir()
+    markdown = knowledge_dir / "guide.md"
+    markdown.write_text(
+        "# Guide\n\nMarkdown evidence should be extracted for eval generation.",
+        encoding="utf-8",
+    )
+    pdf = knowledge_dir / "paper.pdf"
+    pdf.write_bytes(b"%PDF-1.4\nnot a real pdf")
+    workspace_dir = tmp_path / ".ragent"
+    output_path = tmp_path / "generated_cases.jsonl"
+    real_load_structured_document = evidence_span_service.load_structured_document
+    loaded_file_names: list[str] = []
+
+    def recording_load_structured_document(path: str | Path):
+        path = Path(path)
+        loaded_file_names.append(path.name)
+        if path.suffix.lower() == ".pdf":
+            raise RuntimeError("PDF loading attempted")
+        return real_load_structured_document(path)
+
+    monkeypatch.setattr(
+        evidence_span_service,
+        "load_structured_document",
+        recording_load_structured_document,
+    )
+
+    default_exit_code = main(
+        [
+            "eval",
+            "generate",
+            "--source",
+            str(knowledge_dir),
+            "--workspace",
+            str(workspace_dir),
+            "--output",
+            str(output_path),
+            "--min-evidence-chars",
+            "20",
+            "--dry-run",
+        ]
+    )
+    default_output = capsys.readouterr()
+    default_loaded_file_names = list(loaded_file_names)
+
+    loaded_file_names.clear()
+    include_pdf_exit_code = main(
+        [
+            "eval",
+            "generate",
+            "--source",
+            str(knowledge_dir),
+            "--workspace",
+            str(workspace_dir),
+            "--output",
+            str(output_path),
+            "--min-evidence-chars",
+            "20",
+            "--include-pdf",
+            "--dry-run",
+        ]
+    )
+
+    include_pdf_output = capsys.readouterr()
+    assert default_exit_code == 0
+    assert "Evidence spans extracted: 1" in default_output.out
+    assert default_loaded_file_names == ["guide.md"]
+    assert loaded_file_names == ["guide.md", "paper.pdf"]
+    assert include_pdf_exit_code == 1
+    assert "PDF loading attempted" in include_pdf_output.out
 
 
 def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
