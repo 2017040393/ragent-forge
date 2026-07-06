@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from ragent_forge.app.services import evidence_span_service
 from ragent_forge.app.services.evidence_span_service import EvidenceSpanService
 
 
@@ -125,6 +126,47 @@ def test_extract_ignores_workspace_chunks_directory(tmp_path: Path) -> None:
     assert "stale workspace chunk" not in spans[0].text
 
 
+def test_pdf_is_skipped_by_default_and_attempted_when_enabled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    markdown = tmp_path / "guide.md"
+    markdown.write_text(
+        "# Guide\n\n"
+        "Markdown evidence should be extracted while colocated PDFs stay gated.",
+        encoding="utf-8",
+    )
+    pdf = tmp_path / "paper.pdf"
+    pdf.write_bytes(b"%PDF-1.4\nnot a real pdf")
+    real_load_structured_document = evidence_span_service.load_structured_document
+    loaded_file_names: list[str] = []
+
+    def recording_load_structured_document(path: str | Path):
+        path = Path(path)
+        loaded_file_names.append(path.name)
+        if path.suffix.lower() == ".pdf":
+            raise RuntimeError("PDF loading attempted")
+        return real_load_structured_document(path)
+
+    monkeypatch.setattr(
+        evidence_span_service,
+        "load_structured_document",
+        recording_load_structured_document,
+    )
+
+    spans = EvidenceSpanService(min_chars=20).extract(tmp_path)
+
+    assert len(spans) == 1
+    assert loaded_file_names == ["guide.md"]
+    assert "colocated PDFs stay gated" in spans[0].text
+
+    loaded_file_names.clear()
+    with pytest.raises(RuntimeError, match="PDF loading attempted"):
+        EvidenceSpanService(min_chars=20, include_pdf=True).extract(tmp_path)
+
+    assert loaded_file_names == ["guide.md", "paper.pdf"]
+
+
 def test_extract_raises_clear_errors_for_missing_or_unsupported_paths(
     tmp_path: Path,
 ) -> None:
@@ -136,5 +178,5 @@ def test_extract_raises_clear_errors_for_missing_or_unsupported_paths(
     unsupported = tmp_path / "image.bin"
     unsupported.write_bytes(b"unsupported")
 
-    with pytest.raises(ValueError, match="No supported Markdown/TXT/PDF files found"):
+    with pytest.raises(ValueError, match="No supported Markdown/TXT files found"):
         service.extract(unsupported)

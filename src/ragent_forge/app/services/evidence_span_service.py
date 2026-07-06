@@ -7,6 +7,7 @@ from typing import Any
 
 from ragent_forge.core.ingestion.document_blocks import DocumentBlock
 from ragent_forge.core.ingestion.structured_loader import (
+    PDF_EXTENSIONS,
     SUPPORTED_EXTENSIONS,
     load_structured_document,
 )
@@ -38,6 +39,7 @@ class EvidenceSpanService:
         min_chars: int = 250,
         max_chars: int = 1200,
         include_block_types: set[str] | None = None,
+        include_pdf: bool = False,
     ) -> None:
         if min_chars < 1:
             raise ValueError("min_chars must be greater than 0")
@@ -52,6 +54,12 @@ class EvidenceSpanService:
             DEFAULT_INCLUDE_BLOCK_TYPES
             if include_block_types is None
             else include_block_types
+        )
+        self.include_pdf = include_pdf
+        self.supported_extensions = frozenset(
+            SUPPORTED_EXTENSIONS
+            if include_pdf
+            else SUPPORTED_EXTENSIONS - PDF_EXTENSIONS
         )
 
     def extract(
@@ -72,11 +80,12 @@ class EvidenceSpanService:
         supported_files = [
             file_path
             for file_path in self._candidate_files(evidence_path)
-            if file_path.suffix.lower() in SUPPORTED_EXTENSIONS
+            if file_path.suffix.lower() in self.supported_extensions
         ]
         if not supported_files:
             raise ValueError(
-                f"No supported Markdown/TXT/PDF files found under: {evidence_path}"
+                f"No supported {self._supported_file_label()} files found under: "
+                f"{evidence_path}"
             )
 
         spans: list[EvidenceSpan] = []
@@ -256,6 +265,11 @@ class EvidenceSpanService:
 
     def _is_useful_block(self, block: DocumentBlock) -> bool:
         return block.block_type in self.include_block_types and bool(block.text.strip())
+
+    def _supported_file_label(self) -> str:
+        if self.include_pdf:
+            return "Markdown/TXT/PDF"
+        return "Markdown/TXT"
 
 
 def _joined_block_text(blocks: Sequence[DocumentBlock]) -> str:
