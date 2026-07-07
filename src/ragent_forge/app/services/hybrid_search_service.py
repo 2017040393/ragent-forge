@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Literal, Protocol
 
 from ragent_forge.app.services.search_service import SearchResult
+
+HybridSparseMode = Literal["bm25", "lexical"]
+HybridDenseMode = Literal["semantic"]
+HybridSparseMethod = Literal["bm25", "lexical_token_overlap"]
+HybridDenseMethod = Literal["semantic_cosine_similarity"]
 
 
 @dataclass(frozen=True)
@@ -11,8 +16,20 @@ class HybridSearchConfig:
     candidate_multiplier: int = 4
     min_candidate_limit: int = 20
     rrf_k: int = 60
-    lexical_weight: float = 1.0
-    semantic_weight: float = 1.0
+    sparse_weight: float = 1.0
+    dense_weight: float = 1.0
+    sparse_mode: HybridSparseMode = "bm25"
+    dense_mode: HybridDenseMode = "semantic"
+    sparse_method: HybridSparseMethod = "bm25"
+    dense_method: HybridDenseMethod = "semantic_cosine_similarity"
+
+    @property
+    def lexical_weight(self) -> float:
+        return self.sparse_weight
+
+    @property
+    def semantic_weight(self) -> float:
+        return self.dense_weight
 
 
 class SearchServiceProtocol(Protocol):
@@ -26,58 +43,70 @@ class SearchServiceProtocol(Protocol):
 @dataclass
 class _FusionCandidate:
     chunk_id: str
-    lexical_result: SearchResult | None = None
-    semantic_result: SearchResult | None = None
-    lexical_rank: int | None = None
-    semantic_rank: int | None = None
+    sparse_result: SearchResult | None = None
+    dense_result: SearchResult | None = None
+    sparse_rank: int | None = None
+    dense_rank: int | None = None
 
     @property
-    def lexical_score(self) -> float | None:
-        if self.lexical_result is None:
+    def sparse_score(self) -> float | None:
+        if self.sparse_result is None:
             return None
-        return self.lexical_result.score
+        return self.sparse_result.score
 
     @property
-    def semantic_score(self) -> float | None:
-        if self.semantic_result is None:
+    def dense_score(self) -> float | None:
+        if self.dense_result is None:
             return None
-        return self.semantic_result.score
+        return self.dense_result.score
 
     @property
     def best_rank(self) -> int:
         ranks = [
             rank
-            for rank in (self.lexical_rank, self.semantic_rank)
+            for rank in (self.sparse_rank, self.dense_rank)
             if rank is not None
         ]
         return min(ranks)
 
     @property
     def representative_result(self) -> SearchResult:
-        if self.lexical_result is None and self.semantic_result is None:
+        if self.sparse_result is None and self.dense_result is None:
             raise ValueError("fusion candidate has no search result")
-        if self.lexical_result is None:
-            return self.semantic_result  # type: ignore[return-value]
-        if self.semantic_result is None:
-            return self.lexical_result
+        if self.sparse_result is None:
+            assert self.dense_result is not None
+            return self.dense_result
+        if self.dense_result is None:
+            return self.sparse_result
         if (
-            self.semantic_rank is not None
-            and self.lexical_rank is not None
-            and self.semantic_rank < self.lexical_rank
+            self.dense_rank is not None
+            and self.sparse_rank is not None
+            and self.dense_rank < self.sparse_rank
         ):
-            return self.semantic_result
-        return self.lexical_result
+            return self.dense_result
+        return self.sparse_result
 
 
 class HybridSearchService:
     def __init__(
         self,
-        lexical_search_service: SearchServiceProtocol,
-        semantic_search_service: SearchServiceProtocol,
+        sparse_search_service: SearchServiceProtocol | None = None,
+        dense_search_service: SearchServiceProtocol | None = None,
         config: HybridSearchConfig | None = None,
+        *,
+        lexical_search_service: SearchServiceProtocol | None = None,
+        semantic_search_service: SearchServiceProtocol | None = None,
     ) -> None:
-        self.lexical_search_service = lexical_search_service
-        self.semantic_search_service = semantic_search_service
+        resolved_sparse_service = sparse_search_service or lexical_search_service
+        resolved_dense_service = dense_search_service or semantic_search_service
+        if resolved_sparse_service is None:
+            raise TypeError("sparse_search_service is required")
+        if resolved_dense_service is None:
+            raise TypeError("dense_search_service is required")
+        self.sparse_search_service: SearchServiceProtocol = resolved_sparse_service
+        self.dense_search_service: SearchServiceProtocol = resolved_dense_service
+        self.lexical_search_service: SearchServiceProtocol = resolved_sparse_service
+        self.semantic_search_service: SearchServiceProtocol = resolved_dense_service
         self.config = config or HybridSearchConfig()
 
     def search(self, query: str, limit: int = 10) -> list[SearchResult]:
@@ -85,9 +114,9 @@ class HybridSearchService:
             raise ValueError("limit must be greater than or equal to 0")
 
         candidate_limit = self.candidate_limit_for(limit)
-        lexical_results = self.lexical_search_service.search(query, candidate_limit)
-        semantic_results = self.semantic_search_service.search(query, candidate_limit)
-        candidates = self._fuse_candidates(lexical_results, semantic_results)
+        sparse_results = self.sparse_search_service.search(query, candidate_limit)
+        dense_results = self.dense_search_service.search(query, candidate_limit)
+        candidates = self._fuse_candidates(sparse_results, dense_results)
 
         scored_candidates = [
             (
@@ -107,7 +136,7 @@ class HybridSearchService:
         ]
 
     def count_chunks(self) -> int:
-        return self.lexical_search_service.count_chunks()
+        return self.sparse_search_service.count_chunks()
 
     def candidate_limit_for(self, limit: int) -> int:
         return max(
@@ -117,36 +146,36 @@ class HybridSearchService:
 
     def _fuse_candidates(
         self,
-        lexical_results: list[SearchResult],
-        semantic_results: list[SearchResult],
+        sparse_results: list[SearchResult],
+        dense_results: list[SearchResult],
     ) -> dict[str, _FusionCandidate]:
         candidates: dict[str, _FusionCandidate] = {}
-        for rank, result in enumerate(lexical_results, start=1):
+        for rank, result in enumerate(sparse_results, start=1):
             candidate = candidates.setdefault(
                 result.chunk_id,
                 _FusionCandidate(chunk_id=result.chunk_id),
             )
-            candidate.lexical_result = result
-            candidate.lexical_rank = rank
+            candidate.sparse_result = result
+            candidate.sparse_rank = rank
 
-        for rank, result in enumerate(semantic_results, start=1):
+        for rank, result in enumerate(dense_results, start=1):
             candidate = candidates.setdefault(
                 result.chunk_id,
                 _FusionCandidate(chunk_id=result.chunk_id),
             )
-            candidate.semantic_result = result
-            candidate.semantic_rank = rank
+            candidate.dense_result = result
+            candidate.dense_rank = rank
         return candidates
 
     def _hybrid_score(self, candidate: _FusionCandidate) -> float:
         score = 0.0
-        if candidate.lexical_rank is not None:
-            score += self.config.lexical_weight * (
-                1.0 / (self.config.rrf_k + candidate.lexical_rank)
+        if candidate.sparse_rank is not None:
+            score += self.config.sparse_weight * (
+                1.0 / (self.config.rrf_k + candidate.sparse_rank)
             )
-        if candidate.semantic_rank is not None:
-            score += self.config.semantic_weight * (
-                1.0 / (self.config.rrf_k + candidate.semantic_rank)
+        if candidate.dense_rank is not None:
+            score += self.config.dense_weight * (
+                1.0 / (self.config.rrf_k + candidate.dense_rank)
             )
         return score
 
@@ -157,10 +186,10 @@ class HybridSearchService:
     ) -> SearchResult:
         result = candidate.representative_result
         matched_modes: list[str] = []
-        if candidate.lexical_rank is not None:
-            matched_modes.append("lexical")
-        if candidate.semantic_rank is not None:
-            matched_modes.append("semantic")
+        if candidate.sparse_rank is not None:
+            matched_modes.append(self.config.sparse_mode)
+        if candidate.dense_rank is not None:
+            matched_modes.append(self.config.dense_mode)
 
         return SearchResult(
             chunk_id=result.chunk_id,
@@ -175,14 +204,16 @@ class HybridSearchService:
                 "retrieval_method": "hybrid_rrf",
                 "fusion_method": "reciprocal_rank_fusion",
                 "rrf_k": self.config.rrf_k,
+                "sparse_method": self.config.sparse_method,
+                "dense_method": self.config.dense_method,
                 "matched_modes": matched_modes,
-                "lexical_rank": candidate.lexical_rank,
-                "semantic_rank": candidate.semantic_rank,
-                "lexical_score": candidate.lexical_score,
-                "semantic_score": candidate.semantic_score,
+                "sparse_rank": candidate.sparse_rank,
+                "dense_rank": candidate.dense_rank,
+                "sparse_score": candidate.sparse_score,
+                "dense_score": candidate.dense_score,
                 "hybrid_score": hybrid_score,
-                "lexical_weight": self.config.lexical_weight,
-                "semantic_weight": self.config.semantic_weight,
+                "sparse_weight": self.config.sparse_weight,
+                "dense_weight": self.config.dense_weight,
             },
         )
 

@@ -2,8 +2,12 @@ import json
 from pathlib import Path
 
 from ragent_forge.app.services import evidence_span_service
+from ragent_forge.app.services.hybrid_search_service import HybridSearchService
 from ragent_forge.app.services.retrieval_eval_service import RetrievalEvalService
+from ragent_forge.app.services.search_service import BM25SearchService
+from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.cli import (
+    _build_search_service_for_retrieval,
     _parse_positive_int_list,
     _parse_retrieval_modes,
     build_parser,
@@ -86,6 +90,21 @@ def write_embedding_config(workspace_dir: Path) -> None:
         ),
         encoding="utf-8",
     )
+
+
+def test_build_search_service_hybrid_uses_bm25_sparse_backend(tmp_path: Path) -> None:
+    workspace_dir = tmp_path / ".ragent"
+    workspace_dir.mkdir()
+    write_embedding_config(workspace_dir)
+    workspace = LocalWorkspace(workspace_dir)
+
+    built = _build_search_service_for_retrieval(workspace, "hybrid", 5)
+
+    assert isinstance(built.search_service, HybridSearchService)
+    assert isinstance(built.search_service.sparse_search_service, BM25SearchService)
+    assert built.retrieval_method == "hybrid_rrf"
+    assert built.sparse_method == "bm25"
+    assert built.dense_method == "semantic_cosine_similarity"
 
 
 def write_generation_config(workspace_dir: Path) -> None:
@@ -1451,6 +1470,10 @@ def test_search_command_hybrid_mode_works_after_index_build(
     assert latest_trace["metadata"]["retrieval_method"] == "hybrid_rrf"
     assert latest_trace["metadata"]["fusion_method"] == "reciprocal_rank_fusion"
     assert latest_trace["metadata"]["rrf_k"] == 60
+    assert latest_trace["metadata"]["sparse_method"] == "bm25"
+    assert latest_trace["metadata"]["dense_method"] == "semantic_cosine_similarity"
+    assert latest_trace["metadata"]["sparse_weight"] == 1.0
+    assert latest_trace["metadata"]["dense_weight"] == 1.0
     assert latest_trace["metadata"]["lexical_weight"] == 1.0
     assert latest_trace["metadata"]["semantic_weight"] == 1.0
     assert latest_trace["metadata"]["candidate_limit"] == 40
@@ -1459,7 +1482,7 @@ def test_search_command_hybrid_mode_works_after_index_build(
     assert latest_trace["metadata"]["index_path"].endswith("vector_index.jsonl")
     assert [step["name"] for step in latest_trace["steps"]] == [
         "read_chunks",
-        "run_lexical_search",
+        "run_bm25_search",
         "embed_query",
         "load_vector_index",
         "run_semantic_search",
@@ -2709,6 +2732,10 @@ def test_eval_retrieval_hybrid_succeeds_after_index_build(
     assert report["retrieval_method"] == "hybrid_rrf"
     assert report["fusion_method"] == "reciprocal_rank_fusion"
     assert report["rrf_k"] == 60
+    assert report["sparse_method"] == "bm25"
+    assert report["dense_method"] == "semantic_cosine_similarity"
+    assert report["sparse_weight"] == 1.0
+    assert report["dense_weight"] == 1.0
     assert report["lexical_weight"] == 1.0
     assert report["semantic_weight"] == 1.0
     assert report["embedding_provider"] == "openai_embeddings"
@@ -2720,6 +2747,10 @@ def test_eval_retrieval_hybrid_succeeds_after_index_build(
     assert latest_trace["metadata"]["retrieval_method"] == "hybrid_rrf"
     assert latest_trace["metadata"]["fusion_method"] == "reciprocal_rank_fusion"
     assert latest_trace["metadata"]["rrf_k"] == 60
+    assert latest_trace["metadata"]["sparse_method"] == "bm25"
+    assert latest_trace["metadata"]["dense_method"] == "semantic_cosine_similarity"
+    assert latest_trace["metadata"]["sparse_weight"] == 1.0
+    assert latest_trace["metadata"]["dense_weight"] == 1.0
     assert latest_trace["metadata"]["embedding_provider"] == "openai_embeddings"
     assert latest_trace["metadata"]["embedding_model"] == "text-embedding-3-small"
     assert latest_trace["metadata"]["index_path"].endswith("vector_index.jsonl")
@@ -3229,6 +3260,10 @@ def test_ask_command_hybrid_mode_uses_hybrid_results_after_index_build(
     assert latest_trace["metadata"]["retrieval_method"] == "hybrid_rrf"
     assert latest_trace["metadata"]["fusion_method"] == "reciprocal_rank_fusion"
     assert latest_trace["metadata"]["rrf_k"] == 60
+    assert latest_trace["metadata"]["sparse_method"] == "bm25"
+    assert latest_trace["metadata"]["dense_method"] == "semantic_cosine_similarity"
+    assert latest_trace["metadata"]["sparse_weight"] == 1.0
+    assert latest_trace["metadata"]["dense_weight"] == 1.0
     assert latest_trace["metadata"]["lexical_weight"] == 1.0
     assert latest_trace["metadata"]["semantic_weight"] == 1.0
     assert latest_trace["metadata"]["embedding_provider"] == "openai_embeddings"
@@ -3240,11 +3275,13 @@ def test_ask_command_hybrid_mode_uses_hybrid_results_after_index_build(
     retrieve_step = latest_trace["steps"][1]
     assert retrieve_step["name"] == "retrieve_context"
     assert retrieve_step["description"] == (
-        "Retrieve context chunks with hybrid lexical and semantic search."
+        "Retrieve context chunks with hybrid BM25 and semantic search."
     )
     assert retrieve_step["inputs"]["retrieval_method"] == "hybrid_rrf"
     assert retrieve_step["inputs"]["fusion_method"] == "reciprocal_rank_fusion"
     assert retrieve_step["inputs"]["rrf_k"] == 60
+    assert retrieve_step["inputs"]["sparse_method"] == "bm25"
+    assert retrieve_step["inputs"]["dense_method"] == "semantic_cosine_similarity"
     assert "embedding-secret-key" not in json.dumps(latest_trace)
     assert "retrieval basics" not in json.dumps(latest_trace)
 

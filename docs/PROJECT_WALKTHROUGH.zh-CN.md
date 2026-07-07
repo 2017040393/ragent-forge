@@ -111,7 +111,7 @@ uv run ragent search "What is Agentic RAG?" --retrieval hybrid --workspace .rage
 ```
 
 Semantic search 使用本地 vector similarity。Hybrid search 使用 Reciprocal
-Rank Fusion 融合 lexical 和 semantic candidates。
+Rank Fusion 融合 BM25 和 semantic candidates。
 
 ## Step 8: Ask 一个问题
 

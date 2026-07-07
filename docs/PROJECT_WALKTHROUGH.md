@@ -114,7 +114,7 @@ uv run ragent search "What is Agentic RAG?" --retrieval semantic --workspace .ra
 uv run ragent search "What is Agentic RAG?" --retrieval hybrid --workspace .ragent
 ```
 
-Semantic search uses local vector similarity. Hybrid search combines lexical
+Semantic search uses local vector similarity. Hybrid search combines BM25
 and semantic candidates with Reciprocal Rank Fusion.
 
 ## Step 8: Ask a Question

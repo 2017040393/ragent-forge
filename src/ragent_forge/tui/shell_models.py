@@ -36,13 +36,15 @@ _SOURCE_METADATA_LABELS = {
     "retrieval_method": "method",
     "fusion_method": "fusion",
     "matched_modes": "matched",
-    "lexical_rank": "lexical_rank",
-    "semantic_rank": "semantic_rank",
-    "lexical_score": "lexical_score",
-    "semantic_score": "semantic_score",
+    "sparse_method": "sparse_method",
+    "dense_method": "dense_method",
+    "sparse_rank": "sparse_rank",
+    "dense_rank": "dense_rank",
+    "sparse_score": "sparse_score",
+    "dense_score": "dense_score",
     "hybrid_score": "hybrid_score",
-    "lexical_weight": "lexical_weight",
-    "semantic_weight": "semantic_weight",
+    "sparse_weight": "sparse_weight",
+    "dense_weight": "dense_weight",
 }
 
 _MAX_SOURCE_LABEL_WIDTH = 40

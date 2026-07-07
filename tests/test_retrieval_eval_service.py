@@ -890,6 +890,10 @@ def test_hybrid_report_records_fusion_metadata() -> None:
         index_path=Path(".ragent/index/vector_index.jsonl"),
         fusion_method="reciprocal_rank_fusion",
         rrf_k=60,
+        sparse_method="bm25",
+        dense_method="semantic_cosine_similarity",
+        sparse_weight=1.0,
+        dense_weight=1.0,
         lexical_weight=1.0,
         semantic_weight=1.0,
     )
@@ -899,6 +903,10 @@ def test_hybrid_report_records_fusion_metadata() -> None:
     assert report.retrieval_method == "hybrid_rrf"
     assert report.fusion_method == "reciprocal_rank_fusion"
     assert report.rrf_k == 60
+    assert report.sparse_method == "bm25"
+    assert report.dense_method == "semantic_cosine_similarity"
+    assert report.sparse_weight == 1.0
+    assert report.dense_weight == 1.0
     assert report.lexical_weight == 1.0
     assert report.semantic_weight == 1.0
     assert "full chunk text must stay out" not in report_json

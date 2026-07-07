@@ -20,6 +20,10 @@ from ragent_forge.app.services.gold_chunk_mapping_service import (
     GoldChunkMappingResult,
     GoldChunkMappingService,
 )
+from ragent_forge.app.services.hybrid_search_service import (
+    HybridDenseMethod,
+    HybridSparseMethod,
+)
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.workspace import LocalWorkspace
 
@@ -128,6 +132,10 @@ class RetrievalEvalReport(BaseModel):
     index_path: str | None = None
     fusion_method: str | None = None
     rrf_k: int | None = None
+    sparse_method: HybridSparseMethod | None = None
+    dense_method: HybridDenseMethod | None = None
+    sparse_weight: float | None = None
+    dense_weight: float | None = None
     lexical_weight: float | None = None
     semantic_weight: float | None = None
 
@@ -177,6 +185,10 @@ class RetrievalEvalService:
         index_path: str | Path | None = None,
         fusion_method: str | None = None,
         rrf_k: int | None = None,
+        sparse_method: HybridSparseMethod | None = None,
+        dense_method: HybridDenseMethod | None = None,
+        sparse_weight: float | None = None,
+        dense_weight: float | None = None,
         lexical_weight: float | None = None,
         semantic_weight: float | None = None,
         workspace: WorkspaceChunksProtocol | None = None,
@@ -247,6 +259,10 @@ class RetrievalEvalService:
             index_path=str(Path(index_path)) if index_path is not None else None,
             fusion_method=fusion_method,
             rrf_k=rrf_k,
+            sparse_method=sparse_method,
+            dense_method=dense_method,
+            sparse_weight=sparse_weight,
+            dense_weight=dense_weight,
             lexical_weight=lexical_weight,
             semantic_weight=semantic_weight,
             results=results,

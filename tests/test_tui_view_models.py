@@ -442,9 +442,9 @@ def test_ask_source_inspector_includes_hybrid_metadata_when_present() -> None:
         metadata={
             "retrieval_method": "hybrid_rrf",
             "fusion_method": "reciprocal_rank_fusion",
-            "matched_modes": ["lexical", "semantic"],
-            "lexical_rank": 1,
-            "semantic_rank": 2,
+            "matched_modes": ["bm25", "semantic"],
+            "sparse_rank": 1,
+            "dense_rank": 2,
         },
     )
 
@@ -453,9 +453,9 @@ def test_ask_source_inspector_includes_hybrid_metadata_when_present() -> None:
     assert "method: hybrid_rrf" in text
     assert "RRF:" in text
     assert "  fusion: reciprocal_rank_fusion" in text
-    assert "  matched: lexical, semantic" in text
-    assert "lexical_rank: 1" in text
-    assert "semantic_rank: 2" in text
+    assert "  matched: bm25, semantic" in text
+    assert "sparse_rank: 1" in text
+    assert "dense_rank: 2" in text
 
 
 def test_ask_source_inspector_omits_hybrid_fields_for_lexical_result() -> None:
@@ -474,8 +474,8 @@ def test_ask_source_inspector_omits_hybrid_fields_for_lexical_result() -> None:
 
     assert "method: lexical_token_overlap" in text
     assert "RRF:" not in text
-    assert "lexical_rank" not in text
-    assert "semantic_rank" not in text
+    assert "sparse_rank" not in text
+    assert "dense_rank" not in text
 
 
 def test_tui_ask_hides_prompt_preview_by_default(tmp_path: Path) -> None:
@@ -648,9 +648,9 @@ def test_search_result_inspector_includes_hybrid_metadata_when_present() -> None
         metadata={
             "retrieval_method": "hybrid_rrf",
             "fusion_method": "reciprocal_rank_fusion",
-            "matched_modes": ["lexical", "semantic"],
-            "lexical_rank": 1,
-            "semantic_rank": 2,
+            "matched_modes": ["bm25", "semantic"],
+            "sparse_rank": 1,
+            "dense_rank": 2,
         },
     )
 
@@ -659,9 +659,9 @@ def test_search_result_inspector_includes_hybrid_metadata_when_present() -> None
     assert "method: hybrid_rrf" in text
     assert "RRF:" in text
     assert "  fusion: reciprocal_rank_fusion" in text
-    assert "  matched: lexical, semantic" in text
-    assert "lexical_rank: 1" in text
-    assert "semantic_rank: 2" in text
+    assert "  matched: bm25, semantic" in text
+    assert "sparse_rank: 1" in text
+    assert "dense_rank: 2" in text
 
 
 def test_search_result_inspector_omits_hybrid_fields_for_lexical_result() -> None:
@@ -680,8 +680,8 @@ def test_search_result_inspector_omits_hybrid_fields_for_lexical_result() -> Non
 
     assert "method: lexical_token_overlap" in text
     assert "RRF:" not in text
-    assert "lexical_rank" not in text
-    assert "semantic_rank" not in text
+    assert "sparse_rank" not in text
+    assert "dense_rank" not in text
 
 
 def test_trace_page_renders_recent_steps_and_inspector_metadata(

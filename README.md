@@ -40,7 +40,7 @@ reports.
 - Lexical and BM25 retrieval over generated chunks.
 - OpenAI-compatible embedding configuration for semantic retrieval.
 - Local JSONL vector index for semantic search.
-- Hybrid retrieval with Reciprocal Rank Fusion over lexical and semantic
+- Hybrid retrieval with Reciprocal Rank Fusion over BM25 and semantic
   candidates.
 - Ask pipeline with optional OpenAI Responses-compatible generation.
 - Retrieval-only Ask mode when generation is not configured.
@@ -197,7 +197,7 @@ With the default config, generation uses the `null` provider. In that mode
   vector index.
 - `semantic`: embedding-based vector retrieval. It requires
   `uv run ragent index build --workspace .ragent`.
-- `hybrid`: Reciprocal-rank-fusion style combination of lexical and semantic
+- `hybrid`: Reciprocal-rank-fusion style combination of BM25 and semantic
   retrieval. It also requires a vector index.
 
 Illustrative compare output:

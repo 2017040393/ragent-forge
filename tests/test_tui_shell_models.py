@@ -447,9 +447,9 @@ def test_format_shell_inspector_shows_allowlisted_retrieval_metadata() -> None:
         metadata={
             "retrieval_method": "hybrid_rrf",
             "fusion_method": "reciprocal_rank_fusion",
-            "matched_modes": ["lexical", "semantic"],
-            "lexical_rank": 1,
-            "semantic_rank": 2,
+            "matched_modes": ["bm25", "semantic"],
+            "sparse_rank": 1,
+            "dense_rank": 2,
             "hybrid_score": 0.0325,
         },
     )
@@ -459,9 +459,9 @@ def test_format_shell_inspector_shows_allowlisted_retrieval_metadata() -> None:
     assert "Retrieval metadata" in text
     assert "method: hybrid_rrf" in text
     assert "fusion: reciprocal_rank_fusion" in text
-    assert "matched: lexical, semantic" in text
-    assert "lexical_rank: 1" in text
-    assert "semantic_rank: 2" in text
+    assert "matched: bm25, semantic" in text
+    assert "sparse_rank: 1" in text
+    assert "dense_rank: 2" in text
     assert "hybrid_score: 0.0325" in text
 
 
@@ -539,9 +539,9 @@ def test_format_shell_source_details_shows_allowlisted_retrieval_metadata() -> N
         metadata={
             "retrieval_method": "hybrid_rrf",
             "fusion_method": "reciprocal_rank_fusion",
-            "matched_modes": ["lexical", "semantic"],
-            "lexical_rank": 1,
-            "semantic_rank": 2,
+            "matched_modes": ["bm25", "semantic"],
+            "sparse_rank": 1,
+            "dense_rank": 2,
             "hybrid_score": 0.0325,
         },
     )
@@ -550,9 +550,9 @@ def test_format_shell_source_details_shows_allowlisted_retrieval_metadata() -> N
 
     assert "method: hybrid_rrf" in text
     assert "fusion: reciprocal_rank_fusion" in text
-    assert "matched: lexical, semantic" in text
-    assert "lexical_rank: 1" in text
-    assert "semantic_rank: 2" in text
+    assert "matched: bm25, semantic" in text
+    assert "sparse_rank: 1" in text
+    assert "dense_rank: 2" in text
     assert "hybrid_score: 0.0325" in text
 
 

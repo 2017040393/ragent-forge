@@ -75,7 +75,7 @@ Retrieval is explicit and mode-based:
 
 - `lexical` uses deterministic token overlap over local chunks.
 - `semantic` uses cosine similarity over the local JSONL vector index.
-- `hybrid` combines lexical and semantic candidates with Reciprocal Rank
+- `hybrid` combines BM25 and semantic candidates with Reciprocal Rank
   Fusion.
 
 Semantic and hybrid retrieval require a vector index created by

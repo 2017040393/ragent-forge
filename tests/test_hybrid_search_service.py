@@ -64,9 +64,9 @@ def test_hybrid_search_rrf_combines_modes_and_deduplicates_by_chunk_id() -> None
     ]
     assert len(results) == 3
     assert results[0].text == "lexical text"
-    assert results[0].metadata["matched_modes"] == ["lexical", "semantic"]
+    assert results[0].metadata["matched_modes"] == ["bm25", "semantic"]
     assert results[1].metadata["matched_modes"] == ["semantic"]
-    assert results[2].metadata["matched_modes"] == ["lexical"]
+    assert results[2].metadata["matched_modes"] == ["bm25"]
 
 
 def test_hybrid_search_boosts_chunks_matched_by_both_modes() -> None:
@@ -129,14 +129,16 @@ def test_hybrid_search_sets_fused_score_and_compact_metadata() -> None:
         "retrieval_method": "hybrid_rrf",
         "fusion_method": "reciprocal_rank_fusion",
         "rrf_k": 60,
-        "matched_modes": ["lexical", "semantic"],
-        "lexical_rank": 1,
-        "semantic_rank": 1,
-        "lexical_score": 3.0,
-        "semantic_score": 0.7821,
+        "sparse_method": "bm25",
+        "dense_method": "semantic_cosine_similarity",
+        "matched_modes": ["bm25", "semantic"],
+        "sparse_rank": 1,
+        "dense_rank": 1,
+        "sparse_score": 3.0,
+        "dense_score": 0.7821,
         "hybrid_score": pytest.approx(expected_score),
-        "lexical_weight": 1.0,
-        "semantic_weight": 1.0,
+        "sparse_weight": 1.0,
+        "dense_weight": 1.0,
     }
 
 

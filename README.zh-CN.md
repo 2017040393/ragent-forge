@@ -33,7 +33,7 @@ chunks、检索结果、context pack、answer、sources、traces 和 eval report
 - 基于已生成 chunks 的 lexical 和 BM25 retrieval。
 - 面向 semantic retrieval 的 OpenAI-compatible embedding 配置。
 - 用于 semantic search 的本地 JSONL vector index。
-- 使用 Reciprocal Rank Fusion 融合 lexical 和 semantic 候选结果的 hybrid retrieval。
+- 使用 Reciprocal Rank Fusion 融合 BM25 和 semantic 候选结果的 hybrid retrieval。
 - 支持可选 OpenAI Responses-compatible generation 的 Ask pipeline。
 - 未配置 generation 时的 retrieval-only Ask 模式。
 - 带来源的回答和紧凑 source display。
@@ -160,7 +160,7 @@ uv run ragent search "What is Agentic RAG?" --retrieval hybrid --workspace .rage
 - `bm25`：使用 BM25 scoring 的更强 lexical baseline，不需要 vector index。
 - `semantic`：embedding-based vector retrieval，需要先运行
   `uv run ragent index build --workspace .ragent`。
-- `hybrid`：lexical 和 semantic retrieval 的 Reciprocal-rank-fusion style
+- `hybrid`：BM25 和 semantic retrieval 的 Reciprocal-rank-fusion style
   组合，同样需要 vector index。
 
 示例 compare 输出如下；数字只是说明格式，不是 checked-in benchmark results：

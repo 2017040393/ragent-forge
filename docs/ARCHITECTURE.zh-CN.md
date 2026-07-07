@@ -72,7 +72,7 @@ Retrieval 是显式且基于 mode 的：
 
 - `lexical` 使用本地 chunks 上的确定性 token overlap。
 - `semantic` 使用本地 JSONL vector index 上的 cosine similarity。
-- `hybrid` 使用 Reciprocal Rank Fusion 融合 lexical 和 semantic candidates。
+- `hybrid` 使用 Reciprocal Rank Fusion 融合 BM25 和 semantic candidates。
 
 Semantic 和 hybrid retrieval 需要先通过 `ragent index build` 创建 vector index。
 

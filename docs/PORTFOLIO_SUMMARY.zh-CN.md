@@ -5,7 +5,7 @@
 ## One-Sentence Summary
 
 RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 deterministic
-ingestion、lexical/semantic/hybrid retrieval、source-grounded asking、
+ingestion、lexical/BM25/semantic/hybrid retrieval、source-grounded asking、
 operation tracing、retrieval evaluation，以及带 source inspection 的
 command-first Textual TUI。
 
@@ -18,7 +18,7 @@ reports、answers 和 sources 都会作为本地 artifacts 被保存或展示，
 演示系统。
 
 当前 v0.1 范围有意保持聚焦。它覆盖本地导入、确定性切块、lexical retrieval、
-带 embeddings 的可选 semantic 和 hybrid retrieval、source-grounded Ask、CLI
+lexical 和 BM25 retrieval、带 embeddings 的可选 semantic 和 hybrid retrieval、source-grounded Ask、CLI
 traces、retrieval evaluation，以及用于 search、ask 和 source inspection 的
 command-first TUI。
 
@@ -31,7 +31,7 @@ RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持本地文
 RAGentForge is a local-first RAG console for developers who want to see and
 explain the retrieval pipeline instead of hiding it behind a hosted service or
 large framework. It ingests local Markdown/TXT files, writes deterministic
-chunks into a `.ragent` workspace, supports explicit lexical, semantic, and
+chunks into a `.ragent` workspace, supports explicit lexical, BM25, semantic, and
 hybrid retrieval modes, and can run source-grounded Ask with either
 retrieval-only output or optional OpenAI Responses-compatible generation.
 
@@ -42,7 +42,7 @@ suggestions, compact source lists, source navigation, and an Inspector panel.
 
 ## Resume Bullets
 
-- Built a local-first RAG console with deterministic ingestion, lexical/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
+- Built a local-first RAG console with deterministic ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
 - Implemented a command-first Textual TUI with background Ask/Search workers, inline command suggestions, source navigation, and an Inspector panel.
 - Designed local JSONL workspace storage for chunks, vector index, traces, and retrieval evaluation reports to make RAG workflows inspectable and reproducible.
 - Added retrieval evaluation with hit@k and MRR over JSONL cases to measure retrieval behavior before adding heavier ranking or answer-evaluation features.
@@ -56,10 +56,11 @@ suggestions, compact source lists, source navigation, and an Inspector panel.
   排序或 prompt assembly，而不只是模型问题。
 - Deterministic chunking 让 demos、tests、bug reports 和 trace comparison 更容易，
   因为相同输入会产生稳定的 chunk identifiers 和 records。
-- Lexical retrieval 提供不需要 embeddings 的即时 baseline；semantic retrieval
-  增加 embedding-based matching；hybrid retrieval 结合两类 candidates。
-- RRF 是实用的 hybrid MVP，因为它可以融合 lexical 和 semantic ranked results，
-  而不引入更重的 reranker 或训练模型。
+- Lexical retrieval 提供不需要 embeddings 的即时 baseline；BM25 加强 sparse
+  keyword matching；semantic retrieval 增加 embedding-based matching；hybrid
+  retrieval 结合 BM25 和 semantic candidates。
+- RRF 是实用的 hybrid MVP，因为它可以融合 BM25 和 semantic ranked results，而
+  不引入更重的 reranker 或训练模型。
 - TUI 采用 command-first，因为 RAG debugging 需要可重复 typed commands、可见的
   transcript history 和显式 source navigation。
 - CLI traces 和 retrieval eval 让项目更工程化：用户可以检查发生了什么，并在
@@ -71,10 +72,10 @@ suggestions, compact source lists, source navigation, and an Inspector panel.
 
 - 围绕本地 application services 构建的 Python CLI，而不是隐藏托管 backend。
 - Markdown/TXT ingestion 和 deterministic chunk records。
-- 显式 retrieval modes：`lexical`、`semantic` 和 `hybrid`。
+- 显式 retrieval modes：`lexical`、`BM25`、`semantic` 和 `hybrid`。
 - 面向 semantic retrieval 的 OpenAI-compatible embedding configuration。
 - 用于 semantic search 的本地 JSONL vector index。
-- 使用 Reciprocal Rank Fusion 融合 lexical 和 semantic candidates 的 hybrid retrieval。
+- 使用 Reciprocal Rank Fusion 融合 BM25 和 semantic candidates 的 hybrid retrieval。
 - 带 source display 和可选 OpenAI Responses-compatible generation 的 Ask pipeline。
 - 默认 `null` generation provider 下的 retrieval-only Ask behavior。
 - 用于 operation inspection 的 CLI traces。

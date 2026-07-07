@@ -11,6 +11,10 @@ from ragent_forge.app.models import (
     RagTrace,
     TraceStep,
 )
+from ragent_forge.app.services.hybrid_search_service import (
+    HybridDenseMethod,
+    HybridSparseMethod,
+)
 
 
 class TraceService:
@@ -131,6 +135,10 @@ def build_search_trace(
     retrieval_method: str = "lexical_token_overlap",
     fusion_method: str | None = None,
     rrf_k: int | None = None,
+    sparse_method: HybridSparseMethod | None = None,
+    dense_method: HybridDenseMethod | None = None,
+    sparse_weight: float | None = None,
+    dense_weight: float | None = None,
     lexical_weight: float | None = None,
     semantic_weight: float | None = None,
     candidate_limit: int | None = None,
@@ -159,6 +167,10 @@ def build_search_trace(
         metadata["retrieval_method"] = retrieval_method
         metadata["fusion_method"] = fusion_method
         metadata["rrf_k"] = rrf_k
+        metadata["sparse_method"] = sparse_method
+        metadata["dense_method"] = dense_method
+        metadata["sparse_weight"] = sparse_weight
+        metadata["dense_weight"] = dense_weight
         metadata["lexical_weight"] = lexical_weight
         metadata["semantic_weight"] = semantic_weight
         metadata["candidate_limit"] = candidate_limit
@@ -175,6 +187,8 @@ def build_search_trace(
         retrieval_method=retrieval_method,
         fusion_method=fusion_method,
         rrf_k=rrf_k,
+        sparse_method=sparse_method,
+        dense_method=dense_method,
         candidate_limit=candidate_limit,
         embedding_provider=embedding_provider,
         embedding_model=embedding_model,
@@ -206,6 +220,10 @@ def build_retrieval_eval_trace(
     run_dir: Path | None = None,
     fusion_method: str | None = None,
     rrf_k: int | None = None,
+    sparse_method: HybridSparseMethod | None = None,
+    dense_method: HybridDenseMethod | None = None,
+    sparse_weight: float | None = None,
+    dense_weight: float | None = None,
     lexical_weight: float | None = None,
     semantic_weight: float | None = None,
     embedding_provider: str | None = None,
@@ -248,6 +266,10 @@ def build_retrieval_eval_trace(
     if retrieval_mode == "hybrid":
         metadata["fusion_method"] = fusion_method
         metadata["rrf_k"] = rrf_k
+        metadata["sparse_method"] = sparse_method
+        metadata["dense_method"] = dense_method
+        metadata["sparse_weight"] = sparse_weight
+        metadata["dense_weight"] = dense_weight
         metadata["lexical_weight"] = lexical_weight
         metadata["semantic_weight"] = semantic_weight
         metadata["embedding_provider"] = embedding_provider
@@ -330,6 +352,10 @@ def build_ask_retrieval_trace(
     retrieval_method: str = "lexical_token_overlap",
     fusion_method: str | None = None,
     rrf_k: int | None = None,
+    sparse_method: HybridSparseMethod | None = None,
+    dense_method: HybridDenseMethod | None = None,
+    sparse_weight: float | None = None,
+    dense_weight: float | None = None,
     lexical_weight: float | None = None,
     semantic_weight: float | None = None,
     embedding_provider: str | None = None,
@@ -369,6 +395,10 @@ def build_ask_retrieval_trace(
     if retrieval_mode == "hybrid":
         metadata["fusion_method"] = fusion_method
         metadata["rrf_k"] = rrf_k
+        metadata["sparse_method"] = sparse_method
+        metadata["dense_method"] = dense_method
+        metadata["sparse_weight"] = sparse_weight
+        metadata["dense_weight"] = dense_weight
         metadata["lexical_weight"] = lexical_weight
         metadata["semantic_weight"] = semantic_weight
         metadata["embedding_provider"] = embedding_provider
@@ -389,6 +419,8 @@ def build_ask_retrieval_trace(
         retrieval_method=retrieval_method,
         fusion_method=fusion_method,
         rrf_k=rrf_k,
+        sparse_method=sparse_method,
+        dense_method=dense_method,
         embedding_provider=embedding_provider,
         embedding_model=embedding_model,
         index_path=index_path,
@@ -473,6 +505,8 @@ def _build_search_steps(
     retrieval_method: str,
     fusion_method: str | None,
     rrf_k: int | None,
+    sparse_method: HybridSparseMethod | None,
+    dense_method: HybridDenseMethod | None,
     candidate_limit: int | None,
     embedding_provider: str | None,
     embedding_model: str | None,
@@ -532,8 +566,8 @@ def _build_search_steps(
         return [
             read_chunks_step,
             TraceStep(
-                name="run_lexical_search",
-                description="Run lexical search for hybrid retrieval candidates.",
+                name="run_bm25_search",
+                description="Run BM25 search for hybrid retrieval candidates.",
                 inputs={"query": query, "candidate_limit": candidate_limit},
                 outputs={"status": "completed"},
             ),
@@ -563,11 +597,13 @@ def _build_search_steps(
             ),
             TraceStep(
                 name="fuse_results",
-                description="Fuse lexical and semantic candidates with RRF.",
+                description="Fuse BM25 and semantic candidates with RRF.",
                 inputs={
                     "retrieval_method": retrieval_method,
                     "fusion_method": fusion_method,
                     "rrf_k": rrf_k,
+                    "sparse_method": sparse_method,
+                    "dense_method": dense_method,
                 },
                 outputs={"matched_chunks": len(result_chunk_ids)},
             ),
@@ -606,6 +642,8 @@ def _build_ask_retrieval_steps(
     retrieval_method: str,
     fusion_method: str | None,
     rrf_k: int | None,
+    sparse_method: HybridSparseMethod | None,
+    dense_method: HybridDenseMethod | None,
     embedding_provider: str | None,
     embedding_model: str | None,
     index_path: Path | None,
@@ -627,6 +665,8 @@ def _build_ask_retrieval_steps(
                 retrieval_method=retrieval_method,
                 fusion_method=fusion_method,
                 rrf_k=rrf_k,
+                sparse_method=sparse_method,
+                dense_method=dense_method,
                 embedding_provider=embedding_provider,
                 embedding_model=embedding_model,
                 index_path=index_path,
@@ -685,7 +725,7 @@ def _search_score_description(retrieval_mode: str) -> str:
 
 def _ask_retrieval_description(retrieval_mode: str) -> str:
     if retrieval_mode == "hybrid":
-        return "Retrieve context chunks with hybrid lexical and semantic search."
+        return "Retrieve context chunks with hybrid BM25 and semantic search."
     if retrieval_mode == "semantic":
         return "Retrieve context chunks with semantic vector search."
     if retrieval_mode == "bm25":
@@ -700,6 +740,8 @@ def _ask_retrieval_inputs(
     retrieval_method: str,
     fusion_method: str | None,
     rrf_k: int | None,
+    sparse_method: HybridSparseMethod | None,
+    dense_method: HybridDenseMethod | None,
     embedding_provider: str | None,
     embedding_model: str | None,
     index_path: Path | None,
@@ -720,6 +762,8 @@ def _ask_retrieval_inputs(
                 "retrieval_method": retrieval_method,
                 "fusion_method": fusion_method,
                 "rrf_k": rrf_k,
+                "sparse_method": sparse_method,
+                "dense_method": dense_method,
                 "embedding_provider": embedding_provider,
                 "embedding_model": embedding_model,
                 "index_path": str(index_path) if index_path is not None else None,

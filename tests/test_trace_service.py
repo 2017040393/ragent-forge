@@ -175,6 +175,10 @@ def test_build_search_trace_records_hybrid_rrf_metadata_and_steps() -> None:
         retrieval_method="hybrid_rrf",
         fusion_method="reciprocal_rank_fusion",
         rrf_k=60,
+        sparse_method="bm25",
+        dense_method="semantic_cosine_similarity",
+        sparse_weight=1.0,
+        dense_weight=1.0,
         lexical_weight=1.0,
         semantic_weight=1.0,
         candidate_limit=20,
@@ -187,6 +191,10 @@ def test_build_search_trace_records_hybrid_rrf_metadata_and_steps() -> None:
     assert trace.metadata["retrieval_method"] == "hybrid_rrf"
     assert trace.metadata["fusion_method"] == "reciprocal_rank_fusion"
     assert trace.metadata["rrf_k"] == 60
+    assert trace.metadata["sparse_method"] == "bm25"
+    assert trace.metadata["dense_method"] == "semantic_cosine_similarity"
+    assert trace.metadata["sparse_weight"] == 1.0
+    assert trace.metadata["dense_weight"] == 1.0
     assert trace.metadata["lexical_weight"] == 1.0
     assert trace.metadata["semantic_weight"] == 1.0
     assert trace.metadata["candidate_limit"] == 20
@@ -195,7 +203,7 @@ def test_build_search_trace_records_hybrid_rrf_metadata_and_steps() -> None:
     assert trace.metadata["index_path"] == str(Path(".ragent/index/vector_index.jsonl"))
     assert [step.name for step in trace.steps] == [
         "read_chunks",
-        "run_lexical_search",
+        "run_bm25_search",
         "embed_query",
         "load_vector_index",
         "run_semantic_search",
@@ -207,6 +215,8 @@ def test_build_search_trace_records_hybrid_rrf_metadata_and_steps() -> None:
         "retrieval_method": "hybrid_rrf",
         "fusion_method": "reciprocal_rank_fusion",
         "rrf_k": 60,
+        "sparse_method": "bm25",
+        "dense_method": "semantic_cosine_similarity",
     }
     trace_json = trace.model_dump_json()
     assert "embedding-secret-key" not in trace_json
@@ -331,6 +341,10 @@ def test_build_retrieval_eval_trace_records_hybrid_fusion_metadata() -> None:
         finished_at=finished_at,
         fusion_method="reciprocal_rank_fusion",
         rrf_k=60,
+        sparse_method="bm25",
+        dense_method="semantic_cosine_similarity",
+        sparse_weight=1.0,
+        dense_weight=1.0,
         lexical_weight=1.0,
         semantic_weight=1.0,
         embedding_provider="openai_embeddings",
@@ -342,6 +356,10 @@ def test_build_retrieval_eval_trace_records_hybrid_fusion_metadata() -> None:
     assert trace.metadata["retrieval_method"] == "hybrid_rrf"
     assert trace.metadata["fusion_method"] == "reciprocal_rank_fusion"
     assert trace.metadata["rrf_k"] == 60
+    assert trace.metadata["sparse_method"] == "bm25"
+    assert trace.metadata["dense_method"] == "semantic_cosine_similarity"
+    assert trace.metadata["sparse_weight"] == 1.0
+    assert trace.metadata["dense_weight"] == 1.0
     assert trace.metadata["lexical_weight"] == 1.0
     assert trace.metadata["semantic_weight"] == 1.0
     assert trace.metadata["embedding_provider"] == "openai_embeddings"
@@ -545,6 +563,10 @@ def test_build_ask_retrieval_trace_records_hybrid_metadata() -> None:
         retrieval_method="hybrid_rrf",
         fusion_method="reciprocal_rank_fusion",
         rrf_k=60,
+        sparse_method="bm25",
+        dense_method="semantic_cosine_similarity",
+        sparse_weight=1.0,
+        dense_weight=1.0,
         lexical_weight=1.0,
         semantic_weight=1.0,
         embedding_provider="openai_embeddings",
@@ -556,6 +578,10 @@ def test_build_ask_retrieval_trace_records_hybrid_metadata() -> None:
     assert trace.metadata["retrieval_method"] == "hybrid_rrf"
     assert trace.metadata["fusion_method"] == "reciprocal_rank_fusion"
     assert trace.metadata["rrf_k"] == 60
+    assert trace.metadata["sparse_method"] == "bm25"
+    assert trace.metadata["dense_method"] == "semantic_cosine_similarity"
+    assert trace.metadata["sparse_weight"] == 1.0
+    assert trace.metadata["dense_weight"] == 1.0
     assert trace.metadata["lexical_weight"] == 1.0
     assert trace.metadata["semantic_weight"] == 1.0
     assert trace.metadata["embedding_provider"] == "openai_embeddings"
@@ -564,7 +590,7 @@ def test_build_ask_retrieval_trace_records_hybrid_metadata() -> None:
     retrieval_step = trace.steps[1]
     assert retrieval_step.name == "retrieve_context"
     assert retrieval_step.description == (
-        "Retrieve context chunks with hybrid lexical and semantic search."
+        "Retrieve context chunks with hybrid BM25 and semantic search."
     )
     assert retrieval_step.inputs == {
         "question": "what is agent memory?",
@@ -572,6 +598,8 @@ def test_build_ask_retrieval_trace_records_hybrid_metadata() -> None:
         "retrieval_method": "hybrid_rrf",
         "fusion_method": "reciprocal_rank_fusion",
         "rrf_k": 60,
+        "sparse_method": "bm25",
+        "dense_method": "semantic_cosine_similarity",
         "embedding_provider": "openai_embeddings",
         "embedding_model": "text-embedding-3-small",
         "index_path": str(Path(".ragent/index/vector_index.jsonl")),

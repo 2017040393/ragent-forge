@@ -22,7 +22,7 @@ demo. That branch workflow shows Markdown, TXT, and PDF flowing through
 
 RAGentForge is a local-first RAG console for inspecting the full retrieval
 workflow. It stores derived state in `.ragent`, supports deterministic chunking,
-lexical, semantic, and hybrid retrieval, optional source-grounded generation,
+lexical, BM25, semantic, and hybrid retrieval, optional source-grounded generation,
 operation traces, retrieval evaluation, and a command-first Textual TUI.
 
 The core idea is inspectability. Instead of hiding the RAG pipeline behind a
@@ -195,7 +195,7 @@ Use these assets when presenting v0.1 in a portfolio, README, or GitHub Release:
 
 - "The source documents stay local; `.ragent` contains derived artifacts."
 - "Chunking is deterministic so failures are easier to reproduce."
-- "Retrieval modes are explicit: lexical, semantic, and hybrid."
+- "Retrieval modes are explicit: lexical, BM25, semantic, and hybrid."
 - "Semantic and hybrid retrieval require embeddings and a built vector index."
 - "Ask works without generation. With the default `null` provider, it stays in
   retrieval-only mode."

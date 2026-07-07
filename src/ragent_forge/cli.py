@@ -34,8 +34,10 @@ from ragent_forge.app.services.eval_dataset_generation_service import (
 from ragent_forge.app.services.evidence_span_service import EvidenceSpanService
 from ragent_forge.app.services.generation_service import GenerationService
 from ragent_forge.app.services.hybrid_search_service import (
+    HybridDenseMethod,
     HybridSearchConfig,
     HybridSearchService,
+    HybridSparseMethod,
 )
 from ragent_forge.app.services.index_service import IndexBuildService
 from ragent_forge.app.services.ingest_service import IngestService
@@ -82,6 +84,10 @@ class BuiltSearchService:
     index_path: Path | None = None
     fusion_method: str | None = None
     rrf_k: int | None = None
+    sparse_method: HybridSparseMethod | None = None
+    dense_method: HybridDenseMethod | None = None
+    sparse_weight: float | None = None
+    dense_weight: float | None = None
     lexical_weight: float | None = None
     semantic_weight: float | None = None
     candidate_limit: int | None = None
@@ -953,8 +959,8 @@ def _build_search_service_for_retrieval(
         semantic_search_service = SemanticSearchService(workspace, embedding_service)
         hybrid_config = HybridSearchConfig()
         hybrid_search_service = HybridSearchService(
-            lexical_search_service=LexicalSearchService(workspace),
-            semantic_search_service=semantic_search_service,
+            sparse_search_service=BM25SearchService(workspace),
+            dense_search_service=semantic_search_service,
             config=hybrid_config,
         )
         return BuiltSearchService(
@@ -965,6 +971,10 @@ def _build_search_service_for_retrieval(
             index_path=workspace.vector_index_path,
             fusion_method="reciprocal_rank_fusion",
             rrf_k=hybrid_config.rrf_k,
+            sparse_method=hybrid_config.sparse_method,
+            dense_method=hybrid_config.dense_method,
+            sparse_weight=hybrid_config.sparse_weight,
+            dense_weight=hybrid_config.dense_weight,
             lexical_weight=hybrid_config.lexical_weight,
             semantic_weight=hybrid_config.semantic_weight,
             candidate_limit=hybrid_search_service.candidate_limit_for(limit),
@@ -1286,6 +1296,10 @@ def _handle_eval_compare(
                     index_path=built_search.index_path,
                     fusion_method=built_search.fusion_method,
                     rrf_k=built_search.rrf_k,
+                    sparse_method=built_search.sparse_method,
+                    dense_method=built_search.dense_method,
+                    sparse_weight=built_search.sparse_weight,
+                    dense_weight=built_search.dense_weight,
                     lexical_weight=built_search.lexical_weight,
                     semantic_weight=built_search.semantic_weight,
                 )
@@ -1435,6 +1449,10 @@ def _handle_eval_retrieval(
             index_path=built_search.index_path,
             fusion_method=built_search.fusion_method,
             rrf_k=built_search.rrf_k,
+            sparse_method=built_search.sparse_method,
+            dense_method=built_search.dense_method,
+            sparse_weight=built_search.sparse_weight,
+            dense_weight=built_search.dense_weight,
             lexical_weight=built_search.lexical_weight,
             semantic_weight=built_search.semantic_weight,
         )
@@ -1474,6 +1492,10 @@ def _handle_eval_retrieval(
         index_path=built_search.index_path,
         fusion_method=built_search.fusion_method,
         rrf_k=built_search.rrf_k,
+        sparse_method=built_search.sparse_method,
+        dense_method=built_search.dense_method,
+        sparse_weight=built_search.sparse_weight,
+        dense_weight=built_search.dense_weight,
         lexical_weight=built_search.lexical_weight,
         semantic_weight=built_search.semantic_weight,
     )
@@ -1708,6 +1730,10 @@ def _handle_search(
         retrieval_method=built_search.retrieval_method,
         fusion_method=built_search.fusion_method,
         rrf_k=built_search.rrf_k,
+        sparse_method=built_search.sparse_method,
+        dense_method=built_search.dense_method,
+        sparse_weight=built_search.sparse_weight,
+        dense_weight=built_search.dense_weight,
         lexical_weight=built_search.lexical_weight,
         semantic_weight=built_search.semantic_weight,
         candidate_limit=built_search.candidate_limit,
@@ -1818,6 +1844,10 @@ def _handle_ask(
         retrieval_method=built_search.retrieval_method,
         fusion_method=built_search.fusion_method,
         rrf_k=built_search.rrf_k,
+        sparse_method=built_search.sparse_method,
+        dense_method=built_search.dense_method,
+        sparse_weight=built_search.sparse_weight,
+        dense_weight=built_search.dense_weight,
         lexical_weight=built_search.lexical_weight,
         semantic_weight=built_search.semantic_weight,
         embedding_provider=built_search.embedding_provider,

@@ -31,6 +31,7 @@ mode comparison, and a BM25 baseline.
   timestamped run directory.
 - `ragent eval compare` can evaluate multiple retrieval modes and top-k limits
   in one command.
+- `hybrid` retrieval now fuses BM25 and semantic results with RRF.
 - Retrieval modes now include:
   - `lexical`
   - `bm25`

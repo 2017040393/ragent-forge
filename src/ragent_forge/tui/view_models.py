@@ -11,7 +11,11 @@ from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.embedding_service import EmbeddingService
 from ragent_forge.app.services.generation_service import GenerationService
 from ragent_forge.app.services.hybrid_search_service import HybridSearchService
-from ragent_forge.app.services.search_service import LexicalSearchService, SearchResult
+from ragent_forge.app.services.search_service import (
+    BM25SearchService,
+    LexicalSearchService,
+    SearchResult,
+)
 from ragent_forge.app.services.semantic_search_service import SemanticSearchService
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
 from ragent_forge.app.source_labels import (
@@ -541,8 +545,8 @@ def _build_tui_retrieval_service(
 
     return _TuiRetrievalService(
         search_service=HybridSearchService(
-            lexical_search_service=LexicalSearchService(workspace),
-            semantic_search_service=semantic_search_service,
+            sparse_search_service=BM25SearchService(workspace),
+            dense_search_service=semantic_search_service,
         ),
         retrieval_method="hybrid_rrf",
     )
@@ -697,7 +701,7 @@ def format_search_result_inspector(
             matched_modes = ", ".join(str(item) for item in matched_modes)
         if matched_modes:
             lines.append(f"  matched: {matched_modes}")
-        for key in ("lexical_rank", "semantic_rank"):
+        for key in ("sparse_rank", "dense_rank"):
             if metadata.get(key) is not None:
                 lines.append(f"  {key}: {metadata[key]}")
     lines.extend(

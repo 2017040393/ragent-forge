@@ -4,7 +4,7 @@
 
 ## One-Sentence Summary
 
-RAGentForge is a local-first, inspectable RAG console with deterministic ingestion, lexical/semantic/hybrid retrieval, source-grounded asking, operation tracing, retrieval evaluation, and a command-first Textual TUI with source inspection.
+RAGentForge is a local-first, inspectable RAG console with deterministic ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, retrieval evaluation, and a command-first Textual TUI with source inspection.
 
 ## Short Project Description
 
@@ -15,7 +15,7 @@ indexes, traces, eval reports, answers, and sources are stored or displayed as
 local artifacts that can be inspected while debugging or presenting the system.
 
 The current v0.1 scope is intentionally focused. It covers local ingestion,
-deterministic chunking, lexical retrieval, optional semantic and hybrid
+deterministic chunking, lexical and BM25 retrieval, optional semantic and hybrid
 retrieval with embeddings, source-grounded Ask, CLI traces, retrieval
 evaluation, and a command-first TUI for search, ask, and source inspection.
 
@@ -28,7 +28,7 @@ RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持本地文
 RAGentForge is a local-first RAG console for developers who want to see and
 explain the retrieval pipeline instead of hiding it behind a hosted service or
 large framework. It ingests local Markdown/TXT files, writes deterministic
-chunks into a `.ragent` workspace, supports explicit lexical, semantic, and
+chunks into a `.ragent` workspace, supports explicit lexical, BM25, semantic, and
 hybrid retrieval modes, and can run source-grounded Ask with either
 retrieval-only output or optional OpenAI Responses-compatible generation.
 
@@ -40,7 +40,7 @@ Inspector panel.
 
 ## Resume Bullets
 
-- Built a local-first RAG console with deterministic ingestion, lexical/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
+- Built a local-first RAG console with deterministic ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
 - Implemented a command-first Textual TUI with background Ask/Search workers, inline command suggestions, source navigation, and an Inspector panel.
 - Designed local JSONL workspace storage for chunks, vector index, traces, and retrieval evaluation reports to make RAG workflows inspectable and reproducible.
 - Added retrieval evaluation with hit@k and MRR over JSONL cases to measure retrieval behavior before adding heavier ranking or answer-evaluation features.
@@ -54,10 +54,10 @@ Inspector panel.
   chunking, ranking, or prompt assembly problems rather than model problems.
 - Deterministic chunking makes demos, tests, bug reports, and trace comparison
   easier because the same input produces stable chunk identifiers and records.
-- Lexical retrieval gives an immediate no-embedding baseline, semantic
-  retrieval adds embedding-based matching, and hybrid retrieval combines both
-  candidate sets.
-- RRF was a practical hybrid MVP because it can combine ranked lexical and
+- Lexical retrieval gives an immediate no-embedding baseline, BM25 strengthens
+  sparse keyword matching, semantic retrieval adds embedding-based matching,
+  and hybrid retrieval combines BM25 and semantic candidate sets.
+- RRF was a practical hybrid MVP because it can combine ranked BM25 and
   semantic results without introducing a heavier reranker or trained model.
 - The TUI is command-first because RAG debugging often benefits from repeatable
   typed commands, visible transcript history, and explicit source navigation.
@@ -72,10 +72,10 @@ Inspector panel.
 - Python CLI built around local application services rather than a hidden
   hosted backend.
 - Markdown/TXT ingestion with deterministic chunk records.
-- Explicit retrieval modes: `lexical`, `semantic`, and `hybrid`.
+- Explicit retrieval modes: `lexical`, `BM25`, `semantic`, and `hybrid`.
 - OpenAI-compatible embedding configuration for semantic retrieval.
 - Local JSONL vector index for semantic search.
-- Hybrid retrieval using Reciprocal Rank Fusion over lexical and semantic
+- Hybrid retrieval using Reciprocal Rank Fusion over BM25 and semantic
   candidates.
 - Ask pipeline with source display and optional OpenAI Responses-compatible
   generation.

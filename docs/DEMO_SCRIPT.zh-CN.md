@@ -15,8 +15,8 @@ Ask 在 v0.1 不会写入新的 traces。
 ## 30 秒项目介绍
 
 RAGentForge 是一个本地优先的 RAG 控制台，用来检查完整 retrieval workflow。
-它将派生状态存储在 `.ragent` 中，支持确定性切块、lexical、semantic 和
-hybrid retrieval、可选 source-grounded generation、operation traces、
+它将派生状态存储在 `.ragent` 中，支持确定性切块、lexical、BM25、semantic
+和 hybrid retrieval、可选 source-grounded generation、operation traces、
 retrieval evaluation，以及 command-first Textual TUI。
 
 核心想法是 inspectability。项目不把 RAG pipeline 隐藏在托管应用或框架抽象
@@ -186,7 +186,7 @@ What is Agentic RAG?
 
 - “源文档保持本地；`.ragent` 保存派生 artifacts。”
 - “Chunking 是确定性的，因此失败更容易复现。”
-- “Retrieval modes 是显式的：lexical、semantic 和 hybrid。”
+- “Retrieval modes 是显式的：lexical、BM25、semantic 和 hybrid。”
 - “Semantic 和 hybrid retrieval 需要 embeddings 和已构建的 vector index。”
 - “Ask 可以不依赖 generation。默认 `null` provider 下，它保持 retrieval-only 模式。”
 - “CLI workflows 写入 traces。TUI 读取并显示这些 traces。”

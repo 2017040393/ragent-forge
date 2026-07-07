@@ -89,7 +89,7 @@ used.
   vector index.
 - `semantic`: embedding-based vector retrieval. It requires
   `uv run ragent index build --workspace .ragent`.
-- `hybrid`: Reciprocal-rank-fusion style combination of lexical and semantic
+- `hybrid`: Reciprocal-rank-fusion style combination of BM25 and semantic
   retrieval. It requires the same vector index as semantic retrieval.
 
 The Textual Shell TUI remains command-first and read-oriented; its `/mode`
