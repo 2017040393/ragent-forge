@@ -49,6 +49,9 @@ _SOURCE_METADATA_LABELS = {
 
 _MAX_SOURCE_LABEL_WIDTH = 40
 _MAX_SOURCE_PREVIEW_LENGTH = 240
+_SOURCE_NAVIGATION_HINT = (
+    "Use /source <rank>, /source next, or /source prev to inspect evidence."
+)
 
 
 @dataclass(frozen=True)
@@ -391,6 +394,7 @@ def format_transcript_sources(
         )
         for source, label in zip(sources, labels, strict=True)
     )
+    lines.extend(["", _SOURCE_NAVIGATION_HINT])
     return "\n".join(lines)
 
 
@@ -439,15 +443,18 @@ def format_shell_source_details(source: TranscriptSource) -> str:
     lines = [
         "Selected source",
         "",
+        "Evidence",
         f"rank: {source.rank}",
+        f"score: {source.score:.4g}",
+        "",
+        "Location",
         f"source: {compact_source_label(source.source_path, source.metadata)}",
         f"chunk: {compact_chunk_label(source.chunk_id)}",
-        f"score: {source.score:.4g}",
     ]
     source_metadata_lines = _format_structured_source_metadata(source.metadata)
     if source_metadata_lines:
         lines.extend(source_metadata_lines)
-    lines.extend(["", "preview:"])
+    lines.extend(["", "Preview", "preview:"])
     lines.extend(f"  {line}" for line in preview.splitlines() or [""])
 
     metadata_lines = _format_retrieval_source_metadata(source.metadata)

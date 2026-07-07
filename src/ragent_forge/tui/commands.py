@@ -34,12 +34,42 @@ class SlashCommandSpec:
 
 
 @dataclass(frozen=True)
+class SlashArgumentSuggestion:
+    value: str
+    description: str
+
+
+@dataclass(frozen=True)
 class ParsedTuiCommand:
     name: TuiCommandName
     args: str
     raw: str
     is_slash_command: bool
     error: str | None = None
+
+
+@dataclass(frozen=True)
+class _ArgumentSuggestionContext:
+    command: SlashCommandSpec
+    matches: list[SlashArgumentSuggestion]
+
+
+_ARGUMENT_SUGGESTIONS = {
+    "mode": (
+        SlashArgumentSuggestion("lexical", "Use lexical retrieval."),
+        SlashArgumentSuggestion("bm25", "Use BM25 retrieval."),
+        SlashArgumentSuggestion("semantic", "Use semantic retrieval."),
+        SlashArgumentSuggestion("hybrid", "Use hybrid retrieval."),
+    ),
+    "prompt": (
+        SlashArgumentSuggestion("on", "Enable prompt preview."),
+        SlashArgumentSuggestion("off", "Disable prompt preview."),
+    ),
+    "source": (
+        SlashArgumentSuggestion("next", "Inspect next source."),
+        SlashArgumentSuggestion("prev", "Inspect previous source."),
+    ),
+}
 
 
 def list_tui_commands() -> list[SlashCommandSpec]:
@@ -263,6 +293,13 @@ def get_tui_command_suggestion_matches(text: str) -> list[SlashCommandSpec]:
     return match_tui_commands(command_fragment)
 
 
+def count_tui_command_suggestions(text: str) -> int:
+    argument_context = _argument_suggestion_context(text)
+    if argument_context is not None:
+        return len(argument_context.matches)
+    return len(get_tui_command_suggestion_matches(text))
+
+
 def _suggestion_window_start(
     *,
     total_count: int,
@@ -300,6 +337,15 @@ def complete_tui_command_suggestion(
     if limit <= 0:
         return None
 
+    argument_context = _argument_suggestion_context(text)
+    if argument_context is not None:
+        if not argument_context.matches:
+            return None
+        selected = argument_context.matches[
+            selected_index % len(argument_context.matches)
+        ]
+        return f"/{argument_context.command.name} {selected.value}"
+
     items = get_tui_command_suggestion_matches(text)
     if not items:
         return None
@@ -314,6 +360,10 @@ def format_tui_command_suggestions(
     limit: int = DEFAULT_SUGGESTION_LIMIT,
     selected_index: int | None = None,
 ) -> str:
+    argument_context = _argument_suggestion_context(text)
+    if argument_context is not None:
+        return _format_argument_suggestions(argument_context, selected_index)
+
     all_matches = get_tui_command_suggestion_matches(text)
     if not all_matches:
         if not _is_slash_command_prefix(text):
@@ -346,6 +396,62 @@ def format_tui_command_suggestions(
     if len(all_matches) > limit:
         lines.append("  ... use Up/Down for more")
     return "\n".join(lines)
+
+
+def _format_argument_suggestions(
+    context: _ArgumentSuggestionContext,
+    selected_index: int | None,
+) -> str:
+    if not context.matches:
+        return ""
+
+    value_width = max(len(item.value) for item in context.matches)
+    selected_match_index = (
+        selected_index % len(context.matches) if selected_index is not None else None
+    )
+    lines = ["Suggestions:"]
+    for index, item in enumerate(context.matches):
+        marker = ">" if index == selected_match_index else " "
+        lines.append(
+            f"{marker} {item.value.ljust(value_width)}  {item.description}"
+        )
+    return "\n".join(lines)
+
+
+def _argument_suggestion_context(text: str) -> _ArgumentSuggestionContext | None:
+    raw = text.lstrip()
+    if not raw or not raw.startswith("/"):
+        return None
+
+    command_fragment = raw[1:]
+    if not any(character.isspace() for character in command_fragment):
+        return None
+
+    command_token, args = _split_command(command_fragment)
+    spec = _command_spec_by_token().get(command_token.lower())
+    if spec is None:
+        return None
+
+    suggestions = _ARGUMENT_SUGGESTIONS.get(spec.name)
+    if suggestions is None:
+        return None
+
+    normalized_args = args.lower()
+    if " " in normalized_args:
+        return _ArgumentSuggestionContext(spec, [])
+
+    matches = [
+        suggestion
+        for suggestion in suggestions
+        if suggestion.value.startswith(normalized_args)
+    ]
+    if (
+        len(matches) == 1
+        and normalized_args
+        and matches[0].value == normalized_args
+    ):
+        matches = []
+    return _ArgumentSuggestionContext(spec, matches)
 
 
 def _split_command(command_text: str) -> tuple[str, str]:

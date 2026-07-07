@@ -428,6 +428,9 @@ def test_format_shell_inspector_with_selected_source_shows_source_details() -> N
 
     assert "selected source: agentic_rag.md" in text
     assert "Selected source" in text
+    assert "Evidence" in text
+    assert "Location" in text
+    assert "Preview" in text
     assert "rank: 1" in text
     assert "source: agentic_rag.md" in text
     assert "chunk: chunk-0001" in text
@@ -773,7 +776,18 @@ def test_format_transcript_sources_aligns_compact_source_labels() -> None:
         "Sources:",
         "1. agentic_rag.md  score=2  chunk=chunk-0000",
         "2. rag_basics.md   score=1  chunk=chunk-0000",
+        "",
+        "Use /source <rank>, /source next, or /source prev to inspect evidence.",
     ]
+
+
+def test_format_transcript_sources_includes_source_navigation_hint() -> None:
+    text = format_transcript_sources((make_source(1),))
+
+    assert (
+        "Use /source <rank>, /source next, or /source prev to inspect evidence."
+        in text
+    )
 
 
 def test_format_transcript_sources_truncates_very_long_compact_labels() -> None:

@@ -306,6 +306,28 @@ async def test_tui_app_shell_tab_completes_selected_suggestion(
 
 
 @pytest.mark.anyio
+async def test_tui_app_shell_tab_completes_argument_suggestion(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "/mode b"
+        app._render_shell_suggestions()
+
+        suggestions = str(app.query_one("#shell-suggestions", Static).renderable)
+        assert "> bm25" in suggestions
+
+        assert app._complete_shell_suggestion() is True
+
+        assert shell_input.value == "/mode bm25"
+        assert shell_input.cursor_position == len("/mode bm25")
+        assert app.query_one("#shell-suggestions", Static).renderable == ""
+
+
+@pytest.mark.anyio
 async def test_tui_app_shell_enter_completes_suggestion_without_executing(
     tmp_path: Path,
 ) -> None:

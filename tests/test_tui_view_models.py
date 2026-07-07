@@ -342,7 +342,9 @@ def test_tui_semantic_ask_missing_vector_index_is_friendly(
         False,
     )
 
-    assert state.error == "Vector index not found. Run `ragent index build` first."
+    assert "Vector index not found." in str(state.error)
+    assert "Run `ragent index build` first." in str(state.error)
+    assert "Use /mode bm25 or /mode lexical" in str(state.error)
     assert state.sources == []
 
 
@@ -360,7 +362,9 @@ def test_tui_hybrid_ask_missing_vector_index_is_friendly(
         False,
     )
 
-    assert state.error == "Vector index not found. Run `ragent index build` first."
+    assert "Vector index not found." in str(state.error)
+    assert "Run `ragent index build` first." in str(state.error)
+    assert "Use /mode bm25 or /mode lexical" in str(state.error)
     assert state.sources == []
 
 
@@ -646,7 +650,9 @@ def test_tui_semantic_search_missing_vector_index_is_friendly(
 
     state = run_tui_search(workspace.root_path, "Agentic", "semantic", 5)
 
-    assert state.error == "Vector index not found. Run `ragent index build` first."
+    assert "Vector index not found." in str(state.error)
+    assert "Run `ragent index build` first." in str(state.error)
+    assert "Use /mode bm25 or /mode lexical" in str(state.error)
     assert state.results == []
 
 
@@ -657,7 +663,9 @@ def test_tui_hybrid_search_missing_vector_index_is_friendly(
 
     state = run_tui_search(workspace.root_path, "Agentic", "hybrid", 5)
 
-    assert state.error == "Vector index not found. Run `ragent index build` first."
+    assert "Vector index not found." in str(state.error)
+    assert "Run `ragent index build` first." in str(state.error)
+    assert "Use /mode bm25 or /mode lexical" in str(state.error)
     assert state.results == []
 
 

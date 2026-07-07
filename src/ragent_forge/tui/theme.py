@@ -35,7 +35,7 @@ _SECTION_PATTERN = re.compile(
     r"(?m)^((?:Shell details|Selected source|Retrieval metadata|"
     r"Workspace|Ingest|Files|Semantic index|Recent chunks|"
     r"Search result|Ask source|Trace details|Latest trace|Steps|"
-    r"Metadata|Suggestions|Sources):?)$"
+    r"Evidence|Location|Preview|Metadata|Suggestions|Sources):?)$"
 )
 _SOURCE_RANK_PATTERN = re.compile(r"(?m)^(\d+\.)")
 _SCORE_PATTERN = re.compile(r"\bscore=[^\s]+")

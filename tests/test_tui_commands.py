@@ -2,6 +2,7 @@ import pytest
 
 from ragent_forge.tui.commands import (
     complete_tui_command_suggestion,
+    count_tui_command_suggestions,
     format_tui_command_help,
     format_tui_command_suggestions,
     get_tui_command_suggestion_items,
@@ -310,6 +311,50 @@ def test_format_tui_command_suggestions_include_usage_and_description() -> None:
     )
 
 
+def test_format_tui_command_suggestions_mode_argument_options() -> None:
+    text = format_tui_command_suggestions("/mode ", selected_index=0)
+
+    assert text == (
+        "Suggestions:\n"
+        "> lexical   Use lexical retrieval.\n"
+        "  bm25      Use BM25 retrieval.\n"
+        "  semantic  Use semantic retrieval.\n"
+        "  hybrid    Use hybrid retrieval."
+    )
+
+
+def test_format_tui_command_suggestions_mode_argument_prefix() -> None:
+    text = format_tui_command_suggestions("/mode b", selected_index=0)
+
+    assert text == "Suggestions:\n> bm25  Use BM25 retrieval."
+
+
+def test_format_tui_command_suggestions_prompt_argument_options() -> None:
+    text = format_tui_command_suggestions("/prompt o", selected_index=1)
+
+    assert text == (
+        "Suggestions:\n"
+        "  on   Enable prompt preview.\n"
+        "> off  Disable prompt preview."
+    )
+
+
+def test_format_tui_command_suggestions_source_argument_options() -> None:
+    text = format_tui_command_suggestions("/source ", selected_index=0)
+
+    assert text == (
+        "Suggestions:\n"
+        "> next  Inspect next source.\n"
+        "  prev  Inspect previous source."
+    )
+
+
+def test_format_tui_command_suggestions_hides_exact_argument_match() -> None:
+    assert format_tui_command_suggestions("/mode bm25") == ""
+    assert format_tui_command_suggestions("/prompt on") == ""
+    assert format_tui_command_suggestions("/source next") == ""
+
+
 def test_format_tui_command_suggestions_does_not_mutate_command_registry() -> None:
     before = list_tui_commands()
 
@@ -342,6 +387,20 @@ def test_complete_tui_command_suggestion_uses_selected_canonical_command() -> No
 def test_complete_tui_command_suggestion_uses_canonical_alias_target() -> None:
     assert complete_tui_command_suggestion("/config", selected_index=0) == "/settings "
     assert complete_tui_command_suggestion("/q", selected_index=0) == "/exit "
+
+
+def test_complete_tui_command_suggestion_completes_command_arguments() -> None:
+    assert complete_tui_command_suggestion("/mode b") == "/mode bm25"
+    assert complete_tui_command_suggestion("/prompt o", selected_index=1) == (
+        "/prompt off"
+    )
+    assert complete_tui_command_suggestion("/source n") == "/source next"
+
+
+def test_count_tui_command_suggestions_counts_arguments() -> None:
+    assert count_tui_command_suggestions("/mode ") == 4
+    assert count_tui_command_suggestions("/prompt o") == 2
+    assert count_tui_command_suggestions("/mode bm25") == 0
 
 
 def test_complete_tui_command_suggestion_returns_none_without_candidates() -> None:

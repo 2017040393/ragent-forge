@@ -10,8 +10,8 @@ from textual.worker import Worker, WorkerState
 
 from ragent_forge.tui.commands import (
     complete_tui_command_suggestion,
+    count_tui_command_suggestions,
     format_tui_command_suggestions,
-    get_tui_command_suggestion_matches,
 )
 from ragent_forge.tui.shell_dispatch import ShellReadOnlyHandlers, apply_shell_input
 from ragent_forge.tui.shell_models import (
@@ -390,9 +390,9 @@ class RagentForgeApp(App[None]):
     def _render_shell_suggestions(self, text: str | None = None) -> None:
         if text is None:
             text = self.query_one("#shell-input", Input).value
-        items = get_tui_command_suggestion_matches(text)
-        if items:
-            self.shell_suggestion_index %= len(items)
+        suggestion_count = count_tui_command_suggestions(text)
+        if suggestion_count:
+            self.shell_suggestion_index %= suggestion_count
             selected_index: int | None = self.shell_suggestion_index
         else:
             self.shell_suggestion_index = 0
@@ -406,12 +406,12 @@ class RagentForgeApp(App[None]):
 
     def _move_shell_suggestion(self, delta: int) -> bool:
         shell_input = self.query_one("#shell-input", Input)
-        items = get_tui_command_suggestion_matches(shell_input.value)
-        if not items:
+        suggestion_count = count_tui_command_suggestions(shell_input.value)
+        if not suggestion_count:
             return False
         self.shell_suggestion_index = (
             self.shell_suggestion_index + delta
-        ) % len(items)
+        ) % suggestion_count
         self._render_shell_suggestions(shell_input.value)
         return True
 

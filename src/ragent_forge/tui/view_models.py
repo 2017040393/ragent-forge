@@ -35,7 +35,13 @@ NO_CHUNKS_MESSAGE = "\n".join(
         "  ragent ingest examples/knowledge --workspace .ragent",
     ]
 )
-VECTOR_INDEX_MISSING_MESSAGE = "Vector index not found. Run `ragent index build` first."
+VECTOR_INDEX_MISSING_MESSAGE = "\n".join(
+    [
+        "Vector index not found.",
+        "Run `ragent index build` first.",
+        "Use /mode bm25 or /mode lexical to continue without vectors.",
+    ]
+)
 ASK_INITIAL_STATUS = "Enter a question and press Enter or Run Ask."
 ASK_NO_CONTEXT_STATUS = (
     "No retrieved context found. Try another question or retrieval mode."
