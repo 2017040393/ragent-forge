@@ -28,6 +28,12 @@ from ragent_forge.tui.shell_models import (
     select_source,
     set_running,
 )
+from ragent_forge.tui.theme import (
+    style_command_suggestions,
+    style_inspector,
+    style_shell_status,
+    style_transcript,
+)
 from ragent_forge.tui.view_models import (
     AskPageState,
     SearchPageState,
@@ -50,6 +56,8 @@ class RagentForgeApp(App[None]):
     CSS = """
     Screen {
         layout: vertical;
+        background: #10141f;
+        color: #d7deea;
     }
 
     #workspace {
@@ -59,35 +67,43 @@ class RagentForgeApp(App[None]):
     #main-shell-panel {
         width: 1fr;
         padding: 1;
-        border: solid $accent;
+        border: solid #4f8cff;
     }
 
     #inspector {
         width: 34;
         padding: 1;
-        border: solid $secondary;
+        border: solid #7aa2f7;
+        color: #d7deea;
+    }
+
+    Label {
+        color: #8bd5ca;
+        text-style: bold;
     }
 
     #shell-status {
         height: auto;
         margin-bottom: 1;
+        color: #d7deea;
     }
 
     #shell-transcript-container {
         height: 1fr;
-        border: solid $secondary;
+        border: solid #394760;
         padding: 1;
         margin-bottom: 1;
     }
 
     #shell-input {
         height: auto;
+        border: tall #4f8cff;
     }
 
     #shell-suggestions {
         height: auto;
         margin-bottom: 1;
-        color: $text-muted;
+        color: #9aa7bd;
     }
 
     Static {
@@ -156,10 +172,10 @@ class RagentForgeApp(App[None]):
 
     def _render_shell(self) -> None:
         self.query_one("#shell-status", Static).update(
-            format_shell_status(self.shell_state)
+            style_shell_status(format_shell_status(self.shell_state))
         )
         self.query_one("#shell-transcript", Static).update(
-            format_transcript(self.shell_state.messages)
+            style_transcript(format_transcript(self.shell_state.messages))
         )
         self._scroll_transcript_to_end()
 
@@ -368,7 +384,7 @@ class RagentForgeApp(App[None]):
 
     def _render_inspector(self) -> None:
         self.query_one("#inspector-content", Static).update(
-            format_shell_inspector(self.shell_state)
+            style_inspector(format_shell_inspector(self.shell_state))
         )
 
     def _render_shell_suggestions(self, text: str | None = None) -> None:
@@ -381,9 +397,12 @@ class RagentForgeApp(App[None]):
         else:
             self.shell_suggestion_index = 0
             selected_index = None
-        self.query_one("#shell-suggestions", Static).update(
-            format_tui_command_suggestions(text, selected_index=selected_index)
+        suggestions = format_tui_command_suggestions(
+            text,
+            selected_index=selected_index,
         )
+        renderable = "" if not suggestions else style_command_suggestions(suggestions)
+        self.query_one("#shell-suggestions", Static).update(renderable)
 
     def _move_shell_suggestion(self, delta: int) -> bool:
         shell_input = self.query_one("#shell-input", Input)
