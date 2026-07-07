@@ -244,7 +244,7 @@ def build_parser() -> argparse.ArgumentParser:
     retrieval_eval_parser = eval_subparsers.add_parser(
         "retrieval",
         help=(
-            "Evaluate lexical, semantic, or hybrid retrieval quality "
+            "Evaluate lexical, BM25, semantic, or hybrid retrieval quality "
             "with JSONL cases."
         ),
     )
@@ -396,7 +396,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     search_parser = subparsers.add_parser(
         "search",
-        help="Search generated chunks with lexical, semantic, or hybrid retrieval.",
+        help=(
+            "Search generated chunks with lexical, BM25, semantic, or "
+            "hybrid retrieval."
+        ),
     )
     search_parser.add_argument("query", help="Query to search for.")
     search_parser.add_argument(

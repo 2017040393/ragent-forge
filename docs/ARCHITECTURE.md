@@ -5,11 +5,11 @@
 ## Overview
 
 RAGentForge is a local-first, inspectable RAG console. It keeps the current
-MVP small: local Markdown/TXT documents are ingested into deterministic chunks,
-retrieved with lexical, semantic, or hybrid retrieval, assembled into context,
-optionally sent to an OpenAI Responses-compatible generation provider, and
-made inspectable through sources, traces, retrieval eval reports, CLI commands,
-and a command-first TUI Shell.
+MVP small: local Markdown/TXT/PDF documents are ingested into deterministic
+chunks, retrieved with lexical, BM25, semantic, or hybrid retrieval, assembled
+into context, optionally sent to an OpenAI Responses-compatible generation
+provider, and made inspectable through sources, traces, retrieval eval reports,
+CLI commands, and a command-first TUI Shell.
 
 ## Design Goals
 
@@ -18,7 +18,7 @@ and a command-first TUI Shell.
 - Make every major RAG step inspectable.
 - Keep CLI and TUI behavior backed by shared services.
 - Prefer explicit commands over hidden automation.
-- Avoid framework lock-in and heavy runtime dependencies in v0.1.
+- Avoid framework lock-in and heavy runtime dependencies in v0.2.
 
 ## High-Level Pipeline
 
@@ -26,7 +26,7 @@ and a command-first TUI Shell.
 local documents
 -> ingest
 -> deterministic chunks
--> lexical / semantic / hybrid retrieval
+-> lexical / BM25 / semantic / hybrid retrieval
 -> context pack
 -> optional generation
 -> answer + sources
@@ -225,18 +225,20 @@ workflow explicit, script-like, and easy to document:
 It intentionally avoids global single-key shortcuts such as `q`; use `/exit`,
 `/quit`, or `/q` from the composer.
 
-## Current v0.1 Boundaries
+## Current v0.2 Boundaries
 
-v0.1 does not include BM25, reranking, cross-encoder reranking,
-LLM-as-judge, answer evaluation, query expansion, multi-turn memory, agent
-tool loops, planning loops, PDF/OCR, web UI, vector databases, streaming,
-session persistence, or TUI write operations.
+v0.2 includes lexical, BM25, semantic, and hybrid retrieval plus span-grounded
+retrieval evaluation. It does not include reranking, cross-encoder reranking,
+LLM-as-judge, answer evaluation, query rewriting, agentic multi-step retrieval,
+multi-turn memory, agent tool loops, planning loops, OCR/scanned PDF support,
+web UI, vector databases, streaming, session persistence, or TUI write
+operations.
 
 The TUI is not a dashboard and does not mutate backend state beyond its local
 transcript/session state.
 
 ## Future Extension Points
 
-Possible future work includes better retrieval quality, richer source
-inspection, answer quality evaluation, controlled agent workflows, and more
-demo polish. These are extension points, not current v0.1 capabilities.
+Possible future work includes reranking, richer source inspection, answer
+quality evaluation, controlled agent workflows, and more demo polish. These
+are extension points, not current v0.2 capabilities.

@@ -5,8 +5,8 @@
 ## 概览
 
 RAGentForge 是一个本地优先、可检查的 RAG 控制台。它保持当前 MVP 小而清晰：
-本地 Markdown/TXT 文档会被导入为确定性 chunks，再通过 lexical、semantic 或
-hybrid retrieval 检索，组装为 context，可选发送给 OpenAI
+本地 Markdown/TXT/PDF 文档会被导入为确定性 chunks，再通过 lexical、BM25、
+semantic 或 hybrid retrieval 检索，组装为 context，可选发送给 OpenAI
 Responses-compatible generation provider，并通过 sources、traces、retrieval
 eval reports、CLI commands 和 command-first TUI Shell 变得可检查。
 
@@ -17,7 +17,7 @@ eval reports、CLI commands 和 command-first TUI Shell 变得可检查。
 - 让每个主要 RAG 步骤都可检查。
 - 让 CLI 和 TUI 行为由共享 services 支撑。
 - 偏好显式命令，而不是隐藏自动化。
-- 在 v0.1 中避免框架锁定和重型运行时依赖。
+- 在 v0.2 中避免框架锁定和重型运行时依赖。
 
 ## 高层 Pipeline
 
@@ -25,7 +25,7 @@ eval reports、CLI commands 和 command-first TUI Shell 变得可检查。
 local documents
 -> ingest
 -> deterministic chunks
--> lexical / semantic / hybrid retrieval
+-> lexical / BM25 / semantic / hybrid retrieval
 -> context pack
 -> optional generation
 -> answer + sources
@@ -207,18 +207,20 @@ TUI 是用于重复检查和查询的 Shell。命令让 workflow 显式、接近
 它有意避免 `q` 这类全局单键快捷键；请在 composer 中使用 `/exit`、`/quit`
 或 `/q`。
 
-## 当前 v0.1 边界
+## 当前 v0.2 边界
 
-v0.1 不包含 BM25、reranking、cross-encoder reranking、LLM-as-judge、answer
-evaluation、query expansion、multi-turn memory、agent tool loops、planning
-loops、PDF/OCR、web UI、vector databases、streaming、session persistence 或
-TUI write operations。
+v0.2 包含 lexical、BM25、semantic 和 hybrid retrieval，以及 span-grounded
+retrieval evaluation。它不包含 reranking、cross-encoder reranking、
+LLM-as-judge、answer evaluation、query rewriting、agentic multi-step
+retrieval、multi-turn memory、agent tool loops、planning loops、OCR/scanned
+PDF support、web UI、vector databases、streaming、session persistence 或 TUI
+write operations。
 
 TUI 不是 dashboard，也不会修改后端状态，除了自身本地 transcript/session
 state。
 
 ## 未来扩展点
 
-未来可能包括更好的 retrieval quality、更丰富的 source inspection、answer
-quality evaluation、controlled agent workflows，以及更多 demo polish。这些是
-扩展点，不是当前 v0.1 功能。
+未来可能包括 reranking、更丰富的 source inspection、answer quality
+evaluation、controlled agent workflows，以及更多 demo polish。这些是扩展点，
+不是当前 v0.2 功能。

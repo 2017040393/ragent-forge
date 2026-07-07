@@ -201,14 +201,15 @@ The loop is:
 
 1. Extract evidence spans and generate synthetic eval cases.
 2. Run retrieval eval against current chunks.
-3. Compare hit@k and MRR across retrieval or chunking strategies.
+3. Compare Hit@k, Recall@k, MRR, latency, and context-size metrics across
+   retrieval or chunking strategies.
 
 ### Use Checked-In Cases
 
-Lexical eval over the small demo case file:
+BM25 eval over the small demo case file:
 
 ```bash
-uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
+uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval bm25 --workspace .ragent --limit 5
 ```
 
 ### Generate Cases From Source Documents
@@ -238,7 +239,7 @@ uv run ragent eval generate --source examples/knowledge --workspace .ragent --ou
 Then evaluate retrieval against the generated cases:
 
 ```bash
-uv run ragent eval retrieval --cases .ragent/eval/generated_cases.jsonl --retrieval lexical --workspace .ragent --limit 5
+uv run ragent eval retrieval --cases .ragent/eval/generated_cases.jsonl --retrieval bm25 --workspace .ragent --limit 5
 ```
 
 The generated cases reference evidence spans from the source documents. Run
@@ -262,8 +263,23 @@ uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retri
 uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval hybrid --workspace .ragent
 ```
 
-Retrieval eval reports hit@1, hit@3, hit@5, requested hit@k, MRR, and failed
-cases. It does not evaluate answer quality and does not run LLM-as-judge.
+### Compare Retrieval Modes
+
+Compare lexical, BM25, semantic, and hybrid retrieval across multiple top-k
+limits:
+
+```bash
+uv run ragent eval compare --cases examples/eval/retrieval_cases.jsonl --retrieval lexical,bm25,semantic,hybrid --limit 1,3,5 --workspace .ragent
+```
+
+Semantic and hybrid runs require the vector index. Lexical and BM25 do not.
+
+Retrieval eval reports Hit@k, Recall@k, MRR, latency, context-size metrics,
+failure types, and failed cases. It does not evaluate answer quality and does
+not run LLM-as-judge.
+
+For the full v0.2 retrieval quality workflow, see
+[RETRIEVAL_EVALUATION.md](RETRIEVAL_EVALUATION.md).
 
 ## What to Look For
 
