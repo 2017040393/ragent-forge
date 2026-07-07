@@ -68,7 +68,6 @@ def style_transcript(text: str) -> Text:
     _style_role_headings(styled)
     _style_sections(styled)
     _style_modes_and_methods(styled)
-    _style_state_words(styled)
     _style_source_lines(styled)
     _style_commands(styled)
     return styled

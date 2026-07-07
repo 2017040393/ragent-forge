@@ -42,6 +42,21 @@ def test_transcript_styles_roles_sources_and_error_heading() -> None:
     assert _has_style_covering(styled, "Error:", "bold red")
 
 
+def test_transcript_does_not_style_state_words_inside_message_body() -> None:
+    plain = "\n".join(
+        [
+            "Assistant:",
+            "  A success criterion can mention missing evidence as normal text.",
+        ]
+    )
+
+    styled = style_transcript(plain)
+
+    assert styled.plain == plain
+    assert not _has_style_covering(styled, "success", "green")
+    assert not _has_style_covering(styled, "missing", "bold red")
+
+
 def test_inspector_styles_section_headings_keys_and_retrieval_modes() -> None:
     plain = "\n".join(
         [

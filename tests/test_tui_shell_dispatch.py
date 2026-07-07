@@ -5,6 +5,7 @@ from ragent_forge.tui.shell_models import (
     TranscriptMessage,
     TranscriptSource,
     create_initial_shell_state,
+    format_shell_inspector,
     format_shell_status,
     format_transcript,
 )
@@ -340,7 +341,7 @@ def test_apply_shell_input_config_without_handlers_uses_settings_fallback() -> N
     )
 
 
-def test_apply_shell_input_docs_handler_appends_tool_output() -> None:
+def test_apply_shell_input_docs_handler_sends_output_to_inspector() -> None:
     result = apply_shell_input(
         create_initial_shell_state(),
         "/docs",
@@ -349,12 +350,21 @@ def test_apply_shell_input_docs_handler_appends_tool_output() -> None:
 
     assert result.state.messages[-1] == TranscriptMessage(
         role="tool",
-        text="Workspace\n  status: ready",
-        metadata={"operation": "shell_command", "command": "docs"},
+        text="Document summary loaded in Inspector.",
+        metadata={
+            "operation": "shell_command",
+            "command": "docs",
+            "display": "inspector",
+        },
+    )
+    assert result.state.inspector_text == "Workspace\n  status: ready"
+    assert "Workspace\n  status: ready" in format_shell_inspector(result.state)
+    assert "Workspace\n  status: ready" not in format_transcript(
+        result.state.messages
     )
 
 
-def test_apply_shell_input_trace_handler_appends_tool_output() -> None:
+def test_apply_shell_input_trace_handler_sends_output_to_inspector() -> None:
     result = apply_shell_input(
         create_initial_shell_state(),
         "/trace",
@@ -363,12 +373,17 @@ def test_apply_shell_input_trace_handler_appends_tool_output() -> None:
 
     assert result.state.messages[-1] == TranscriptMessage(
         role="tool",
-        text="Latest trace\n\nSteps",
-        metadata={"operation": "shell_command", "command": "trace"},
+        text="Trace summary loaded in Inspector.",
+        metadata={
+            "operation": "shell_command",
+            "command": "trace",
+            "display": "inspector",
+        },
     )
+    assert result.state.inspector_text == "Latest trace\n\nSteps"
 
 
-def test_apply_shell_input_settings_handler_appends_tool_output() -> None:
+def test_apply_shell_input_settings_handler_sends_output_to_inspector() -> None:
     result = apply_shell_input(
         create_initial_shell_state(),
         "/settings",
@@ -377,9 +392,14 @@ def test_apply_shell_input_settings_handler_appends_tool_output() -> None:
 
     assert result.state.messages[-1] == TranscriptMessage(
         role="tool",
-        text="config path: .ragent",
-        metadata={"operation": "shell_command", "command": "settings"},
+        text="Settings summary loaded in Inspector.",
+        metadata={
+            "operation": "shell_command",
+            "command": "settings",
+            "display": "inspector",
+        },
     )
+    assert result.state.inspector_text == "config path: .ragent"
 
 
 def test_apply_shell_input_config_uses_settings_handler() -> None:
@@ -391,9 +411,14 @@ def test_apply_shell_input_config_uses_settings_handler() -> None:
 
     assert result.state.messages[-1] == TranscriptMessage(
         role="tool",
-        text="config path: .ragent",
-        metadata={"operation": "shell_command", "command": "settings"},
+        text="Settings summary loaded in Inspector.",
+        metadata={
+            "operation": "shell_command",
+            "command": "settings",
+            "display": "inspector",
+        },
     )
+    assert result.state.inspector_text == "config path: .ragent"
 
 
 def test_apply_shell_input_docs_handler_error_appends_friendly_error() -> None:
@@ -444,7 +469,7 @@ def test_apply_shell_input_settings_handler_error_appends_friendly_error() -> No
     )
 
 
-def test_apply_shell_input_handler_output_is_only_appended_as_text() -> None:
+def test_apply_shell_input_handler_output_is_only_displayed_as_text() -> None:
     state = apply_shell_input(create_initial_shell_state(), "question").state
 
     result = apply_shell_input(
@@ -454,7 +479,8 @@ def test_apply_shell_input_handler_output_is_only_appended_as_text() -> None:
     )
 
     assert len(result.state.messages) == len(state.messages) + 1
-    assert result.state.messages[-1].text == "/clear"
+    assert result.state.messages[-1].text == "Document summary loaded in Inspector."
+    assert result.state.inspector_text == "/clear"
 
 
 def test_apply_shell_input_does_not_display_read_only_command_metadata() -> None:
@@ -466,7 +492,8 @@ def test_apply_shell_input_does_not_display_read_only_command_metadata() -> None
 
     rendered = format_transcript((result.state.messages[-1],))
 
-    assert "Workspace" in rendered
+    assert "Document summary loaded in Inspector." in rendered
+    assert "Workspace" not in rendered
     assert "shell_command" not in rendered
     assert "command" not in rendered
 
@@ -479,9 +506,11 @@ def test_read_only_handler_output_with_api_key_is_hidden_by_formatter() -> None:
     )
 
     rendered = format_transcript(result.state.messages)
+    inspector = format_shell_inspector(result.state)
 
     assert "abc123" not in rendered
-    assert "<hidden>" in rendered
+    assert "abc123" not in inspector
+    assert "<hidden>" in inspector
 
 
 def test_apply_shell_input_unknown_command_appends_error() -> None:

@@ -1,3 +1,4 @@
+import importlib.util
 from dataclasses import replace
 from pathlib import Path
 
@@ -118,6 +119,20 @@ def test_tui_app_has_no_global_key_bindings() -> None:
     assert RagentForgeApp.BINDINGS == []
 
 
+@pytest.mark.parametrize(
+    "module_name",
+    [
+        "ragent_forge.tui.screens.ask",
+        "ragent_forge.tui.screens.settings",
+        "ragent_forge.tui.widgets.answer_panel",
+        "ragent_forge.tui.widgets.source_list",
+        "ragent_forge.tui.widgets.trace_view",
+    ],
+)
+def test_tui_does_not_ship_legacy_placeholder_modules(module_name: str) -> None:
+    assert importlib.util.find_spec(module_name) is None
+
+
 @pytest.mark.anyio
 async def test_tui_app_shell_help_and_mode_commands_update_transcript(
     tmp_path: Path,
@@ -235,6 +250,27 @@ async def test_tui_app_shell_source_command_updates_inspector(tmp_path: Path) ->
         assert "selected source: source_2.md" in inspector
         assert "rank: 2" in inspector
         assert "selected source 2: source_2.md" in transcript
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_docs_command_uses_inspector_for_details(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "/docs"
+
+        app._submit_shell_input()
+
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        inspector = str(app.query_one("#inspector-content", Static).renderable)
+        assert "Document summary loaded in Inspector." in transcript
+        assert "Workspace\n" not in transcript
+        assert "Workspace" in inspector
+        assert "Ingest" in inspector
 
 
 @pytest.mark.anyio

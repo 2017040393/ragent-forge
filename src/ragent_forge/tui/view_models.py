@@ -24,7 +24,6 @@ from ragent_forge.app.source_labels import (
 )
 from ragent_forge.app.workspace import LocalWorkspace
 
-PageName = Literal["shell", "documents", "search", "trace", "settings", "ask", "eval"]
 RetrievalMode = Literal["lexical", "bm25", "semantic", "hybrid"]
 
 NO_CHUNKS_MESSAGE = "\n".join(
@@ -971,21 +970,3 @@ def _missing_config_message() -> str:
             "  ragent config init",
         ]
     )
-
-
-def page_for_key(key: str) -> PageName | None:
-    pages: dict[str, PageName] = {
-        "h": "shell",
-        "1": "shell",
-        "d": "documents",
-        "2": "documents",
-        "s": "search",
-        "3": "search",
-        "a": "ask",
-        "4": "ask",
-        "t": "trace",
-        "5": "trace",
-        "g": "settings",
-        "6": "settings",
-    }
-    return pages.get(key)

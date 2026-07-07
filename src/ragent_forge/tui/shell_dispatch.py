@@ -38,6 +38,12 @@ _READ_ONLY_ERROR_MESSAGES = {
     "settings": "Unable to load settings summary.",
 }
 
+_READ_ONLY_SUCCESS_MESSAGES = {
+    "docs": "Document summary loaded in Inspector.",
+    "trace": "Trace summary loaded in Inspector.",
+    "settings": "Settings summary loaded in Inspector.",
+}
+
 
 @dataclass(frozen=True)
 class ShellReadOnlyHandlers:
@@ -248,12 +254,17 @@ def _apply_read_only_command(
             _READ_ONLY_ERROR_MESSAGES[command],
         )
 
+    updated = replace(state, inspector_text=text)
     return append_message(
-        state,
+        updated,
         TranscriptMessage(
             role="tool",
-            text=text,
-            metadata={"operation": "shell_command", "command": command},
+            text=_READ_ONLY_SUCCESS_MESSAGES[command],
+            metadata={
+                "operation": "shell_command",
+                "command": command,
+                "display": "inspector",
+            },
         ),
     )
 

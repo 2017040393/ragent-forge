@@ -24,7 +24,6 @@ from ragent_forge.tui.view_models import (
     load_documents_page_model,
     load_settings_page_model,
     load_trace_page_model,
-    page_for_key,
     run_tui_search,
 )
 
@@ -780,16 +779,5 @@ def test_settings_missing_config_state_suggests_config_init(
     assert "ragent config init" in text
 
 
-def test_navigation_keys_switch_to_required_pages() -> None:
-    assert page_for_key("h") == "shell"
-    assert page_for_key("1") == "shell"
-    assert page_for_key("d") == "documents"
-    assert page_for_key("2") == "documents"
-    assert page_for_key("s") == "search"
-    assert page_for_key("3") == "search"
-    assert page_for_key("a") == "ask"
-    assert page_for_key("4") == "ask"
-    assert page_for_key("t") == "trace"
-    assert page_for_key("5") == "trace"
-    assert page_for_key("g") == "settings"
-    assert page_for_key("6") == "settings"
+def test_view_models_do_not_expose_legacy_page_key_navigation() -> None:
+    assert not hasattr(vm, "page_for_key")

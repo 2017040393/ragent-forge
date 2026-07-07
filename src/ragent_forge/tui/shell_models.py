@@ -82,6 +82,7 @@ class ShellState:
     messages: tuple[TranscriptMessage, ...] = ()
     selected_source: TranscriptSource | None = None
     available_sources: tuple[TranscriptSource, ...] = ()
+    inspector_text: str | None = None
 
 
 def create_initial_shell_state() -> ShellState:
@@ -115,6 +116,7 @@ def clear_transcript(state: ShellState) -> ShellState:
         messages=(_welcome_message(),),
         selected_source=None,
         available_sources=(),
+        inspector_text=None,
     )
 
 
@@ -151,7 +153,7 @@ def select_source(
     state: ShellState,
     source: TranscriptSource | None,
 ) -> ShellState:
-    return replace(state, selected_source=source)
+    return replace(state, selected_source=source, inspector_text=None)
 
 
 def set_available_sources(
@@ -163,6 +165,7 @@ def set_available_sources(
         state,
         available_sources=available_sources,
         selected_source=available_sources[0] if available_sources else None,
+        inspector_text=None,
     )
 
 
@@ -411,6 +414,9 @@ def format_shell_status(state: ShellState) -> str:
 
 
 def format_shell_inspector(state: ShellState) -> str:
+    if state.inspector_text is not None:
+        return _safe_display_text(state.inspector_text)
+
     prompt = "on" if state.show_prompt else "off"
     selected_source = (
         compact_source_label(

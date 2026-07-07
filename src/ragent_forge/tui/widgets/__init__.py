@@ -1,1 +1,1 @@
-"""Reusable placeholder widgets for the Textual interface."""
+"""Reusable Textual widget helpers."""
