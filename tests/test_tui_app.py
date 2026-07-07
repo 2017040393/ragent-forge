@@ -134,10 +134,10 @@ async def test_tui_app_shell_help_and_mode_commands_update_transcript(
         assert "Slash commands" in transcript
         assert app.focused == shell_input
 
-        shell_input.value = "/mode hybrid"
+        shell_input.value = "/mode bm25"
         app._submit_shell_input()
-        assert app.shell_state.retrieval_mode == "hybrid"
-        assert "mode: hybrid" in str(
+        assert app.shell_state.retrieval_mode == "bm25"
+        assert "mode: bm25" in str(
             app.query_one("#shell-status", Static).renderable
         )
         assert app.focused == shell_input

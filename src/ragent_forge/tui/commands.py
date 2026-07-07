@@ -92,8 +92,8 @@ def list_tui_commands() -> list[SlashCommandSpec]:
         SlashCommandSpec(
             name="mode",
             aliases=(),
-            description="Set retrieval mode: lexical, semantic, hybrid.",
-            usage="/mode lexical|semantic|hybrid",
+            description="Set retrieval mode: lexical, BM25, semantic, hybrid.",
+            usage="/mode lexical|bm25|semantic|hybrid",
             requires_args=True,
         ),
         SlashCommandSpec(

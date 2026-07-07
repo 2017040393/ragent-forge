@@ -17,7 +17,7 @@ from ragent_forge.tui.view_models import (
 )
 
 TranscriptRole = Literal["system", "user", "assistant", "tool", "error"]
-RetrievalMode = Literal["lexical", "semantic", "hybrid"]
+RetrievalMode = Literal["lexical", "bm25", "semantic", "hybrid"]
 
 WELCOME_MESSAGE = (
     "RAGentForge command shell.\n"
@@ -116,7 +116,7 @@ def clear_transcript(state: ShellState) -> ShellState:
 
 
 def set_retrieval_mode(state: ShellState, mode: str) -> ShellState:
-    if mode not in {"lexical", "semantic", "hybrid"}:
+    if mode not in {"lexical", "bm25", "semantic", "hybrid"}:
         raise ValueError(f"Invalid retrieval mode: {mode}")
     return replace(state, retrieval_mode=cast(RetrievalMode, mode))
 

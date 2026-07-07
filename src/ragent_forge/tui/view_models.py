@@ -25,7 +25,7 @@ from ragent_forge.app.source_labels import (
 from ragent_forge.app.workspace import LocalWorkspace
 
 PageName = Literal["shell", "documents", "search", "trace", "settings", "ask", "eval"]
-RetrievalMode = Literal["lexical", "semantic", "hybrid"]
+RetrievalMode = Literal["lexical", "bm25", "semantic", "hybrid"]
 
 NO_CHUNKS_MESSAGE = "\n".join(
     [
@@ -531,6 +531,11 @@ def _build_tui_retrieval_service(
             search_service=LexicalSearchService(workspace),
             retrieval_method="lexical_token_overlap",
         )
+    if mode == "bm25":
+        return _TuiRetrievalService(
+            search_service=BM25SearchService(workspace),
+            retrieval_method="bm25",
+        )
 
     config = config if config is not None else ConfigService(workspace).load()
     semantic_search_service = SemanticSearchService(
@@ -553,6 +558,8 @@ def _build_tui_retrieval_service(
 
 
 def _normalize_retrieval_mode(retrieval_mode: str) -> RetrievalMode:
+    if retrieval_mode == "bm25":
+        return "bm25"
     if retrieval_mode == "semantic":
         return "semantic"
     if retrieval_mode == "hybrid":

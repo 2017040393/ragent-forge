@@ -93,7 +93,7 @@ used.
   retrieval. It requires the same vector index as semantic retrieval.
 
 The Textual Shell TUI remains command-first and read-oriented; its `/mode`
-command currently supports `lexical`, `semantic`, and `hybrid`.
+command currently supports `lexical`, `bm25`, `semantic`, and `hybrid`.
 
 ## Evaluation Artifacts
 

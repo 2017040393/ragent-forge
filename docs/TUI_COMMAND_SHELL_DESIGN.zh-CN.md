@@ -26,7 +26,7 @@ Slash commands 控制显式 workflows：
 - `/docs` 显示 workspace 和 document summary。
 - `/trace` 显示最新 trace。
 - `/settings` 显示只读 config summary。
-- `/mode lexical|semantic|hybrid` 修改当前 retrieval mode。
+- `/mode lexical|bm25|semantic|hybrid` 修改当前 retrieval mode。
 - `/limit <n>` 修改 retrieval result limit。
 - `/context <n>` 修改 Ask 的 max context chars。
 - `/prompt on|off` 切换 prompt preview。
@@ -80,7 +80,7 @@ MVP command registry 应保持保守：
 | `/docs` | | Show document summary. |
 | `/trace` | `/t` | Show the latest trace. |
 | `/settings` | `/config` | Show read-only config summary. |
-| `/mode lexical|semantic|hybrid` | | Set retrieval mode. |
+| `/mode lexical|bm25|semantic|hybrid` | | Set retrieval mode. |
 | `/limit <n>` | | Set retrieval result limit. |
 | `/context <n>` | | Set max context chars. |
 | `/prompt on|off` | | Toggle prompt preview. |
@@ -94,7 +94,7 @@ Aliases 应保持稀疏且可预测。第一个 shell MVP 不应增加 fuzzy mat
 Shell state 独立于 Textual widgets 建模：
 
 ```python
-retrieval_mode: "lexical" | "semantic" | "hybrid"
+retrieval_mode: "lexical" | "bm25" | "semantic" | "hybrid"
 limit: int
 max_context_chars: int
 show_prompt: bool

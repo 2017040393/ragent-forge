@@ -244,7 +244,7 @@ Useful Shell commands:
 
 ```text
 /help
-/mode lexical|semantic|hybrid
+/mode lexical|bm25|semantic|hybrid
 /limit <n>
 /context <n>
 /prompt on|off

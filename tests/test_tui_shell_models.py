@@ -194,7 +194,7 @@ def test_clear_transcript_preserves_settings_and_resets_transcript() -> None:
     assert cleared.messages == (TranscriptMessage(role="system", text=WELCOME_MESSAGE),)
 
 
-@pytest.mark.parametrize("mode", ["lexical", "semantic", "hybrid"])
+@pytest.mark.parametrize("mode", ["lexical", "bm25", "semantic", "hybrid"])
 def test_set_retrieval_mode_accepts_supported_modes(mode: str) -> None:
     state = create_initial_shell_state()
 
@@ -205,8 +205,8 @@ def test_set_retrieval_mode_accepts_supported_modes(mode: str) -> None:
 
 
 def test_set_retrieval_mode_rejects_invalid_mode() -> None:
-    with pytest.raises(ValueError, match="Invalid retrieval mode: bm25"):
-        set_retrieval_mode(create_initial_shell_state(), "bm25")
+    with pytest.raises(ValueError, match="Invalid retrieval mode: rerank"):
+        set_retrieval_mode(create_initial_shell_state(), "rerank")
 
 
 def test_set_limit_accepts_positive_int() -> None:

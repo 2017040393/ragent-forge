@@ -86,6 +86,7 @@ def test_normal_text_parses_as_ask() -> None:
         ("/trace", "trace", ""),
         ("/settings", "settings", ""),
         ("/config", "settings", ""),
+        ("/mode bm25", "mode", "bm25"),
         ("/mode hybrid", "mode", "hybrid"),
         ("/limit 5", "limit", "5"),
         ("/context 4000", "context", "4000"),
@@ -124,7 +125,7 @@ def test_unknown_slash_command_returns_unknown_with_error() -> None:
         ("/ask", "ask", "/ask <question>"),
         ("/search", "search", "/search <query>"),
         ("/source", "source", "/source <rank|next|prev>"),
-        ("/mode", "mode", "/mode lexical|semantic|hybrid"),
+        ("/mode", "mode", "/mode lexical|bm25|semantic|hybrid"),
         ("/limit", "limit", "/limit <n>"),
         ("/context", "context", "/context <n>"),
         ("/prompt", "prompt", "/prompt on|off"),
@@ -180,7 +181,7 @@ def test_format_tui_command_help_includes_major_commands() -> None:
         "/docs",
         "/trace",
         "/settings",
-        "/mode lexical|semantic|hybrid",
+        "/mode lexical|bm25|semantic|hybrid",
         "/limit <n>",
         "/context <n>",
         "/prompt on|off",
@@ -208,7 +209,7 @@ def test_format_tui_command_suggestions_slash_returns_limited_suggestions() -> N
     assert "/ask <question>" in text
     assert "/search <query>" in text
     assert "/settings" in text
-    assert "/mode lexical|semantic|hybrid" in text
+    assert "/mode lexical|bm25|semantic|hybrid" in text
     assert "/limit <n>" not in text
     assert _suggestion_command_count(text) == 8
     assert "use Up/Down for more" in text
@@ -221,7 +222,7 @@ def test_format_tui_command_suggestions_scrolls_to_selected_item() -> None:
     assert "/search <query>" in text
     assert "/docs" in text
     assert "/trace" in text
-    assert "/mode lexical|semantic|hybrid" in text
+    assert "/mode lexical|bm25|semantic|hybrid" in text
     assert "> /limit <n>" in text
     assert _suggestion_command_count(text) == 8
     assert "use Up/Down for more" in text
@@ -304,8 +305,8 @@ def test_format_tui_command_suggestions_include_usage_and_description() -> None:
 
     assert text == (
         "Suggestions:\n"
-        "  /mode lexical|semantic|hybrid  "
-        "Set retrieval mode: lexical, semantic, hybrid."
+        "  /mode lexical|bm25|semantic|hybrid  "
+        "Set retrieval mode: lexical, BM25, semantic, hybrid."
     )
 
 

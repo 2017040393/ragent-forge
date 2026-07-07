@@ -86,22 +86,22 @@ def test_apply_shell_input_clear_resets_transcript() -> None:
 
 
 def test_apply_shell_input_mode_updates_retrieval_mode() -> None:
-    result = apply_shell_input(create_initial_shell_state(), "/mode hybrid")
+    result = apply_shell_input(create_initial_shell_state(), "/mode bm25")
 
-    assert result.state.retrieval_mode == "hybrid"
+    assert result.state.retrieval_mode == "bm25"
     assert result.state.messages[-1] == TranscriptMessage(
         role="tool",
-        text="retrieval mode set to hybrid",
+        text="retrieval mode set to bm25",
     )
 
 
 def test_apply_shell_input_invalid_mode_appends_error_without_changing_mode() -> None:
-    result = apply_shell_input(create_initial_shell_state(), "/mode bm25")
+    result = apply_shell_input(create_initial_shell_state(), "/mode rerank")
 
     assert result.state.retrieval_mode == "lexical"
     assert result.state.messages[-1] == TranscriptMessage(
         role="error",
-        text="Invalid retrieval mode: bm25",
+        text="Invalid retrieval mode: rerank",
     )
 
 

@@ -388,6 +388,26 @@ def test_tui_lexical_ask_retrieval_only_works_without_generation_config(
     assert str(workspace.root_path) not in page_text
 
 
+def test_tui_bm25_ask_works_without_vector_index(
+    tmp_path: Path,
+) -> None:
+    workspace = make_workspace(tmp_path)
+
+    state = vm.run_tui_ask(
+        workspace.root_path,
+        "Agentic",
+        "bm25",
+        5,
+        4000,
+        False,
+    )
+
+    assert state.error is None
+    assert state.retrieval_mode == "bm25"
+    assert len(state.sources) == 1
+    assert state.sources[0].metadata["retrieval_method"] == "bm25"
+
+
 def test_tui_lexical_ask_returns_sources_and_selects_first_source(
     tmp_path: Path,
 ) -> None:
@@ -598,6 +618,25 @@ def test_tui_lexical_search_renders_compact_results_and_inspector(
     assert "method: lexical_token_overlap" in inspector_text
     assert "RRF:" not in inspector_text
     assert "full source_path:" in inspector_text
+
+
+def test_tui_bm25_search_works_without_vector_index(
+    tmp_path: Path,
+) -> None:
+    workspace = make_workspace(tmp_path)
+
+    state = run_tui_search(workspace.root_path, "Agentic", "bm25", 5)
+    page_text = format_search_page(state)
+    inspector_text = format_search_result_inspector(
+        state.selected_result,
+        state.retrieval_mode,
+    )
+
+    assert state.error is None
+    assert state.retrieval_mode == "bm25"
+    assert len(state.results) == 1
+    assert "Results: 1 | mode: bm25 | limit: 5" in page_text
+    assert "method: bm25" in inspector_text
 
 
 def test_tui_semantic_search_missing_vector_index_is_friendly(

@@ -27,7 +27,7 @@ Slash commands control explicit workflows:
 - `/docs` shows workspace and document summary.
 - `/trace` shows the latest trace.
 - `/settings` shows a read-only config summary.
-- `/mode lexical|semantic|hybrid` changes the current retrieval mode.
+- `/mode lexical|bm25|semantic|hybrid` changes the current retrieval mode.
 - `/limit <n>` changes the retrieval result limit.
 - `/context <n>` changes max context chars for Ask.
 - `/prompt on|off` toggles prompt preview.
@@ -81,7 +81,7 @@ The MVP command registry should stay conservative:
 | `/docs` | | Show document summary. |
 | `/trace` | `/t` | Show the latest trace. |
 | `/settings` | `/config` | Show read-only config summary. |
-| `/mode lexical|semantic|hybrid` | | Set retrieval mode. |
+| `/mode lexical|bm25|semantic|hybrid` | | Set retrieval mode. |
 | `/limit <n>` | | Set retrieval result limit. |
 | `/context <n>` | | Set max context chars. |
 | `/prompt on|off` | | Toggle prompt preview. |
@@ -96,7 +96,7 @@ matching in the first shell MVP.
 The shell state is modeled independently from Textual widgets:
 
 ```python
-retrieval_mode: "lexical" | "semantic" | "hybrid"
+retrieval_mode: "lexical" | "bm25" | "semantic" | "hybrid"
 limit: int
 max_context_chars: int
 show_prompt: bool

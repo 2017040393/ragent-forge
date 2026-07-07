@@ -205,7 +205,7 @@ retrieval eval 或编辑 config。
 
 ```text
 /help
-/mode lexical|semantic|hybrid
+/mode lexical|bm25|semantic|hybrid
 /limit <n>
 /context <n>
 /prompt on|off
