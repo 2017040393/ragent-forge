@@ -6,8 +6,9 @@
 
 RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 structured
 Markdown/TXT/PDF ingestion、lexical/BM25/semantic/hybrid retrieval、
-source-grounded asking、operation tracing、retrieval evaluation，以及带
-source inspection 的 command-first Textual TUI。
+source-grounded asking、span-grounded evaluation、deterministic failure
+analysis、retrieval compare，以及带 source inspection 的 command-first
+Textual TUI。
 
 ## Short Project Description
 
@@ -19,13 +20,14 @@ reports、answers 和 sources 都会作为本地 artifacts 被保存或展示，
 
 当前 v0.2 surface 有意保持聚焦。它覆盖 Markdown/TXT/PDF 结构化导入、确定性切块、
 lexical 和 BM25 retrieval、带 embeddings 的可选 semantic 和 hybrid retrieval、
-source-grounded Ask、CLI traces、span-grounded retrieval evaluation、retrieval
-comparison、持久化 eval run reports，以及用于 search、ask 和 source inspection 的
+source-grounded Ask、CLI traces、span-grounded eval generation、
+evidence-to-current-chunk mapping、持久化 eval reports、deterministic failure
+analysis、retrieval compare，以及用于 search、ask 和 source inspection 的
 command-first TUI。
 
 ## Chinese Description
 
-RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 Markdown/TXT/PDF 结构化导入、确定性切块、lexical/BM25/semantic/hybrid 检索、带来源问答、操作追踪、span-grounded 检索评估、retrieval comparison，以及 command-first TUI 中的来源检查与切换。
+RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 Markdown/TXT/PDF 结构化导入、确定性切块、lexical/BM25/semantic/hybrid 检索、带来源问答、操作追踪、span-grounded eval generation、evidence-to-current-chunk mapping、deterministic failure analysis、retrieval compare，以及 command-first TUI 中的来源检查与切换。
 
 ## English Description
 
@@ -39,18 +41,19 @@ Responses-compatible generation.
 
 The project also includes CLI operation traces, retrieval evaluation with
 Hit@k、Recall@k、MRR、latency 和 context-size metrics, 不绑定当前 chunk ids 的
-span-based synthetic eval generation, persisted eval run reports, retrieval
-comparison across modes，以及 command-first Textual TUI with background
-Ask/Search workers, inline command suggestions, compact source lists, source
-navigation, and an Inspector panel.
+span-based synthetic eval generation, evaluation-time
+evidence-to-current-chunk mapping, persisted eval reports, deterministic
+failure analysis, retrieval compare across modes，以及 command-first Textual
+TUI with background Ask/Search workers, inline command suggestions, compact
+source lists, source navigation, and an Inspector panel.
 
 ## Resume Bullets
 
 - Built a local-first RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
 - Implemented a command-first Textual TUI with background Ask/Search workers, inline command suggestions, source navigation, and an Inspector panel.
-- Designed local JSONL workspace storage for chunks, vector index, traces, and retrieval evaluation reports to make RAG workflows inspectable and reproducible.
+- Designed local JSONL workspace storage for chunks, vector index, traces, and persisted retrieval evaluation reports to make RAG workflows inspectable and reproducible.
 - Added retrieval evaluation with Hit@k, Recall@k, MRR, latency, and context-size metrics over JSONL cases.
-- Added span-based synthetic eval generation and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.
+- Added span-based synthetic eval generation, evidence-to-current-chunk mapping, deterministic failure analysis, and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.
 
 ## Interview Talking Points
 
@@ -69,6 +72,10 @@ navigation, and an Inspector panel.
   transcript history 和显式 source navigation。
 - CLI traces 和 retrieval eval 让项目更工程化：用户可以检查发生了什么，并在
   增加更复杂 ranking 或 answer-evaluation features 前测量 retrieval behavior。
+- Span-grounded eval 通过在 evaluation 时把 evidence spans 映射到当前 chunk store，
+  让生成数据集可以跨 chunking changes 复用。
+- Deterministic failure analysis 让 miss 可以被稳定复查，而不引入 LLM-as-judge
+  或不可复现 scoring。
 - 未来版本可增加更丰富的 source inspection、更好的 retrieval quality、
   answer-quality evaluation，以及小型、显式受控的 agent layer。
 
@@ -86,10 +93,13 @@ navigation, and an Inspector panel.
 - 用于 operation inspection 的 CLI traces。
 - 基于 JSONL cases 的 Hit@k、Recall@k、MRR、latency 和 context-size metrics
   retrieval evaluation。
-- 持久化 eval run reports，包含 compact cases 和 failures JSONL。
-- 跨 lexical、BM25、semantic 和 hybrid modes 的 retrieval comparison。
 - Span-based generated eval cases 将测试数据集和当前 chunk store 解耦，便于比较
   chunking 与 retrieval strategies。
+- Span-grounded eval cases 的 evidence-to-current-chunk mapping。
+- Deterministic failure analysis 和 compact failure reports。
+- 持久化 eval reports，包含 summary JSON/Markdown、compact cases JSONL 和
+  failures JSONL。
+- 跨 lexical、BM25、semantic 和 hybrid modes 的 retrieval compare。
 - 使用 background workers 运行 Ask 和 Search 的 Textual TUI。
 
 ## Architecture Highlights

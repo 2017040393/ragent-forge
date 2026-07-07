@@ -13,9 +13,9 @@ The demo should stay honest: semantic and hybrid retrieval require a configured
 embedding provider and a built vector index, generation may be disabled with the
 default `null` provider, and Shell Ask does not write new traces in v0.1.
 
-For the `Develop_PDF` structured ingestion branch, use
+For the structured ingestion milestone, use
 [STRUCTURED_INGESTION_DEMO.md](STRUCTURED_INGESTION_DEMO.md) after this base
-demo. That branch workflow shows Markdown, TXT, and PDF flowing through
+demo. That workflow shows Markdown, TXT, and PDF flowing through
 `DocumentBlock[] -> BlockChunker -> DocumentChunk[]`.
 
 ## 30-Second Project Introduction
@@ -217,7 +217,7 @@ Use these assets when presenting v0.1 in a portfolio, README, or GitHub Release:
 - Command suggestions, source navigation, and selected-source inspection in the
   TUI.
 
-For the structured ingestion branch, also demonstrate:
+For the structured ingestion milestone, also demonstrate:
 
 - PDF page/table ingestion.
 - Markdown/TXT/PDF as structured `DocumentBlock` records before chunking.

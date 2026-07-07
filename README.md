@@ -101,7 +101,7 @@ directory. Use the CLI for ingest, index build, eval, and config editing.
 For the reproducible demo flow, see
 [docs/PROJECT_WALKTHROUGH.md](docs/PROJECT_WALKTHROUGH.md).
 
-For the structured ingestion branch demo, see
+For the structured ingestion milestone demo, see
 [docs/STRUCTURED_INGESTION_DEMO.md](docs/STRUCTURED_INGESTION_DEMO.md).
 
 The short version:
@@ -308,7 +308,7 @@ local documents
 Read the full architecture note:
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-The structured ingestion branch design note is here:
+The structured ingestion design note is here:
 [docs/STRUCTURED_INGESTION_DESIGN.md](docs/STRUCTURED_INGESTION_DESIGN.md).
 
 The TUI design note is here:
@@ -332,6 +332,7 @@ reports, failure analysis, retrieval comparison, and BM25.
 - [v0.1 Demo Script](docs/DEMO_SCRIPT.md)
 - [v0.2 Retrieval Evaluation Guide](docs/RETRIEVAL_EVALUATION.md)
 - [v0.2 Release Notes](docs/RELEASE_NOTES_V0_2.md)
+- [v0.2 Demo Results Template](docs/V0_2_DEMO_RESULTS.md)
 - [v0.1 Release Notes](docs/RELEASE_NOTES_V0_1.md)
 - [v0.1-alpha-1 Structured Ingestion Release Notes](docs/RELEASE_NOTES_V0_1_ALPHA_1.md)
 - [Structured Ingestion Demo Workflow](docs/STRUCTURED_INGESTION_DEMO.md)

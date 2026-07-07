@@ -4,7 +4,7 @@
 
 ## One-Sentence Summary
 
-RAGentForge is a local-first, inspectable RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, retrieval evaluation, and a command-first Textual TUI with source inspection.
+RAGentForge is a local-first, inspectable RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, span-grounded evaluation, deterministic failure analysis, retrieval comparison, and a command-first Textual TUI with source inspection.
 
 ## Short Project Description
 
@@ -17,13 +17,13 @@ local artifacts that can be inspected while debugging or presenting the system.
 The current v0.2 surface is intentionally focused. It covers structured
 Markdown/TXT/PDF ingestion, deterministic chunking, lexical and BM25 retrieval,
 optional semantic and hybrid retrieval with embeddings, source-grounded Ask,
-CLI traces, span-grounded retrieval evaluation, retrieval comparison, persisted
-eval run reports, and a command-first TUI for search, ask, and source
-inspection.
+CLI traces, span-grounded eval generation, evidence-to-current-chunk mapping,
+persisted eval reports, deterministic failure analysis, retrieval compare, and
+a command-first TUI for search, ask, and source inspection.
 
 ## Chinese Description
 
-RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 Markdown/TXT/PDF 结构化导入、确定性切块、lexical/BM25/semantic/hybrid 检索、带来源问答、操作追踪、span-grounded 检索评估、retrieval comparison，以及 command-first TUI 中的来源检查与切换。
+RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 Markdown/TXT/PDF 结构化导入、确定性切块、lexical/BM25/semantic/hybrid 检索、带来源问答、操作追踪、span-grounded eval generation、evidence-to-current-chunk mapping、deterministic failure analysis、retrieval compare，以及 command-first TUI 中的来源检查与切换。
 
 ## English Description
 
@@ -37,18 +37,19 @@ Responses-compatible generation.
 
 The project also includes CLI operation traces, retrieval evaluation with
 Hit@k, Recall@k, MRR, latency, and context-size metrics, span-based synthetic
-eval generation that is not tied to the current chunk ids, persisted eval run
-reports, retrieval comparison across modes, and a command-first Textual TUI
-with background Ask/Search workers, inline command suggestions, compact source
-lists, source navigation, and an Inspector panel.
+eval generation that is not tied to the current chunk ids,
+evidence-to-current-chunk mapping at evaluation time, persisted eval reports,
+deterministic failure analysis, retrieval compare across modes, and a
+command-first Textual TUI with background Ask/Search workers, inline command
+suggestions, compact source lists, source navigation, and an Inspector panel.
 
 ## Resume Bullets
 
 - Built a local-first RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
 - Implemented a command-first Textual TUI with background Ask/Search workers, inline command suggestions, source navigation, and an Inspector panel.
-- Designed local JSONL workspace storage for chunks, vector index, traces, and retrieval evaluation reports to make RAG workflows inspectable and reproducible.
+- Designed local JSONL workspace storage for chunks, vector index, traces, and persisted retrieval evaluation reports to make RAG workflows inspectable and reproducible.
 - Added retrieval evaluation with Hit@k, Recall@k, MRR, latency, and context-size metrics over JSONL cases.
-- Added span-based synthetic eval generation and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.
+- Added span-based synthetic eval generation, evidence-to-current-chunk mapping, deterministic failure analysis, and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.
 
 ## Interview Talking Points
 
@@ -68,6 +69,10 @@ lists, source navigation, and an Inspector panel.
 - CLI traces and retrieval eval make the project more engineering-oriented:
   users can inspect what happened and measure retrieval behavior before adding
   more complex ranking or answer-evaluation features.
+- Span-grounded eval keeps generated datasets stable across chunking changes
+  by mapping evidence spans to the current chunk store at evaluation time.
+- Deterministic failure analysis makes misses reviewable without introducing
+  LLM-as-judge behavior or non-reproducible scoring.
 - Future versions could add richer source inspection, better retrieval quality,
   answer-quality evaluation, and a small explicitly controlled agent layer.
 
@@ -89,10 +94,13 @@ lists, source navigation, and an Inspector panel.
 - CLI traces for operation inspection.
 - Retrieval evaluation over JSONL cases with Hit@k, Recall@k, MRR, latency,
   and context-size metrics.
-- Persisted eval run reports with compact cases and failures JSONL.
-- Retrieval comparison across lexical, BM25, semantic, and hybrid modes.
 - Span-based generated eval cases decouple the test dataset from the current
   chunk store, which makes chunking and retrieval strategy comparisons easier.
+- Evidence-to-current-chunk mapping for span-grounded eval cases.
+- Deterministic failure analysis with compact failure reports.
+- Persisted eval reports with summary JSON/Markdown, compact cases JSONL, and
+  failures JSONL.
+- Retrieval compare across lexical, BM25, semantic, and hybrid modes.
 - Textual TUI with background workers for Ask and Search.
 
 ## Architecture Highlights

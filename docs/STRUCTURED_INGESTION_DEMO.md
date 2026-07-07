@@ -1,6 +1,6 @@
 # Structured Ingestion Demo Workflow
 
-This workflow demonstrates the `Develop_PDF` structured ingestion branch. It
+This workflow demonstrates the structured ingestion milestone. It
 shows Markdown, TXT, and PDF files flowing through the same ingestion shape:
 
 ```text
@@ -12,7 +12,7 @@ your normal `.ragent` workspace.
 
 ## Demo Goal
 
-Prove that the branch can:
+Prove that the current implementation can:
 
 - ingest Markdown, TXT, and PDF files together;
 - preserve Markdown section metadata;
@@ -271,6 +271,6 @@ Remove-Item -Recurse -Force (Split-Path $env:DEMO_CORPUS)
 
 ## Demo Summary
 
-This branch keeps the user-facing command surface stable while unifying the
-ingestion internals. Markdown, TXT, and PDF all become structured blocks before
-chunking, and retrieval continues to work over ordinary chunks.
+The current implementation keeps the user-facing command surface stable while
+unifying the ingestion internals. Markdown, TXT, and PDF all become structured
+blocks before chunking, and retrieval continues to work over ordinary chunks.

@@ -1,10 +1,10 @@
 # v0.1-alpha-1 Unified Structured Ingestion Foundation
 
-This branch adds a unified structured ingestion foundation for local knowledge
-files. It is a branch-level design note and does not claim a released version
-until the branch is merged and released.
+The v0.1-alpha-1 structured ingestion milestone adds a unified structured
+ingestion foundation for local knowledge files. This document preserves the
+milestone design rationale without claiming a separate released tag.
 
-Related branch documents:
+Related milestone documents:
 
 - [RELEASE_NOTES_V0_1_ALPHA_1.md](RELEASE_NOTES_V0_1_ALPHA_1.md)
 - [STRUCTURED_INGESTION_DEMO.md](STRUCTURED_INGESTION_DEMO.md)

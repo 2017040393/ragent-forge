@@ -1,12 +1,12 @@
-# RAGentForge v0.1-alpha-1 Structured Ingestion Branch Notes
+# RAGentForge v0.1-alpha-1 Structured Ingestion Notes
 
-These notes describe the `Develop_PDF` branch after the PDF and structured
-ingestion work. They are suitable as draft release notes when the branch is
-merged and tagged, but this document does not create or claim a released tag.
+These notes describe the v0.1-alpha-1 structured ingestion milestone after the
+PDF and structured ingestion work. This document preserves the milestone notes,
+but does not create or claim a separate released tag.
 
 ## Summary
 
-The structured ingestion branch extends RAGentForge from Markdown/TXT-only
+The structured ingestion milestone extends RAGentForge from Markdown/TXT-only
 plain text ingestion to a shared structured ingestion foundation for
 Markdown, TXT, and PDF.
 
@@ -26,7 +26,8 @@ representation for format-specific metadata.
 
 ## Highlights
 
-- Added PDF page and table ingestion on the `Develop_PDF` branch.
+- Added PDF page and table ingestion as part of the structured ingestion
+  milestone.
 - Added PDF extraction quality polish for reading order, repeated
   header/footer filtering, table text de-duplication, and possible formula
   metadata.
@@ -111,13 +112,13 @@ chunks.
 - TXT ingestion only splits paragraphs by blank lines.
 - OCR and scanned PDF support are not included.
 - PDF viewing, opening, editing, and source full-text viewing are not included.
-- Retrieval quality improvements such as BM25, reranking, or query expansion
-  are outside this branch.
+- Retrieval quality improvements such as reranking or query expansion are
+  outside this milestone.
 - The TUI remains read-only for ingest/index/eval/config workflows.
 
 ## Verification Checklist
 
-Before turning these branch notes into a tagged release, run:
+Before turning these milestone notes into release material, run:
 
 ```bash
 uv run --extra dev pytest -q
@@ -131,4 +132,4 @@ docs/STRUCTURED_INGESTION_DEMO.md
 ```
 
 If creating an actual GitHub release, update tag names, screenshot links, and
-merge status after the branch lands.
+release status.
