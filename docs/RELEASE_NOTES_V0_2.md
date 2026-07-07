@@ -131,6 +131,9 @@ Inside the TUI, try:
 /exit
 ```
 
+A measured local demo run with screenshots is recorded in
+[V0_2_DEMO_RESULTS.md](V0_2_DEMO_RESULTS.md).
+
 ## Known Limitations
 
 - Semantic and hybrid retrieval require a configured embedding provider and a
@@ -155,4 +158,4 @@ Inside the TUI, try:
 - OCR and scanned PDF support.
 - PDF viewing/editing or source full-text viewing.
 - Web dashboard.
-- Richer release assets with checked local demo outputs and screenshots.
+- Short demo recordings and broader benchmark-style corpora.

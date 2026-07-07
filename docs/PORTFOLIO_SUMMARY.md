@@ -133,7 +133,6 @@ suggestions, compact source lists, source navigation, and an Inspector panel.
 - Improve retrieval quality with better lexical ranking, optional reranking, or
   query expansion after preserving the current simple baseline.
 - Add answer-quality evaluation separately from retrieval evaluation.
-- Add more polished release assets such as screenshots, short demo recordings,
-  and comparison traces.
+- Add short demo recordings and broader benchmark-style corpora.
 - Explore a small explicitly controlled agent layer only after the RAG pipeline
   remains inspectable and measurable.

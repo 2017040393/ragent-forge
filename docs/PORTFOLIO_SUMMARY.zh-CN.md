@@ -126,5 +126,5 @@ source lists, source navigation, and an Inspector panel.
 - 增加更丰富的 source inspection，例如更清晰的 previews 和 source metadata，同时保持 command-first model。
 - 在保留当前简单 baseline 的前提下，通过更好的 lexical ranking、optional reranking 或 query expansion 改进 retrieval quality。
 - 增加与 retrieval evaluation 分离的 answer-quality evaluation。
-- 增加更完善的 release assets，例如 screenshots、short demo recordings 和 comparison traces。
+- 增加 short demo recordings 和更大一些的 benchmark-style corpora。
 - 只有在 RAG pipeline 仍保持可检查、可测量后，再探索小型、显式受控的 agent layer。

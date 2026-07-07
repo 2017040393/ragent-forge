@@ -332,7 +332,7 @@ reports, failure analysis, retrieval comparison, and BM25.
 - [v0.1 Demo Script](docs/DEMO_SCRIPT.md)
 - [v0.2 Retrieval Evaluation Guide](docs/RETRIEVAL_EVALUATION.md)
 - [v0.2 Release Notes](docs/RELEASE_NOTES_V0_2.md)
-- [v0.2 Demo Results Template](docs/V0_2_DEMO_RESULTS.md)
+- [v0.2 Demo Results](docs/V0_2_DEMO_RESULTS.md)
 - [v0.1 Release Notes](docs/RELEASE_NOTES_V0_1.md)
 - [v0.1-alpha-1 Structured Ingestion Release Notes](docs/RELEASE_NOTES_V0_1_ALPHA_1.md)
 - [Structured Ingestion Demo Workflow](docs/STRUCTURED_INGESTION_DEMO.md)
