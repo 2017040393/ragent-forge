@@ -149,6 +149,10 @@ def set_running(state: ShellState, running: bool) -> ShellState:
     return replace(state, running=running)
 
 
+def set_inspector_text(state: ShellState, text: str | None) -> ShellState:
+    return replace(state, inspector_text=text)
+
+
 def select_source(
     state: ShellState,
     source: TranscriptSource | None,
@@ -466,6 +470,12 @@ def format_shell_source_details(source: TranscriptSource) -> str:
     metadata_lines = _format_retrieval_source_metadata(source.metadata)
     if metadata_lines:
         lines.extend(["", "Retrieval metadata", "", *metadata_lines])
+    return "\n".join(lines)
+
+
+def format_prompt_preview_inspector(prompt_preview: str) -> str:
+    lines = ["Prompt preview", ""]
+    lines.extend(prompt_preview.splitlines() or [""])
     return "\n".join(lines)
 
 

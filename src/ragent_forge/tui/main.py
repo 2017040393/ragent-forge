@@ -20,12 +20,14 @@ from ragent_forge.tui.shell_models import (
     append_message,
     append_messages,
     create_initial_shell_state,
+    format_prompt_preview_inspector,
     format_shell_inspector,
     format_shell_status,
     format_transcript,
     message_from_search_state,
     messages_from_ask_state,
     select_source,
+    set_inspector_text,
     set_running,
 )
 from ragent_forge.tui.theme import (
@@ -330,6 +332,11 @@ class RagentForgeApp(App[None]):
                             message.sources[0],
                         )
                         break
+                if result.prompt_preview:
+                    self.shell_state = set_inspector_text(
+                        self.shell_state,
+                        format_prompt_preview_inspector(result.prompt_preview),
+                    )
             else:
                 self._show_shell_ask_worker_failure()
         elif event.state in {WorkerState.ERROR, WorkerState.CANCELLED}:

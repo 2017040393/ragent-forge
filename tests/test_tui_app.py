@@ -517,6 +517,66 @@ async def test_tui_app_shell_ask_worker_success_appends_messages_and_selects_sou
 
 
 @pytest.mark.anyio
+async def test_tui_app_shell_ask_worker_shows_prompt_preview_in_inspector(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    source = SearchResult(
+        chunk_id="/knowledge/agentic_rag.md::chunk-0000",
+        document_id="/knowledge/agentic_rag.md",
+        source_path="/knowledge/agentic_rag.md",
+        start_char=0,
+        end_char=42,
+        score=1.0,
+        text="Agentic RAG adds planning before retrieval.",
+        metadata={"retrieval_method": "lexical_token_overlap"},
+    )
+    prompt_preview = (
+        "System: answer with evidence.\n\n"
+        "Retrieved context:\n"
+        "Agentic RAG adds planning before retrieval."
+    )
+
+    class FakeWorker:
+        name = "shell-ask"
+        result = AskPageState(
+            question="What is Agentic RAG?",
+            retrieval_mode="lexical",
+            answer="Agentic RAG adds planning.",
+            sources=[source],
+            generation_status="success",
+            generation_provider="openai_responses",
+            prompt_preview=prompt_preview,
+            show_prompt=True,
+            has_run=True,
+        )
+
+    class FakeEvent:
+        state = WorkerState.SUCCESS
+        worker = FakeWorker()
+        stopped = False
+
+        def stop(self) -> None:
+            self.stopped = True
+
+    async with app.run_test():
+        app._set_shell_running(True)
+
+        event = FakeEvent()
+        app._handle_shell_ask_worker_state(event)  # type: ignore[arg-type]
+
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        inspector = str(app.query_one("#inspector-content", Static).renderable)
+        assert "Assistant:\n  Agentic RAG adds planning." in transcript
+        assert "Retrieved context:" not in transcript
+        assert "Prompt preview" in inspector
+        assert "Retrieved context:" in inspector
+        assert "Agentic RAG adds planning before retrieval." in inspector
+        assert app.shell_state.selected_source is not None
+
+
+@pytest.mark.anyio
 async def test_tui_app_shell_search_starts_worker_and_disables_input(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
