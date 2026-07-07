@@ -4,49 +4,53 @@
 
 ## One-Sentence Summary
 
-RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 deterministic
-ingestion、lexical/BM25/semantic/hybrid retrieval、source-grounded asking、
-operation tracing、retrieval evaluation，以及带 source inspection 的
-command-first Textual TUI。
+RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 structured
+Markdown/TXT/PDF ingestion、lexical/BM25/semantic/hybrid retrieval、
+source-grounded asking、operation tracing、retrieval evaluation，以及带
+source inspection 的 command-first Textual TUI。
 
 ## Short Project Description
 
-RAGentForge 是一个 Python CLI 和 Textual TUI 项目，用来在本地 Markdown/TXT
-知识库上展示端到端 retrieval augmented generation workflow。它强调
+RAGentForge 是一个 Python CLI 和 Textual TUI 项目，用来在本地
+Markdown/TXT/PDF 知识库上展示端到端 retrieval augmented generation workflow。它强调
 inspectability，而不是抽象隐藏：chunks、vector indexes、traces、eval
 reports、answers 和 sources 都会作为本地 artifacts 被保存或展示，便于调试或
 演示系统。
 
-当前 v0.1 范围有意保持聚焦。它覆盖本地导入、确定性切块、lexical retrieval、
-lexical 和 BM25 retrieval、带 embeddings 的可选 semantic 和 hybrid retrieval、source-grounded Ask、CLI
-traces、retrieval evaluation，以及用于 search、ask 和 source inspection 的
+当前 v0.2 surface 有意保持聚焦。它覆盖 Markdown/TXT/PDF 结构化导入、确定性切块、
+lexical 和 BM25 retrieval、带 embeddings 的可选 semantic 和 hybrid retrieval、
+source-grounded Ask、CLI traces、span-grounded retrieval evaluation、retrieval
+comparison、持久化 eval run reports，以及用于 search、ask 和 source inspection 的
 command-first TUI。
 
 ## Chinese Description
 
-RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持本地文档导入、确定性切块、关键词/语义/混合检索、带来源问答、操作追踪、检索评估，以及 command-first TUI 中的来源检查与切换。
+RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 Markdown/TXT/PDF 结构化导入、确定性切块、lexical/BM25/semantic/hybrid 检索、带来源问答、操作追踪、span-grounded 检索评估、retrieval comparison，以及 command-first TUI 中的来源检查与切换。
 
 ## English Description
 
 RAGentForge is a local-first RAG console for developers who want to see and
 explain the retrieval pipeline instead of hiding it behind a hosted service or
-large framework. It ingests local Markdown/TXT files, writes deterministic
-chunks into a `.ragent` workspace, supports explicit lexical, BM25, semantic, and
-hybrid retrieval modes, and can run source-grounded Ask with either
-retrieval-only output or optional OpenAI Responses-compatible generation.
+large framework. It ingests local Markdown/TXT/PDF files through a structured
+document pipeline, writes deterministic chunks into a `.ragent` workspace,
+supports explicit lexical, BM25, semantic, and hybrid retrieval modes, and can
+run source-grounded Ask with either retrieval-only output or optional OpenAI
+Responses-compatible generation.
 
-The project also includes CLI operation traces, retrieval evaluation with hit@k
-and MRR, 不绑定当前 chunk ids 的 span-based synthetic eval generation，以及
-command-first Textual TUI with background Ask/Search workers, inline command
-suggestions, compact source lists, source navigation, and an Inspector panel.
+The project also includes CLI operation traces, retrieval evaluation with
+Hit@k、Recall@k、MRR、latency 和 context-size metrics, 不绑定当前 chunk ids 的
+span-based synthetic eval generation, persisted eval run reports, retrieval
+comparison across modes，以及 command-first Textual TUI with background
+Ask/Search workers, inline command suggestions, compact source lists, source
+navigation, and an Inspector panel.
 
 ## Resume Bullets
 
-- Built a local-first RAG console with deterministic ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
+- Built a local-first RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
 - Implemented a command-first Textual TUI with background Ask/Search workers, inline command suggestions, source navigation, and an Inspector panel.
 - Designed local JSONL workspace storage for chunks, vector index, traces, and retrieval evaluation reports to make RAG workflows inspectable and reproducible.
-- Added retrieval evaluation with hit@k and MRR over JSONL cases to measure retrieval behavior before adding heavier ranking or answer-evaluation features.
-- Added span-based synthetic eval generation so datasets can be reused across chunking, retrieval, and ranking experiments.
+- Added retrieval evaluation with Hit@k, Recall@k, MRR, latency, and context-size metrics over JSONL cases.
+- Added span-based synthetic eval generation and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.
 
 ## Interview Talking Points
 
@@ -71,7 +75,8 @@ suggestions, compact source lists, source navigation, and an Inspector panel.
 ## Technical Highlights
 
 - 围绕本地 application services 构建的 Python CLI，而不是隐藏托管 backend。
-- Markdown/TXT ingestion 和 deterministic chunk records。
+- Markdown/TXT/PDF structured ingestion 和 deterministic chunk records。
+- PDF ingestion 支持 page text、table extraction、page ranges 和 source metadata。
 - 显式 retrieval modes：`lexical`、`BM25`、`semantic` 和 `hybrid`。
 - 面向 semantic retrieval 的 OpenAI-compatible embedding configuration。
 - 用于 semantic search 的本地 JSONL vector index。
@@ -79,7 +84,10 @@ suggestions, compact source lists, source navigation, and an Inspector panel.
 - 带 source display 和可选 OpenAI Responses-compatible generation 的 Ask pipeline。
 - 默认 `null` generation provider 下的 retrieval-only Ask behavior。
 - 用于 operation inspection 的 CLI traces。
-- 基于 JSONL cases 的 hit@k 和 MRR retrieval evaluation。
+- 基于 JSONL cases 的 Hit@k、Recall@k、MRR、latency 和 context-size metrics
+  retrieval evaluation。
+- 持久化 eval run reports，包含 compact cases 和 failures JSONL。
+- 跨 lexical、BM25、semantic 和 hybrid modes 的 retrieval comparison。
 - Span-based generated eval cases 将测试数据集和当前 chunk store 解耦，便于比较
   chunking 与 retrieval strategies。
 - 使用 background workers 运行 Ask 和 Search 的 Textual TUI。

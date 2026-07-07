@@ -4,47 +4,51 @@
 
 ## One-Sentence Summary
 
-RAGentForge is a local-first, inspectable RAG console with deterministic ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, retrieval evaluation, and a command-first Textual TUI with source inspection.
+RAGentForge is a local-first, inspectable RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, retrieval evaluation, and a command-first Textual TUI with source inspection.
 
 ## Short Project Description
 
 RAGentForge is a Python CLI and Textual TUI project for demonstrating an
-end-to-end retrieval augmented generation workflow on local Markdown/TXT
+end-to-end retrieval augmented generation workflow on local Markdown/TXT/PDF
 knowledge bases. It emphasizes inspectability over abstraction: chunks, vector
 indexes, traces, eval reports, answers, and sources are stored or displayed as
 local artifacts that can be inspected while debugging or presenting the system.
 
-The current v0.1 scope is intentionally focused. It covers local ingestion,
-deterministic chunking, lexical and BM25 retrieval, optional semantic and hybrid
-retrieval with embeddings, source-grounded Ask, CLI traces, retrieval
-evaluation, and a command-first TUI for search, ask, and source inspection.
+The current v0.2 surface is intentionally focused. It covers structured
+Markdown/TXT/PDF ingestion, deterministic chunking, lexical and BM25 retrieval,
+optional semantic and hybrid retrieval with embeddings, source-grounded Ask,
+CLI traces, span-grounded retrieval evaluation, retrieval comparison, persisted
+eval run reports, and a command-first TUI for search, ask, and source
+inspection.
 
 ## Chinese Description
 
-RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持本地文档导入、确定性切块、关键词/语义/混合检索、带来源问答、操作追踪、检索评估，以及 command-first TUI 中的来源检查与切换。
+RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 Markdown/TXT/PDF 结构化导入、确定性切块、lexical/BM25/semantic/hybrid 检索、带来源问答、操作追踪、span-grounded 检索评估、retrieval comparison，以及 command-first TUI 中的来源检查与切换。
 
 ## English Description
 
 RAGentForge is a local-first RAG console for developers who want to see and
 explain the retrieval pipeline instead of hiding it behind a hosted service or
-large framework. It ingests local Markdown/TXT files, writes deterministic
-chunks into a `.ragent` workspace, supports explicit lexical, BM25, semantic, and
-hybrid retrieval modes, and can run source-grounded Ask with either
-retrieval-only output or optional OpenAI Responses-compatible generation.
+large framework. It ingests local Markdown/TXT/PDF files through a structured
+document pipeline, writes deterministic chunks into a `.ragent` workspace,
+supports explicit lexical, BM25, semantic, and hybrid retrieval modes, and can
+run source-grounded Ask with either retrieval-only output or optional OpenAI
+Responses-compatible generation.
 
-The project also includes CLI operation traces, retrieval evaluation with hit@k
-and MRR, span-based synthetic eval generation that is not tied to the current
-chunk ids, and a command-first Textual TUI with background Ask/Search workers,
-inline command suggestions, compact source lists, source navigation, and an
-Inspector panel.
+The project also includes CLI operation traces, retrieval evaluation with
+Hit@k, Recall@k, MRR, latency, and context-size metrics, span-based synthetic
+eval generation that is not tied to the current chunk ids, persisted eval run
+reports, retrieval comparison across modes, and a command-first Textual TUI
+with background Ask/Search workers, inline command suggestions, compact source
+lists, source navigation, and an Inspector panel.
 
 ## Resume Bullets
 
-- Built a local-first RAG console with deterministic ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
+- Built a local-first RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
 - Implemented a command-first Textual TUI with background Ask/Search workers, inline command suggestions, source navigation, and an Inspector panel.
 - Designed local JSONL workspace storage for chunks, vector index, traces, and retrieval evaluation reports to make RAG workflows inspectable and reproducible.
-- Added retrieval evaluation with hit@k and MRR over JSONL cases to measure retrieval behavior before adding heavier ranking or answer-evaluation features.
-- Added span-based synthetic eval generation so datasets can be reused across chunking, retrieval, and ranking experiments.
+- Added retrieval evaluation with Hit@k, Recall@k, MRR, latency, and context-size metrics over JSONL cases.
+- Added span-based synthetic eval generation and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.
 
 ## Interview Talking Points
 
@@ -71,7 +75,9 @@ Inspector panel.
 
 - Python CLI built around local application services rather than a hidden
   hosted backend.
-- Markdown/TXT ingestion with deterministic chunk records.
+- Structured Markdown/TXT/PDF ingestion with deterministic chunk records.
+- PDF ingestion with page text, table extraction, page ranges, and source
+  metadata.
 - Explicit retrieval modes: `lexical`, `BM25`, `semantic`, and `hybrid`.
 - OpenAI-compatible embedding configuration for semantic retrieval.
 - Local JSONL vector index for semantic search.
@@ -81,7 +87,10 @@ Inspector panel.
   generation.
 - Retrieval-only Ask behavior with the default `null` generation provider.
 - CLI traces for operation inspection.
-- Retrieval evaluation over JSONL cases with hit@k and MRR.
+- Retrieval evaluation over JSONL cases with Hit@k, Recall@k, MRR, latency,
+  and context-size metrics.
+- Persisted eval run reports with compact cases and failures JSONL.
+- Retrieval comparison across lexical, BM25, semantic, and hybrid modes.
 - Span-based generated eval cases decouple the test dataset from the current
   chunk store, which makes chunking and retrieval strategy comparisons easier.
 - Textual TUI with background workers for Ask and Search.
