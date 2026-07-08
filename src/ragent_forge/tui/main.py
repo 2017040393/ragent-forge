@@ -61,6 +61,7 @@ from ragent_forge.tui.view_models import (
 
 SHELL_ASK_FAILED_STATUS = "Ask failed. Check configuration and workspace files."
 SHELL_SEARCH_FAILED_STATUS = "Search failed. Check configuration and workspace files."
+SHELL_RUNNING_DRAFT_KEPT_STATUS = "Request is still running. Your draft was kept."
 
 
 class SourcePickerModal(ModalScreen[TranscriptSource | None]):
@@ -265,6 +266,13 @@ class RagentForgeApp(App[None]):
         shell_input = self.query_one("#shell-input", Input)
         text = shell_input.value
         if self.shell_state.running:
+            self.shell_state = set_notice(
+                self.shell_state,
+                SHELL_RUNNING_DRAFT_KEPT_STATUS,
+            )
+            self._render_shell()
+            self._render_inspector()
+            self._focus_shell_input()
             return
         shell_input.value = ""
         self.shell_suggestion_index = 0
@@ -405,7 +413,7 @@ class RagentForgeApp(App[None]):
 
     def _set_shell_running(self, running: bool) -> None:
         self.shell_state = set_running(self.shell_state, running)
-        self.query_one("#shell-input", Input).disabled = running
+        self.query_one("#shell-input", Input).disabled = False
 
     def _shell_read_only_handlers(self) -> ShellReadOnlyHandlers:
         return ShellReadOnlyHandlers(

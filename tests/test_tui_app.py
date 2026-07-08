@@ -203,6 +203,12 @@ async def test_tui_app_shell_running_submission_preserves_input_text(
 
         assert shell_input.value == "Do not lose this"
         assert app.shell_state.messages == ()
+        assert app.shell_state.notice == (
+            "Request is still running. Your draft was kept."
+        )
+        assert "Request is still running" in str(
+            app.query_one("#shell-status", Static).renderable
+        )
 
 
 @pytest.mark.anyio
@@ -511,7 +517,8 @@ async def test_tui_app_shell_submission_starts_ask_worker_and_uses_shell_setting
         assert started_workers[0][1]["group"] == "shell"
         assert started_workers[0][1]["thread"] is True
         assert started_workers[0][1]["exclusive"] is True
-        assert shell_input.disabled is True
+        assert shell_input.disabled is False
+        assert app.focused == shell_input
         assert app.shell_state.running is True
         assert shell_input.value == ""
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
@@ -802,7 +809,7 @@ async def test_tui_app_shell_ask_missing_vector_index_guidance_is_actionable(
 
 
 @pytest.mark.anyio
-async def test_tui_app_shell_search_starts_worker_and_disables_input(
+async def test_tui_app_shell_search_starts_worker_and_keeps_input_enabled(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -831,7 +838,8 @@ async def test_tui_app_shell_search_starts_worker_and_disables_input(
         assert started_workers[0][1]["group"] == "shell"
         assert started_workers[0][1]["thread"] is True
         assert started_workers[0][1]["exclusive"] is True
-        assert shell_input.disabled is True
+        assert shell_input.disabled is False
+        assert app.focused == shell_input
         assert app.shell_state.running is True
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         assert "Running search for: Agentic" not in transcript
