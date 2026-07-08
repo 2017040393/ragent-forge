@@ -219,6 +219,25 @@ def test_ingest_help_mentions_pdf() -> None:
     )
 
 
+def test_tui_command_passes_workspace_to_app(monkeypatch, tmp_path: Path) -> None:
+    calls: list[str] = []
+
+    class FakeRagentForgeApp:
+        def __init__(self, workspace_path: str | Path = ".ragent") -> None:
+            calls.append(str(workspace_path))
+
+        def run(self) -> None:
+            calls.append("run")
+
+    monkeypatch.setattr("ragent_forge.cli.RagentForgeApp", FakeRagentForgeApp)
+
+    workspace_dir = tmp_path / "custom-ragent"
+    exit_code = main(["tui", "--workspace", str(workspace_dir)])
+
+    assert exit_code == 0
+    assert calls == [str(workspace_dir), "run"]
+
+
 def test_ingest_command_prints_statistics(
     tmp_path: Path,
     capsys,

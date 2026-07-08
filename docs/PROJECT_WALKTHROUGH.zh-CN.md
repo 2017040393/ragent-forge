@@ -150,10 +150,11 @@ traces。
 
 ```bash
 uv run ragent tui
+uv run ragent tui --workspace .ragent
 ```
 
-当前 TUI command 不接受 `--workspace` 参数；它读取当前工作目录下默认的
-`.ragent` workspace。
+不加 `--workspace` 时，TUI 会读取当前工作目录下默认的 `.ragent` workspace。
+如果要检查其他本地 workspace，可以显式传 `--workspace`。
 
 试试这个 Shell sequence：
 

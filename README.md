@@ -91,10 +91,12 @@ Launch the command-first TUI from the project root:
 
 ```bash
 uv run ragent tui
+uv run ragent tui --workspace .ragent
 ```
 
-The TUI currently reads the default `.ragent` workspace in the current working
-directory. Use the CLI for ingest, index build, eval, and config editing.
+Without `--workspace`, the TUI reads the default `.ragent` workspace in the
+current working directory. Use `--workspace` to inspect a different local
+workspace. Use the CLI for ingest, index build, eval, and config editing.
 
 ## End-to-End Demo
 
@@ -114,7 +116,7 @@ uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
 uv run ragent traces latest --workspace .ragent
 uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval bm25 --workspace .ragent --limit 5
 uv run ragent eval compare --cases examples/eval/retrieval_cases.jsonl --retrieval lexical,bm25 --limit 1,3,5 --workspace .ragent
-uv run ragent tui
+uv run ragent tui --workspace .ragent
 ```
 
 ## v0.2 Retrieval Quality Foundation
@@ -232,8 +234,9 @@ Retrieval evaluation output:
 
 ## Command-First TUI
 
-`uv run ragent tui` opens a single Shell interface with a transcript, composer,
-status line, inline command suggestions, and selected-source Inspector.
+`uv run ragent tui --workspace .ragent` opens a single Shell interface with a
+transcript, composer, status line, inline command suggestions, and
+selected-source Inspector.
 
 Ordinary text and `/ask <question>` run Shell Ask in a background worker.
 `/search <query>` runs Shell Search in a background worker. The Shell reads

@@ -136,10 +136,12 @@ quality evaluation or LLM-as-judge.
 
 ```bash
 uv run ragent tui
+uv run ragent tui --workspace .ragent
 ```
 
 Mention that the TUI reads the default `.ragent` workspace from the current
-working directory. It does not accept a `--workspace` argument in v0.1.
+working directory when `--workspace` is omitted, and can inspect another local
+workspace when `--workspace` is provided.
 
 ### 9. Search in the TUI
 

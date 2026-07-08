@@ -103,7 +103,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    subparsers.add_parser("tui", help="Launch the local Textual TUI.")
+    tui_parser = subparsers.add_parser("tui", help="Launch the local Textual TUI.")
+    tui_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to inspect.",
+    )
 
     ingest_parser = subparsers.add_parser(
         "ingest",
@@ -468,8 +473,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     console = Console()
 
-    if args.command is None or args.command == "tui":
+    if args.command is None:
         RagentForgeApp().run()
+        return 0
+
+    if args.command == "tui":
+        RagentForgeApp(args.workspace).run()
         return 0
 
     if args.command == "ingest":

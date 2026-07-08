@@ -153,10 +153,12 @@ Launch the TUI from the repository root after preparing `.ragent`:
 
 ```bash
 uv run ragent tui
+uv run ragent tui --workspace .ragent
 ```
 
-The current TUI command does not take a `--workspace` argument; it reads the
-default `.ragent` workspace in the current working directory.
+Without `--workspace`, the TUI reads the default `.ragent` workspace in the
+current working directory. Use `--workspace` to inspect a different local
+workspace.
 
 Try this Shell sequence:
 

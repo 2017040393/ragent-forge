@@ -73,10 +73,12 @@ uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
 
 ```bash
 uv run ragent tui
+uv run ragent tui --workspace .ragent
 ```
 
-当前 TUI 会读取当前工作目录下默认的 `.ragent` workspace。导入、index build、
-eval 和 config editing 仍通过 CLI 完成。
+不加 `--workspace` 时，TUI 会读取当前工作目录下默认的 `.ragent` workspace。
+如果要检查其他本地 workspace，可以传 `--workspace`。导入、index build、eval
+和 config editing 仍通过 CLI 完成。
 
 ## 端到端 Demo
 
@@ -92,7 +94,7 @@ uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
 uv run ragent traces latest --workspace .ragent
 uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval bm25 --workspace .ragent --limit 5
 uv run ragent eval compare --cases examples/eval/retrieval_cases.jsonl --retrieval lexical,bm25 --limit 1,3,5 --workspace .ragent
-uv run ragent tui
+uv run ragent tui --workspace .ragent
 ```
 
 ## v0.2 Retrieval Quality Foundation
@@ -193,8 +195,8 @@ Retrieval evaluation 输出：
 
 ## Command-First TUI
 
-`uv run ragent tui` 会打开一个 Shell 界面，包含 transcript、composer、
-status line、inline command suggestions 和 selected-source Inspector。
+`uv run ragent tui --workspace .ragent` 会打开一个 Shell 界面，包含 transcript、
+composer、status line、inline command suggestions 和 selected-source Inspector。
 
 普通文本和 `/ask <question>` 会在后台 worker 中运行 Shell Ask。
 `/search <query>` 会在后台 worker 中运行 Shell Search。Shell 读取已有的

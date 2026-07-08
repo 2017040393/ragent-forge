@@ -125,10 +125,11 @@ evaluation，也不是 LLM-as-judge。
 
 ```bash
 uv run ragent tui
+uv run ragent tui --workspace .ragent
 ```
 
-说明 TUI 读取当前工作目录下默认的 `.ragent` workspace。v0.1 中它不接受
-`--workspace` 参数。
+说明不加 `--workspace` 时，TUI 读取当前工作目录下默认的 `.ragent`
+workspace；如果传入 `--workspace`，它会检查指定的本地 workspace。
 
 ### 9. 在 TUI 中 Search
 
