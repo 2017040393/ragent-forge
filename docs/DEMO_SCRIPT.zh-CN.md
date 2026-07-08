@@ -8,9 +8,9 @@
 应证明本地 Markdown 文件可以被导入、切块、检索、带来源 Ask、trace、评估，
 并通过 command-first TUI Shell 检查。
 
-Demo 要保持诚实：semantic 和 hybrid retrieval 需要配置 embedding provider
-并构建 vector index；默认 `null` provider 下 generation 可能是禁用的；Shell
-Ask 在 v0.1 不会写入新的 traces。
+Demo 要保持诚实：lexical 和 BM25 不需要 embeddings；semantic 和 hybrid
+retrieval 需要配置 embedding provider 并构建 vector index；默认 `null`
+provider 下 generation 可能是禁用的；Shell Ask 在 v0.1 不会写入新的 traces。
 
 ## 30 秒项目介绍
 
@@ -82,19 +82,20 @@ uv run ragent chunks show "<chunk_id>" --workspace .ragent
 
 说明 deterministic chunk ids 和 JSONL storage 让 pipeline 更容易 debug 和 test。
 
-### 4. 运行 Lexical Search
+### 4. 运行 Lexical 或 BM25 Search
 
 ```bash
 uv run ragent search "What is Agentic RAG?" --retrieval lexical --workspace .ragent
+uv run ragent search "What is Agentic RAG?" --retrieval bm25 --workspace .ragent
 ```
 
-说明 lexical search 在 ingestion 后立即可用，适合精确术语、文件名、配置字段
-和快速本地 demo。
+说明 lexical 和 BM25 search 在 ingestion 后立即可用。Lexical 是最简单的
+token-overlap baseline；BM25 是更强的 sparse baseline，适合带权重的关键词检索。
 
 ### 5. Ask with Sources
 
 ```bash
-uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
+uv run ragent ask "What is Agentic RAG?" --retrieval bm25 --workspace .ragent
 ```
 
 如果 generation 仍使用默认 `null` provider，说明这是预期行为：Ask 保持
@@ -114,7 +115,7 @@ trace 的 Ask workflow。
 ### 7. 运行 Retrieval Evaluation
 
 ```bash
-uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
+uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval bm25 --workspace .ragent --limit 5
 ```
 
 指出 hit@k 和 MRR。说明这是 retrieval-only evaluation，不是 answer quality
@@ -197,7 +198,7 @@ What is Agentic RAG?
 
 - `.ragent` 下的 local workspace design。
 - Markdown/TXT ingestion 和 deterministic chunking。
-- 不依赖 embeddings 的 lexical retrieval。
+- 不依赖 embeddings 的 lexical 和 BM25 retrieval。
 - Semantic 和 hybrid retrieval 作为可选 indexed modes。
 - Source-grounded Ask 和 retrieval-only fallback behavior。
 - 用于 debug 和解释的 CLI operation traces。
@@ -208,20 +209,21 @@ What is Agentic RAG?
 
 ## 未配置 Embeddings 时的 Fallback Path
 
-保持 demo 为 lexical-only：
+保持 demo 为 lexical/BM25 sparse retrieval：
 
 ```bash
 uv run ragent ingest examples/knowledge --workspace .ragent
 uv run ragent search "What is Agentic RAG?" --retrieval lexical --workspace .ragent
-uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
-uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
+uv run ragent search "What is Agentic RAG?" --retrieval bm25 --workspace .ragent
+uv run ragent ask "What is Agentic RAG?" --retrieval bm25 --workspace .ragent
+uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval bm25 --workspace .ragent --limit 5
 uv run ragent tui
 ```
 
 在 TUI 中使用：
 
 ```text
-/mode lexical
+/mode bm25
 /search Agentic RAG
 What is Agentic RAG?
 /sources

@@ -9,9 +9,10 @@ demo should prove that local Markdown files can be ingested, chunked, searched,
 asked over with sources, traced, evaluated, and inspected through the
 command-first TUI Shell.
 
-The demo should stay honest: semantic and hybrid retrieval require a configured
-embedding provider and a built vector index, generation may be disabled with the
-default `null` provider, and Shell Ask does not write new traces in v0.1.
+The demo should stay honest: lexical and BM25 work without embeddings, semantic
+and hybrid retrieval require a configured embedding provider and a built vector
+index, generation may be disabled with the default `null` provider, and Shell
+Ask does not write new traces in v0.1.
 
 For the structured ingestion milestone, use
 [STRUCTURED_INGESTION_DEMO.md](STRUCTURED_INGESTION_DEMO.md) after this base
@@ -90,19 +91,21 @@ uv run ragent chunks show "<chunk_id>" --workspace .ragent
 Say that deterministic chunk ids and JSONL storage make the pipeline easier to
 debug and test.
 
-### 4. Run Lexical Search
+### 4. Run Lexical or BM25 Search
 
 ```bash
 uv run ragent search "What is Agentic RAG?" --retrieval lexical --workspace .ragent
+uv run ragent search "What is Agentic RAG?" --retrieval bm25 --workspace .ragent
 ```
 
-Explain that lexical search works immediately after ingestion and is useful for
-exact terms, file names, configuration fields, and quick local demos.
+Explain that lexical and BM25 search work immediately after ingestion. Lexical
+is the simplest token-overlap baseline; BM25 is the stronger sparse baseline for
+weighted keyword retrieval.
 
 ### 5. Ask with Sources
 
 ```bash
-uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
+uv run ragent ask "What is Agentic RAG?" --retrieval bm25 --workspace .ragent
 ```
 
 If generation is still using the default `null` provider, say that this is
@@ -123,7 +126,7 @@ v0.1; CLI `ragent ask` is the trace-producing Ask workflow.
 ### 7. Run Retrieval Evaluation
 
 ```bash
-uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
+uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval bm25 --workspace .ragent --limit 5
 ```
 
 Point out hit@k and MRR. Say that this is retrieval-only evaluation, not answer
@@ -207,7 +210,7 @@ Use these assets when presenting v0.1 in a portfolio, README, or GitHub Release:
 
 - Local workspace design with plain files under `.ragent`.
 - Markdown/TXT ingestion and deterministic chunking.
-- Lexical retrieval without embeddings.
+- Lexical and BM25 retrieval without embeddings.
 - Semantic and hybrid retrieval as optional indexed modes.
 - Source-grounded Ask and retrieval-only fallback behavior.
 - CLI operation traces for debugging and explanation.
@@ -228,20 +231,21 @@ For the structured ingestion milestone, also demonstrate:
 
 ## Fallback Path If Embeddings Are Not Configured
 
-Keep the demo lexical-only:
+Keep the demo on lexical/BM25 sparse retrieval:
 
 ```bash
 uv run ragent ingest examples/knowledge --workspace .ragent
 uv run ragent search "What is Agentic RAG?" --retrieval lexical --workspace .ragent
-uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
-uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
+uv run ragent search "What is Agentic RAG?" --retrieval bm25 --workspace .ragent
+uv run ragent ask "What is Agentic RAG?" --retrieval bm25 --workspace .ragent
+uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval bm25 --workspace .ragent --limit 5
 uv run ragent tui
 ```
 
 In the TUI, use:
 
 ```text
-/mode lexical
+/mode bm25
 /search Agentic RAG
 What is Agentic RAG?
 /sources

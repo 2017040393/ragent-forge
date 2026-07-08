@@ -7,7 +7,7 @@
 Goals:
 - Load local Markdown/TXT files.
 - Chunk documents deterministically.
-- Support lexical, semantic, and hybrid retrieval.
+- Support lexical, BM25, semantic, and hybrid retrieval.
 - Support source-grounded Ask with optional generation.
 - Add local traces and retrieval evaluation.
 - Show sources, traces, settings, and source inspection in the command-first TUI.
@@ -20,7 +20,8 @@ Non-goals:
 ## v0.2: Retrieval Quality + Better Source Inspection
 
 Goals:
-- Improve lexical retrieval quality beyond the current token-overlap baseline.
+- Improve lexical retrieval quality beyond the current token-overlap baseline
+  with BM25 as a stronger sparse baseline.
 - Add retrieval comparison workflows.
 - Make retrieval scores and source selection easier to inspect.
 - Improve trace display, export, and demo polish.

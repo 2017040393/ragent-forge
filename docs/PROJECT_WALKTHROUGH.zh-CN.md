@@ -9,8 +9,8 @@
 ```text
 ingest local documents
 -> inspect chunks
--> run lexical retrieval
--> optionally build a semantic index
+-> run lexical or BM25 retrieval
+-> optionally build a vector index
 -> run semantic or hybrid retrieval
 -> ask with sources
 -> inspect traces
@@ -81,13 +81,16 @@ uv run ragent chunks show "<chunk_id>" --workspace .ragent
 运行 demo 时，从 `chunks list` 复制一个 chunk id 到 `chunks show`。这能证明
 chunking output 是可检查的。
 
-## Step 5: 运行 Lexical Search
+## Step 5: 运行 Lexical 或 BM25 Search
 
 ```bash
 uv run ragent search "What is RAG?" --retrieval lexical --workspace .ragent
+uv run ragent search "What is RAG?" --retrieval bm25 --workspace .ragent
 ```
 
-Lexical retrieval 是默认模式，不需要 embeddings 或 vector index。
+Lexical retrieval 是默认模式。Lexical 和 BM25 retrieval 都可以在 ingest 后直接运行，
+不需要 embeddings 或 vector index。BM25 是更强的 sparse baseline，适合带权重的
+关键词检索。
 
 ## Step 6: 可选 Semantic Index Build
 
@@ -115,10 +118,11 @@ Rank Fusion 融合 BM25 和 semantic candidates。
 
 ## Step 8: Ask 一个问题
 
-Lexical Ask 不需要 index：
+Lexical 和 BM25 Ask 不需要 index：
 
 ```bash
 uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
+uv run ragent ask "What is Agentic RAG?" --retrieval bm25 --workspace .ragent
 ```
 
 Hybrid Ask 需要 vector index：
@@ -200,10 +204,10 @@ search、ask 和 retrieval eval workflows 会写入 traces。
 
 ### 使用仓库内置 Cases
 
-对小型 demo case 文件运行 lexical eval：
+对小型 demo case 文件运行 BM25 eval：
 
 ```bash
-uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval lexical --workspace .ragent
+uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval bm25 --workspace .ragent --limit 5
 ```
 
 ### 从 Source Documents 生成 Cases
@@ -231,7 +235,7 @@ uv run ragent eval generate --source examples/knowledge --workspace .ragent --ou
 然后用生成出来的 cases 运行 retrieval eval：
 
 ```bash
-uv run ragent eval retrieval --cases .ragent/eval/generated_cases.jsonl --retrieval lexical --workspace .ragent --limit 5
+uv run ragent eval retrieval --cases .ragent/eval/generated_cases.jsonl --retrieval bm25 --workspace .ragent --limit 5
 ```
 
 生成出来的 cases 引用的是 source documents 里的 evidence spans。运行
@@ -263,7 +267,7 @@ cases。它不评估 answer quality，也不运行 LLM-as-judge。
 - 派生 artifacts 保留在 `.ragent` 下。
 - Chunks 是可读的 JSONL records。
 - Search 和 Ask 输出包含 source paths 和 chunk ids。
-- Semantic 和 hybrid modes 在 vector index 存在前会清晰失败。
+- Semantic 和 hybrid modes 在 vector index 存在前会清晰失败；lexical 和 BM25 不需要 vector index。
 - CLI Ask 写入 traces；Shell Ask 不写入。
 - TUI 中的 `/trace` 读取 latest existing CLI trace。
 - Retrieval eval 使用 `examples/eval` 下的小型 JSONL cases。

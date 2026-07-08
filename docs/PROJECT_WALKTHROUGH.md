@@ -9,8 +9,8 @@ This walkthrough demonstrates the current local RAG loop:
 ```text
 ingest local documents
 -> inspect chunks
--> run lexical retrieval
--> optionally build a semantic index
+-> run lexical or BM25 retrieval
+-> optionally build a vector index
 -> run semantic or hybrid retrieval
 -> ask with sources
 -> inspect traces
@@ -84,14 +84,16 @@ uv run ragent chunks show "<chunk_id>" --workspace .ragent
 Copy a chunk id from `chunks list` into `chunks show` when running the demo.
 This proves the chunking output is inspectable.
 
-## Step 5: Run Lexical Search
+## Step 5: Run Lexical or BM25 Search
 
 ```bash
 uv run ragent search "What is RAG?" --retrieval lexical --workspace .ragent
+uv run ragent search "What is RAG?" --retrieval bm25 --workspace .ragent
 ```
 
-Lexical retrieval is the default mode and does not require embeddings or a
-vector index.
+Lexical retrieval is the default mode. Lexical and BM25 retrieval both work
+immediately after ingestion and do not require embeddings or a vector index.
+BM25 is the stronger sparse baseline when you want weighted keyword retrieval.
 
 ## Step 6: Optional Semantic Index Build
 
@@ -119,10 +121,11 @@ and semantic candidates with Reciprocal Rank Fusion.
 
 ## Step 8: Ask a Question
 
-Lexical Ask works without an index:
+Lexical and BM25 Ask work without an index:
 
 ```bash
 uv run ragent ask "What is Agentic RAG?" --retrieval lexical --workspace .ragent
+uv run ragent ask "What is Agentic RAG?" --retrieval bm25 --workspace .ragent
 ```
 
 Hybrid Ask requires the vector index:

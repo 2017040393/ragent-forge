@@ -8,7 +8,7 @@
 
 - 加载本地 Markdown/TXT 文件。
 - 确定性切分文档。
-- 支持 lexical、semantic 和 hybrid retrieval。
+- 支持 lexical、BM25、semantic 和 hybrid retrieval。
 - 支持带来源的 Ask 和可选 generation。
 - 增加本地 traces 和 retrieval evaluation。
 - 在 command-first TUI 中显示 sources、traces、settings 和 source inspection。
@@ -23,7 +23,8 @@
 
 目标：
 
-- 在当前 token-overlap baseline 之外改进 lexical retrieval quality。
+- 在当前 token-overlap baseline 之外改进 lexical retrieval quality，把 BM25 作为
+  更强的 sparse baseline。
 - 增加 retrieval comparison workflows。
 - 让 retrieval scores 和 source selection 更容易检查。
 - 改进 trace display、export 和 demo polish。
