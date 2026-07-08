@@ -1,36 +1,36 @@
 # Structured Ingestion Demo Workflow
 
-> Language: English | [中文](STRUCTURED_INGESTION_DEMO.zh-CN.md)
+> 语言: [English](STRUCTURED_INGESTION_DEMO.md) | 中文
 
-This workflow demonstrates the structured ingestion milestone. It
-shows Markdown, TXT, and PDF files flowing through the same ingestion shape:
+这个 workflow 展示 structured ingestion milestone。它展示 Markdown、TXT 和 PDF 文件
+如何流经同一种 ingestion shape：
 
 ```text
 Document + DocumentBlock[] -> BlockChunker -> DocumentChunk[]
 ```
 
-The demo uses an isolated temporary corpus and workspace so it does not modify
-your normal `.ragent` workspace.
+Demo 使用隔离的临时 corpus 和 workspace，因此不会修改你平时使用的 `.ragent`
+workspace。
 
 ## Demo Goal
 
-Prove that the current implementation can:
+证明当前实现可以：
 
-- ingest Markdown, TXT, and PDF files together;
-- preserve Markdown section metadata;
-- preserve TXT character ranges;
-- preserve PDF page and table metadata;
-- search and ask over the resulting chunks with the existing CLI commands.
+- 一起 ingest Markdown、TXT 和 PDF 文件；
+- 保留 Markdown section metadata；
+- 保留 TXT character ranges；
+- 保留 PDF page 和 table metadata；
+- 使用现有 CLI commands 对生成的 chunks 执行 search 和 ask。
 
 ## Requirements
 
-Run from the repository root:
+从仓库根目录运行：
 
 ```bash
 uv sync --extra dev
 ```
 
-The `dev` extra includes `reportlab`, which the demo uses to create a tiny PDF.
+`dev` extra 包含 `reportlab`，demo 用它创建一个很小的 PDF。
 
 ## 1. Create a Mixed Demo Corpus
 
@@ -141,7 +141,7 @@ uv run ragent status --workspace "$DEMO_WORKSPACE"
 uv run ragent chunks list --workspace "$DEMO_WORKSPACE" --limit 20
 ```
 
-PowerShell uses the same commands with `$env:` variables:
+PowerShell 使用同样的命令，只是变量写成 `$env:`：
 
 ```powershell
 uv run ragent ingest $env:DEMO_CORPUS --workspace $env:DEMO_WORKSPACE
@@ -149,16 +149,16 @@ uv run ragent status --workspace $env:DEMO_WORKSPACE
 uv run ragent chunks list --workspace $env:DEMO_WORKSPACE --limit 20
 ```
 
-Expected story:
+预期讲法：
 
-- Markdown chunks show `rag_notes.md` and character ranges.
-- TXT chunks show `plain_notes.txt` and character ranges.
-- PDF chunks show `pdf_notes.pdf` with page-based ranges when applicable.
+- Markdown chunks 显示 `rag_notes.md` 和 character ranges。
+- TXT chunks 显示 `plain_notes.txt` 和 character ranges。
+- PDF chunks 在适用时显示带 page-based ranges 的 `pdf_notes.pdf`。
 
 ## 3. Inspect Structured Metadata
 
-Print the media type, block types, character range, page range, and section
-metadata for each generated chunk.
+打印每个 generated chunk 的 media type、block types、character range、page range 和
+section metadata。
 
 ### Bash, WSL, Git Bash, or macOS/Linux shell
 
@@ -204,14 +204,14 @@ for line in chunks_path.read_text(encoding="utf-8").splitlines():
 '@ | uv run python -
 ```
 
-What to point out:
+可以指出：
 
-- Markdown has `media_type: text/markdown`.
-- TXT has `media_type: text/plain`.
-- PDF has `media_type: application/pdf`.
-- Markdown/TXT chunks have `start_char` and `end_char`.
-- PDF chunks do not need character ranges; they carry page metadata instead.
-- Markdown chunks can carry `section_title` and `heading_path`.
+- Markdown 有 `media_type: text/markdown`。
+- TXT 有 `media_type: text/plain`。
+- PDF 有 `media_type: application/pdf`。
+- Markdown/TXT chunks 有 `start_char` 和 `end_char`。
+- PDF chunks 不需要 character ranges；它们携带 page metadata。
+- Markdown chunks 可以携带 `section_title` 和 `heading_path`。
 
 ## 4. Search and Ask
 
@@ -220,29 +220,28 @@ uv run ragent search "Hybrid Retrieval" --retrieval lexical --workspace "$DEMO_W
 uv run ragent ask "What does hybrid retrieval combine?" --retrieval lexical --workspace "$DEMO_WORKSPACE"
 ```
 
-PowerShell:
+PowerShell：
 
 ```powershell
 uv run ragent search "Hybrid Retrieval" --retrieval lexical --workspace $env:DEMO_WORKSPACE
 uv run ragent ask "What does hybrid retrieval combine?" --retrieval lexical --workspace $env:DEMO_WORKSPACE
 ```
 
-Expected story:
+预期讲法：
 
-- Search and Ask still use the same public commands.
-- Retrieval is chunk-based and format-agnostic after ingestion.
-- Source labels stay compact, while inspectors can show richer metadata.
+- Search 和 Ask 仍然使用同一套 public commands。
+- Ingestion 之后 retrieval 是 chunk-based 且 format-agnostic。
+- Source labels 保持 compact，同时 inspectors 可以显示更丰富的 metadata。
 
 ## 5. Optional TUI Inspection
 
-If you want the TUI to read this demo workspace, pass the demo workspace path
-explicitly:
+如果想让 TUI 读取这个 demo workspace，显式传入 demo workspace path：
 
 ```bash
 uv run ragent tui --workspace "$DEMO_WORKSPACE"
 ```
 
-Then use:
+然后使用：
 
 ```text
 /search Hybrid Retrieval
@@ -252,18 +251,18 @@ Then use:
 /exit
 ```
 
-The selected-source Inspector should keep PDF metadata visible and show concise
-Markdown/TXT metadata such as type, section, heading path, and block type.
+Selected-source Inspector 应该保留 PDF metadata 可见，并显示 concise Markdown/TXT
+metadata，例如 type、section、heading path 和 block type。
 
 ## 6. Cleanup
 
-Bash:
+Bash：
 
 ```bash
 rm -rf "$DEMO_ROOT"
 ```
 
-PowerShell:
+PowerShell：
 
 ```powershell
 Remove-Item -Recurse -Force (Split-Path $env:DEMO_CORPUS)
@@ -271,6 +270,6 @@ Remove-Item -Recurse -Force (Split-Path $env:DEMO_CORPUS)
 
 ## Demo Summary
 
-The current implementation keeps the user-facing command surface stable while
-unifying the ingestion internals. Markdown, TXT, and PDF all become structured
-blocks before chunking, and retrieval continues to work over ordinary chunks.
+当前实现保持用户可见 command surface 稳定，同时统一 ingestion internals。Markdown、TXT
+和 PDF 都会先变成 structured blocks，再进行 chunking；retrieval 继续在 ordinary chunks
+上工作。

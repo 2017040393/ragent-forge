@@ -1,5 +1,7 @@
 # v0.1-alpha-1 Unified Structured Ingestion Foundation
 
+> Language: English | [中文](STRUCTURED_INGESTION_DESIGN.zh-CN.md)
+
 The v0.1-alpha-1 structured ingestion milestone adds a unified structured
 ingestion foundation for local knowledge files. This document preserves the
 milestone design rationale without claiming a separate released tag.

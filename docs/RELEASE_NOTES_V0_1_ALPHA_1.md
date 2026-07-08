@@ -1,5 +1,7 @@
 # RAGentForge v0.1-alpha-1 Structured Ingestion Notes
 
+> Language: English | [中文](RELEASE_NOTES_V0_1_ALPHA_1.zh-CN.md)
+
 These notes describe the v0.1-alpha-1 structured ingestion milestone after the
 PDF and structured ingestion work. This document preserves the milestone notes,
 but does not create or claim a separate released tag.

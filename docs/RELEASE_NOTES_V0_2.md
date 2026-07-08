@@ -1,5 +1,7 @@
 # RAGentForge v0.2 Release Notes
 
+> Language: English | [中文](RELEASE_NOTES_V0_2.zh-CN.md)
+
 ## Summary
 
 RAGentForge v0.2 turns the project from a local inspectable RAG demo into a

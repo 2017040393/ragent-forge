@@ -1,15 +1,13 @@
 # RAGentForge v0.2 Demo Results
 
-> Language: English | [中文](V0_2_DEMO_RESULTS.zh-CN.md)
+> 语言: [English](V0_2_DEMO_RESULTS.md) | 中文
 
-This page records one real local v0.2 demo run. The numbers below came from
-the local workspace on the stated commit; they are not benchmark claims and
-should be refreshed when the corpus, chunking, provider, or retrieval code
-changes.
+本页记录一次真实的本地 v0.2 demo run。下面的数字来自指定 commit 上的本地 workspace；
+它们不是 benchmark claims。只要 corpus、chunking、provider 或 retrieval code 发生变化，
+这些数字就应该刷新。
 
-The screenshots are rendered from real command output with absolute local paths
-normalized to `<repo>`. The TUI screenshot is exported by Textual from the
-running app.
+Screenshots 来自真实 command output，绝对本地路径已规范化为 `<repo>`。TUI screenshot
+由运行中的 Textual app 导出。
 
 ## Environment
 
@@ -25,25 +23,24 @@ running app.
 | Generation provider | `openai_responses`, model `gpt-5.5` |
 | Embedding provider | `openai_embeddings`, model `Qwen/Qwen3-Embedding-0.6B` |
 
-Current local corpus note: this run covers Markdown and PDF files from
-`examples/knowledge`. TXT ingestion is part of the current implementation, but
-this particular local corpus did not contain a `.txt` file.
+当前本地 corpus 说明：这次 run 覆盖了 `examples/knowledge` 中的 Markdown 和 PDF 文件。
+TXT ingestion 是当前实现的一部分，但这次本地 corpus 没有 `.txt` 文件。
 
 ## Screenshots
 
 | Screenshot | What It Shows |
 |---|---|
-| ![v0.2 ingest/status/chunks](assets/v0_2/v0_2_ingest_status_chunks.png) | Mixed local corpus ingest, status, and chunk listing with PDF page labels. |
-| ![v0.2 retrieval modes](assets/v0_2/v0_2_retrieval_modes.png) | Top result comparison for lexical, BM25, semantic, and hybrid retrieval. |
-| ![v0.2 eval generation](assets/v0_2/v0_2_eval_generation.png) | Span-grounded dry run plus real synthetic eval generation. |
-| ![v0.2 retrieval eval](assets/v0_2/v0_2_retrieval_eval_bm25.png) | BM25@5 retrieval evaluation with persisted report paths. |
-| ![v0.2 retrieval compare](assets/v0_2/v0_2_retrieval_compare.png) | Retrieval compare across modes and top-k limits. |
-| ![v0.2 failure analysis](assets/v0_2/v0_2_failure_analysis.png) | Deterministic failure types from compare runs. |
-| ![v0.2 TUI shell](assets/v0_2/v0_2_tui_shell.svg) | Command-first TUI with BM25 search, source inspection, and prompt preview enabled. |
+| ![v0.2 ingest/status/chunks](assets/v0_2/v0_2_ingest_status_chunks.png) | 混合本地 corpus ingest、status 和 chunk listing，包含 PDF page labels。 |
+| ![v0.2 retrieval modes](assets/v0_2/v0_2_retrieval_modes.png) | lexical、BM25、semantic 和 hybrid retrieval 的 top result comparison。 |
+| ![v0.2 eval generation](assets/v0_2/v0_2_eval_generation.png) | Span-grounded dry run 以及真实 synthetic eval generation。 |
+| ![v0.2 retrieval eval](assets/v0_2/v0_2_retrieval_eval_bm25.png) | BM25@5 retrieval evaluation 和持久化 report paths。 |
+| ![v0.2 retrieval compare](assets/v0_2/v0_2_retrieval_compare.png) | 跨 modes 和 top-k limits 的 retrieval compare。 |
+| ![v0.2 failure analysis](assets/v0_2/v0_2_failure_analysis.png) | Compare runs 产生的 deterministic failure types。 |
+| ![v0.2 TUI shell](assets/v0_2/v0_2_tui_shell.svg) | Command-first TUI，BM25 search、source inspection 和 prompt preview 已启用。 |
 
 ## 1. Prepare Workspace
 
-Commands:
+Commands：
 
 ```bash
 uv run ragent ingest examples/knowledge --workspace .ragent
@@ -51,7 +48,7 @@ uv run ragent status --workspace .ragent
 uv run ragent chunks list --workspace .ragent --limit 10
 ```
 
-Observed output summary:
+Observed output summary：
 
 ```text
 Ingest complete
@@ -64,16 +61,16 @@ Workspace: .ragent
 Status: ready
 ```
 
-Chunk listing confirmed:
+Chunk listing 确认：
 
-- Markdown chunks from `agentic_rag.md`.
-- Markdown chunks from `rag_basics.md`.
-- PDF chunks from `High-Dimensional Probability_ An Introduction wit.pdf`.
-- PDF chunks display page-aware source labels such as `p.2`, `p.3`, and `p.4`.
+- 来自 `agentic_rag.md` 的 Markdown chunks。
+- 来自 `rag_basics.md` 的 Markdown chunks。
+- 来自 `High-Dimensional Probability_ An Introduction wit.pdf` 的 PDF chunks。
+- PDF chunks 显示 page-aware source labels，例如 `p.2`、`p.3` 和 `p.4`。
 
 ## 2. Retrieval Mode Smoke Test
 
-Commands:
+Commands：
 
 ```bash
 uv run ragent search "What is Agentic RAG?" --retrieval lexical --workspace .ragent
@@ -83,7 +80,7 @@ uv run ragent search "What is Agentic RAG?" --retrieval semantic --workspace .ra
 uv run ragent search "What is Agentic RAG?" --retrieval hybrid --workspace .ragent
 ```
 
-Top result by mode:
+Top result by mode：
 
 | Mode | Top Source | Top Chunk | Score |
 |---|---|---|---:|
@@ -92,23 +89,23 @@ Top result by mode:
 | semantic | `agentic_rag.md` | `chunk-0000` | `0.835802` |
 | hybrid | `agentic_rag.md` | `chunk-0000` | `0.0327869` |
 
-Interpretation:
+Interpretation：
 
-- Lexical token overlap is easily distracted by the much larger PDF corpus.
-- BM25, semantic, and hybrid all put the intended `agentic_rag.md` chunk first.
-- Hybrid combines BM25 and semantic signals; it does not require the user to
-  choose a single sparse or dense retriever at query time.
+- Lexical token overlap 很容易被更大的 PDF corpus 干扰。
+- BM25、semantic 和 hybrid 都把预期的 `agentic_rag.md` chunk 放在第一位。
+- Hybrid 结合 BM25 和 semantic signals；用户不需要在 query time 手动选择单一 sparse
+  或 dense retriever。
 
 ## 3. Span-Grounded Eval Generation
 
-Commands:
+Commands：
 
 ```bash
 uv run ragent eval generate --source examples/knowledge --workspace .ragent --output .ragent/eval/v0_2_demo_generated_cases.jsonl --questions-per-span 2 --max-cases 6 --include-pdf --dry-run
 uv run ragent eval generate --source examples/knowledge --workspace .ragent --output .ragent/eval/v0_2_demo_generated_cases.jsonl --questions-per-span 2 --max-cases 6 --include-pdf --overwrite
 ```
 
-Observed generation output:
+Observed generation output：
 
 | Field | Value |
 |---|---:|
@@ -120,7 +117,7 @@ Observed generation output:
 | Spans skipped | `0` |
 | Error count | `0` |
 
-Generated case composition:
+Generated case composition：
 
 | Field | Value |
 |---|---|
@@ -131,7 +128,7 @@ Generated case composition:
 | Evidence media | 4 PDF evidence spans, 2 Markdown evidence spans |
 | Generation method | `llm_synthetic_span_v0.2` |
 
-Generated questions:
+Generated questions：
 
 | Case | Question |
 |---|---|
@@ -144,13 +141,13 @@ Generated questions:
 
 ## 4. Retrieval Eval
 
-Command:
+Command：
 
 ```bash
 uv run ragent eval retrieval --workspace .ragent --cases .ragent/eval/v0_2_demo_generated_cases.jsonl --retrieval bm25 --limit 5
 ```
 
-Report artifacts:
+Report artifacts：
 
 | Artifact | Path |
 |---|---|
@@ -161,7 +158,7 @@ Report artifacts:
 | Cases JSONL | `.ragent/eval/runs/retrieval-20260707T100034Z-001/cases.jsonl` |
 | Failures JSONL | `.ragent/eval/runs/retrieval-20260707T100034Z-001/failures.jsonl` |
 
-BM25@5 metrics:
+BM25@5 metrics：
 
 | Metric | Value |
 |---|---:|
@@ -179,21 +176,21 @@ BM25@5 metrics:
 | avg_retrieved_context_chars | `4117.1667` |
 | avg_estimated_context_tokens | `1029.5000` |
 
-Failure analysis:
+Failure analysis：
 
 | Failure Type | Count | Notes |
 |---|---:|---|
-| none | `0` | `failures.jsonl` was empty for BM25@5. |
+| none | `0` | BM25@5 的 `failures.jsonl` 为空。 |
 
 ## 5. Retrieval Compare
 
-Command:
+Command：
 
 ```bash
 uv run ragent eval compare --workspace .ragent --cases .ragent/eval/v0_2_demo_generated_cases.jsonl --retrieval lexical,bm25,semantic,hybrid --limit 1,3,5
 ```
 
-Compare output:
+Compare output：
 
 | Retrieval | k | Status | Hit@k | Recall@k | MRR | Avg Latency ms | Failures |
 |---|---:|---|---:|---:|---:|---:|---:|
@@ -210,14 +207,14 @@ Compare output:
 | hybrid | 3 | success | `1.0000` | `0.5833` | `0.8056` | `1342.3165` | `0` |
 | hybrid | 5 | success | `1.0000` | `0.6250` | `0.8056` | `1226.3193` | `0` |
 
-Compare artifacts:
+Compare artifacts：
 
 | Artifact | Path |
 |---|---|
 | Compare report | `.ragent/eval/retrieval_compare_20260707T100128Z.json` |
 | Individual run directories | `.ragent/eval/runs/` |
 
-Failure breakdown from compare runs:
+Failure breakdown from compare runs：
 
 | Retrieval | k | Failures | Failure Breakdown |
 |---|---:|---:|---|
@@ -229,19 +226,19 @@ Failure breakdown from compare runs:
 | semantic | 3 | `1` | `wrong_section: 1` |
 | hybrid | 1 | `2` | `wrong_section: 2` |
 
-Interpretation:
+Interpretation：
 
-- For this local run, `hybrid@5` had the highest recall@k (`0.6250`) and MRR
-  (`0.8056`) while still passing all 6 cases.
-- `bm25@3` and `bm25@5` also passed all 6 cases and were much faster than
-  semantic/hybrid because they did not call the embedding search path.
-- Lexical remained a useful baseline, but it struggled on this mixed corpus
-  because the large PDF contributed many high-overlap distractor chunks.
+- 在这次本地 run 中，`hybrid@5` 的 recall@k (`0.6250`) 和 MRR (`0.8056`) 最高，
+  同时 6 个 cases 全部通过。
+- `bm25@3` 和 `bm25@5` 也通过了全部 6 个 cases，并且比 semantic/hybrid 快得多，
+  因为它们没有调用 embedding search path。
+- Lexical 仍是有用 baseline，但在这个 mixed corpus 上表现吃力，因为大型 PDF 贡献了很多
+  high-overlap distractor chunks。
 
 ## 6. TUI Smoke Check
 
-The TUI screenshot was captured with Textual's `save_screenshot` API after
-launching `RagentForgeApp` against `.ragent` and submitting these commands:
+TUI screenshot 是通过 Textual 的 `save_screenshot` API 捕获的，当时以 `.ragent`
+启动 `RagentForgeApp` 并提交了这些 commands：
 
 ```text
 /mode bm25
@@ -251,25 +248,23 @@ launching `RagentForgeApp` against `.ragent` and submitting these commands:
 /prompt on
 ```
 
-Observed checks:
+Observed checks：
 
 | Check | Result | Notes |
 |---|---|---|
-| TUI launches | pass | Textual test harness opened `RagentForgeApp`. |
-| BM25 mode is selectable | pass | Status changed to `mode: bm25`. |
-| Search completes | pass | BM25 search returned sources from local chunks. |
-| Sources are navigable | pass | `/source 1` selected the first source. |
-| Inspector shows selected source | pass | Inspector showed selected source details. |
-| Prompt preview toggles | pass | `/prompt on` enabled prompt preview in the shell state. |
+| TUI launches | pass | Textual test harness 打开了 `RagentForgeApp`。 |
+| BM25 mode is selectable | pass | Status 变为 `mode: bm25`。 |
+| Search completes | pass | BM25 search 从 local chunks 返回 sources。 |
+| Sources are navigable | pass | `/source 1` 选中了第一个 source。 |
+| Inspector shows selected source | pass | Inspector 显示 selected source details。 |
+| Prompt preview toggles | pass | `/prompt on` 启用了 shell state 中的 prompt preview。 |
 
 ## Final Notes
 
-- Best quality mode in this local run: `hybrid@5`, based on recall@k and MRR.
-- Best fast sparse mode in this local run: `bm25@5`, based on all cases passing
-  with much lower latency than semantic/hybrid.
-- Most useful failure types: `missed_source` and `wrong_section`.
-- Dataset cleanup note: the generated dataset is small (`6` cases) and useful
-  for a demo, not a benchmark.
-- Retrieval improvement note: the lexical baseline is weak on this corpus
-  because exact token overlap is distracted by a large PDF; BM25 is a better
-  sparse default for mixed local corpora.
+- 这次本地 run 中 quality 最好的 mode：`hybrid@5`，依据 recall@k 和 MRR。
+- 这次本地 run 中最快的 sparse mode：`bm25@5`，依据全部 cases 通过且 latency 远低于
+  semantic/hybrid。
+- 最有用的 failure types：`missed_source` 和 `wrong_section`。
+- Dataset cleanup note：generated dataset 很小（`6` cases），适合 demo，不是 benchmark。
+- Retrieval improvement note：lexical baseline 在这个 corpus 上较弱，因为 exact token
+  overlap 被大型 PDF 干扰；对于 mixed local corpora，BM25 是更好的 sparse default。

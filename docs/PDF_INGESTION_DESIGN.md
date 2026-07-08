@@ -1,5 +1,7 @@
 # PDF Structured Ingestion Design
 
+> Language: English | [中文](PDF_INGESTION_DESIGN.zh-CN.md)
+
 ## Goal
 
 Define the planned v0.1.1 PDF Structured Ingestion Foundation for RAGentForge.

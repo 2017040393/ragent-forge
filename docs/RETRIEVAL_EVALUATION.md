@@ -1,5 +1,7 @@
 # Retrieval Evaluation
 
+> Language: English | [中文](RETRIEVAL_EVALUATION.zh-CN.md)
+
 RAGentForge v0.2 turns retrieval evaluation into a local quality engineering
 loop. The goal is to make retrieval quality measurable, comparable, and
 diagnosable without a hosted service or hidden backend.
