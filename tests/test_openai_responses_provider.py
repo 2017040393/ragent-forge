@@ -31,6 +31,30 @@ class FakeResponse:
         return self.payload
 
 
+class FakeStreamResponse:
+    headers = {"content-type": "text/event-stream"}
+
+    def __init__(self, lines: list[str]) -> None:
+        self.lines = lines
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def iter_lines(self):
+        return iter(self.lines)
+
+
+class FakeStreamContext:
+    def __init__(self, response: FakeStreamResponse) -> None:
+        self.response = response
+
+    def __enter__(self) -> FakeStreamResponse:
+        return self.response
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        return None
+
+
 class FakeHttpClient:
     def __init__(self, payload: object | None = None, error: Exception | None = None):
         self.payload = payload if payload is not None else {"output_text": "answer"}
@@ -56,6 +80,32 @@ class FakeHttpClient:
         if self.error is not None:
             raise self.error
         return FakeResponse(self.payload)
+
+
+class FakeStreamingHttpClient:
+    def __init__(self, response: FakeStreamResponse) -> None:
+        self.response = response
+        self.calls: list[FakeHttpCall] = []
+
+    def stream(
+        self,
+        method: str,
+        url: str,
+        *,
+        headers: dict[str, str],
+        json: dict[str, Any],
+        timeout: int,
+    ) -> FakeStreamContext:
+        assert method == "POST"
+        self.calls.append(
+            {
+                "url": url,
+                "headers": headers,
+                "json": json,
+                "timeout": timeout,
+            }
+        )
+        return FakeStreamContext(self.response)
 
 
 class SequencedFakeHttpClient:
@@ -167,6 +217,39 @@ def test_request_body_shape_includes_expected_fields() -> None:
     assert "/knowledge/rag.md::chunk-0001" in body["input"][1]["content"]
     assert "Agentic RAG uses planning." in body["input"][1]["content"]
     assert "Generation is not implemented yet." not in body["input"][1]["content"]
+
+
+def test_stream_generate_yields_output_text_deltas_and_done_result() -> None:
+    fake_client = FakeStreamingHttpClient(
+        FakeStreamResponse(
+            [
+                "event: response.output_text.delta",
+                'data: {"type":"response.output_text.delta","delta":"Agentic "}',
+                "",
+                "event: response.output_text.delta",
+                'data: {"type":"response.output_text.delta","delta":"RAG"}',
+                "",
+                "event: response.completed",
+                'data: {"type":"response.completed","status":"completed"}',
+                "",
+            ]
+        )
+    )
+    provider = OpenAIResponsesGenerationProvider(
+        base_url="https://api.openai.com/v1",
+        model="gpt-4o-mini",
+        api_key="sk-test-secret",
+        http_client=fake_client,
+    )
+
+    events = list(provider.stream_generate(make_request()))
+
+    assert [event.type for event in events] == ["delta", "delta", "done"]
+    assert [event.text for event in events[:2]] == ["Agentic ", "RAG"]
+    assert events[-1].result is not None
+    assert events[-1].result.answer == "Agentic RAG"
+    assert events[-1].result.status == "success"
+    assert fake_client.calls[0]["json"]["stream"] is True
 
 
 def test_reasoning_field_included_when_configured() -> None:

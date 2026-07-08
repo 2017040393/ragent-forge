@@ -2,6 +2,7 @@ from pathlib import Path
 
 from ragent_forge.app.models import Document, GenerationResult, IngestResult
 from ragent_forge.app.services.ask_service import AskService
+from ragent_forge.app.services.generation_service import GenerationStreamEvent
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
@@ -76,6 +77,53 @@ def test_ask_service_generates_answer_when_context_exists(tmp_path: Path) -> Non
     assert result.answer == "Generated answer"
     assert result.generation_result.status == "success"
     assert result.results[0].chunk_id == "/knowledge/rag.md::chunk-0000"
+
+
+def test_ask_service_stream_answer_yields_deltas_and_done_result(
+    tmp_path: Path,
+) -> None:
+    class FakeGenerationService:
+        class Provider:
+            provider_name = "openai_responses"
+
+        provider = Provider()
+
+        def __init__(self) -> None:
+            self.context_questions: list[str] = []
+
+        def generate(self, context_pack):
+            raise AssertionError("stream_answer should use stream_generate")
+
+        def stream_generate(self, context_pack):
+            self.context_questions.append(context_pack.question)
+            yield GenerationStreamEvent(type="delta", text="Generated ")
+            yield GenerationStreamEvent(type="delta", text="answer")
+            yield GenerationStreamEvent(
+                type="done",
+                result=GenerationResult(
+                    provider_name="openai_responses",
+                    status="success",
+                    answer="Generated answer",
+                    metadata={},
+                ),
+            )
+
+    fake_generation_service = FakeGenerationService()
+    workspace = make_ask_workspace(tmp_path)
+
+    events = list(
+        AskService(
+            workspace,
+            generation_service=fake_generation_service,
+        ).stream_answer("agent memory", limit=1)
+    )
+
+    assert [event.type for event in events] == ["delta", "delta", "done"]
+    assert [event.text for event in events[:2]] == ["Generated ", "answer"]
+    assert events[-1].result is not None
+    assert events[-1].result.answer == "Generated answer"
+    assert events[-1].result.sources[0].chunk_id == "/knowledge/rag.md::chunk-0000"
+    assert fake_generation_service.context_questions == ["agent memory"]
 
 
 def test_ask_service_skips_generation_when_no_context(tmp_path: Path) -> None:

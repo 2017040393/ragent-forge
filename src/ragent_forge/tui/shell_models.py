@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field, replace
-from typing import Any, Literal, cast
+from typing import Any, Final, Literal, cast
 
 from ragent_forge.app.services.chunk_service import make_preview
 from ragent_forge.app.services.search_service import SearchResult
@@ -31,6 +31,168 @@ _SENSITIVE_TEXT_PATTERNS = (
     re.compile(r"\bsecret\s*[:=]", re.IGNORECASE),
     re.compile(r"\btoken\s*[:=]", re.IGNORECASE),
 )
+_LATEX_INLINE_MATH_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"(?:\\\\|\\)\((.*?)(?:\\\\|\\)\)"
+)
+_LATEX_DISPLAY_MATH_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"(?:\\\\|\\)\[(.*?)(?:\\\\|\\)\]"
+)
+_DOLLAR_INLINE_MATH_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"(?<!\\)\$([^$\n]*?[\\^_=][^$\n]*?)(?<!\\)\$"
+)
+_LATEX_SCRIPT_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"(?P<operator>[\^_])"
+    r"(?:\{(?P<braced>[A-Za-z0-9+\-=()]{1,8})\}|"
+    r"(?P<plain>[A-Za-z0-9+\-=()]))"
+)
+_STANDALONE_SUPERSCRIPT_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"(?P<base>[A-Za-z0-9\u2102\u2115\u211a\u211d\u2124)\]])"
+    r"\^(?:\{(?P<braced>[A-Za-z0-9+\-=()]{1,8})\}|"
+    r"(?P<plain>[A-Za-z0-9+\-=()]))"
+)
+_LATEX_MATHBB_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"(?:\\\\|\\)mathbb\{([A-Za-z])\}"
+)
+_LATEX_MATHBB_SYMBOLS: Final[dict[str, str]] = {
+    "C": "\u2102",
+    "N": "\u2115",
+    "Q": "\u211a",
+    "R": "\u211d",
+    "Z": "\u2124",
+}
+_LATEX_SYMBOLS: Final[dict[str, str]] = {
+    "alpha": "\u03b1",
+    "beta": "\u03b2",
+    "gamma": "\u03b3",
+    "delta": "\u03b4",
+    "epsilon": "\u03b5",
+    "varepsilon": "\u03b5",
+    "theta": "\u03b8",
+    "lambda": "\u03bb",
+    "mu": "\u03bc",
+    "pi": "\u03c0",
+    "sigma": "\u03c3",
+    "phi": "\u03c6",
+    "varphi": "\u03c6",
+    "omega": "\u03c9",
+    "Gamma": "\u0393",
+    "Delta": "\u0394",
+    "Theta": "\u0398",
+    "Lambda": "\u039b",
+    "Pi": "\u03a0",
+    "Sigma": "\u03a3",
+    "Phi": "\u03a6",
+    "Omega": "\u03a9",
+    "le": "\u2264",
+    "leq": "\u2264",
+    "ge": "\u2265",
+    "geq": "\u2265",
+    "neq": "\u2260",
+    "approx": "\u2248",
+    "propto": "\u221d",
+    "in": "\u2208",
+    "notin": "\u2209",
+    "subset": "\u2282",
+    "subseteq": "\u2286",
+    "supset": "\u2283",
+    "supseteq": "\u2287",
+    "cup": "\u222a",
+    "cap": "\u2229",
+    "times": "\u00d7",
+    "cdot": "\u00b7",
+    "pm": "\u00b1",
+    "to": "\u2192",
+    "rightarrow": "\u2192",
+    "leftarrow": "\u2190",
+    "Rightarrow": "\u21d2",
+    "infty": "\u221e",
+    "sum": "\u2211",
+    "prod": "\u220f",
+    "int": "\u222b",
+    "forall": "\u2200",
+    "exists": "\u2203",
+    "nabla": "\u2207",
+    "partial": "\u2202",
+    "sqrt": "\u221a",
+    "ldots": "...",
+    "dots": "...",
+}
+_SUPERSCRIPT_CHARS: Final[dict[str, str]] = {
+    "0": "\u2070",
+    "1": "\u00b9",
+    "2": "\u00b2",
+    "3": "\u00b3",
+    "4": "\u2074",
+    "5": "\u2075",
+    "6": "\u2076",
+    "7": "\u2077",
+    "8": "\u2078",
+    "9": "\u2079",
+    "+": "\u207a",
+    "-": "\u207b",
+    "=": "\u207c",
+    "(": "\u207d",
+    ")": "\u207e",
+    "a": "\u1d43",
+    "b": "\u1d47",
+    "c": "\u1d9c",
+    "d": "\u1d48",
+    "e": "\u1d49",
+    "f": "\u1da0",
+    "g": "\u1d4d",
+    "h": "\u02b0",
+    "i": "\u2071",
+    "j": "\u02b2",
+    "k": "\u1d4f",
+    "l": "\u02e1",
+    "m": "\u1d50",
+    "n": "\u207f",
+    "o": "\u1d52",
+    "p": "\u1d56",
+    "r": "\u02b3",
+    "s": "\u02e2",
+    "t": "\u1d57",
+    "u": "\u1d58",
+    "v": "\u1d5b",
+    "w": "\u02b7",
+    "x": "\u02e3",
+    "y": "\u02b8",
+    "z": "\u1dbb",
+}
+_SUBSCRIPT_CHARS: Final[dict[str, str]] = {
+    "0": "\u2080",
+    "1": "\u2081",
+    "2": "\u2082",
+    "3": "\u2083",
+    "4": "\u2084",
+    "5": "\u2085",
+    "6": "\u2086",
+    "7": "\u2087",
+    "8": "\u2088",
+    "9": "\u2089",
+    "+": "\u208a",
+    "-": "\u208b",
+    "=": "\u208c",
+    "(": "\u208d",
+    ")": "\u208e",
+    "a": "\u2090",
+    "e": "\u2091",
+    "h": "\u2095",
+    "i": "\u1d62",
+    "j": "\u2c7c",
+    "k": "\u2096",
+    "l": "\u2097",
+    "m": "\u2098",
+    "n": "\u2099",
+    "o": "\u2092",
+    "p": "\u209a",
+    "r": "\u1d63",
+    "s": "\u209b",
+    "t": "\u209c",
+    "u": "\u1d64",
+    "v": "\u1d65",
+    "x": "\u2093",
+}
 
 _SOURCE_METADATA_LABELS = {
     "retrieval_method": "method",
@@ -74,11 +236,12 @@ class TranscriptMessage:
 
 @dataclass(frozen=True)
 class ShellState:
-    retrieval_mode: RetrievalMode = "lexical"
+    retrieval_mode: RetrievalMode = "hybrid"
     limit: int = 5
     max_context_chars: int = 4000
     show_prompt: bool = False
     running: bool = False
+    notice: str | None = None
     messages: tuple[TranscriptMessage, ...] = ()
     selected_source: TranscriptSource | None = None
     available_sources: tuple[TranscriptSource, ...] = ()
@@ -86,13 +249,19 @@ class ShellState:
 
 
 def create_initial_shell_state() -> ShellState:
-    return ShellState(messages=(_welcome_message(),))
+    return ShellState()
 
 
 def append_message(state: ShellState, message: TranscriptMessage) -> ShellState:
+    notice = state.notice
+    if message.role in {"tool", "error"}:
+        notice = message.text
+    elif message.role == "assistant":
+        notice = None
     updated = replace(
         state,
         messages=(*state.messages, message),
+        notice=notice,
     )
     if message.sources:
         return set_available_sources(updated, message.sources)
@@ -113,7 +282,8 @@ def clear_transcript(state: ShellState) -> ShellState:
     return replace(
         state,
         running=False,
-        messages=(_welcome_message(),),
+        notice=None,
+        messages=(),
         selected_source=None,
         available_sources=(),
         inspector_text=None,
@@ -147,6 +317,10 @@ def set_show_prompt(state: ShellState, show_prompt: bool) -> ShellState:
 
 def set_running(state: ShellState, running: bool) -> ShellState:
     return replace(state, running=running)
+
+
+def set_notice(state: ShellState, text: str | None) -> ShellState:
+    return replace(state, notice=text)
 
 
 def set_inspector_text(state: ShellState, text: str | None) -> ShellState:
@@ -364,7 +538,7 @@ def format_transcript_message(message: TranscriptMessage) -> str:
         "tool": "Tool",
         "error": "Error",
     }[message.role]
-    lines = _safe_display_text(message.text).splitlines() or [""]
+    lines = _display_text_for_message(message).splitlines() or [""]
     indented = "\n".join(f"  {line}" for line in lines)
     rendered = f"{heading}:\n{indented}"
     if message.sources:
@@ -376,6 +550,19 @@ def format_transcript(
     messages: list[TranscriptMessage] | tuple[TranscriptMessage, ...],
 ) -> str:
     return "\n\n".join(format_transcript_message(message) for message in messages)
+
+
+def format_conversation_transcript(
+    messages: list[TranscriptMessage] | tuple[TranscriptMessage, ...],
+) -> str:
+    visible_messages = [
+        replace(message, sources=())
+        for message in messages
+        if message.role in {"user", "assistant"}
+    ]
+    return "\n\n".join(
+        format_transcript_message(message) for message in visible_messages
+    )
 
 
 def format_transcript_sources(
@@ -408,41 +595,29 @@ def format_transcript_sources(
 def format_shell_status(state: ShellState) -> str:
     prompt = "on" if state.show_prompt else "off"
     status = "running" if state.running else "idle"
-    return (
+    summary = (
         f"mode: {state.retrieval_mode} | "
         f"limit: {state.limit} | "
         f"context: {state.max_context_chars} | "
         f"prompt: {prompt} | "
         f"status: {status}"
     )
+    if state.notice:
+        return "\n".join([summary, state.notice.splitlines()[0]])
+    return summary
 
 
 def format_shell_inspector(state: ShellState) -> str:
     if state.inspector_text is not None:
         return _safe_display_text(state.inspector_text)
 
-    prompt = "on" if state.show_prompt else "off"
-    selected_source = (
-        compact_source_label(
-            state.selected_source.source_path,
-            state.selected_source.metadata,
-        )
-        if state.selected_source is not None
-        else "none"
-    )
-    lines = [
-        "Shell details",
-        "",
-        f"mode: {state.retrieval_mode}",
-        f"limit: {state.limit}",
-        f"context: {state.max_context_chars}",
-        f"prompt: {prompt}",
-        f"messages: {len(state.messages)}",
-        f"selected source: {selected_source}",
-    ]
     if state.selected_source is not None:
-        lines.extend(["", format_shell_source_details(state.selected_source)])
-    return "\n".join(lines)
+        return format_shell_source_details(state.selected_source)
+
+    if state.notice:
+        return "\n".join(["Status", "", _safe_display_text(state.notice)])
+
+    return "Inspector\n\nNo source selected."
 
 
 def format_shell_source_details(source: TranscriptSource) -> str:
@@ -525,6 +700,100 @@ def _safe_display_text(text: str) -> str:
         else:
             sanitized_lines.append(line)
     return "\n".join(sanitized_lines)
+
+
+def _display_text_for_message(message: TranscriptMessage) -> str:
+    text = _safe_display_text(message.text)
+    if message.role == "assistant":
+        return _normalize_latex_math_for_display(text)
+    return text
+
+
+def _normalize_latex_math_for_display(text: str) -> str:
+    normalized_lines: list[str] = []
+    in_code_block = False
+    for line in text.splitlines(keepends=True):
+        if _is_markdown_code_fence(line):
+            normalized_lines.append(line)
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            normalized_lines.append(line)
+        else:
+            normalized_lines.append(_normalize_latex_math_segment(line))
+    return "".join(normalized_lines)
+
+
+def _is_markdown_code_fence(line: str) -> bool:
+    stripped = line.lstrip()
+    return stripped.startswith("```") or stripped.startswith("~~~")
+
+
+def _normalize_latex_math_segment(text: str) -> str:
+    text = _LATEX_DISPLAY_MATH_PATTERN.sub(_replace_latex_math_match, text)
+    text = _LATEX_INLINE_MATH_PATTERN.sub(_replace_latex_math_match, text)
+    text = _DOLLAR_INLINE_MATH_PATTERN.sub(_replace_latex_math_match, text)
+    text = _normalize_latex_symbols(text)
+    return _normalize_standalone_superscripts(text)
+
+
+def _replace_latex_math_match(match: re.Match[str]) -> str:
+    return _normalize_latex_math_content(match.group(1).strip())
+
+
+def _normalize_latex_math_content(text: str) -> str:
+    return _normalize_latex_scripts(_normalize_latex_symbols(text))
+
+
+def _normalize_latex_scripts(text: str) -> str:
+    return _LATEX_SCRIPT_PATTERN.sub(_replace_latex_script_match, text)
+
+
+def _replace_latex_script_match(match: re.Match[str]) -> str:
+    operator = match.group("operator")
+    raw_value = match.group("braced") or match.group("plain") or ""
+    table = _SUPERSCRIPT_CHARS if operator == "^" else _SUBSCRIPT_CHARS
+    converted = _translate_script_text(raw_value, table)
+    if converted is None:
+        return match.group(0)
+    return converted
+
+
+def _normalize_standalone_superscripts(text: str) -> str:
+    return _STANDALONE_SUPERSCRIPT_PATTERN.sub(
+        _replace_standalone_superscript_match,
+        text,
+    )
+
+
+def _replace_standalone_superscript_match(match: re.Match[str]) -> str:
+    raw_value = match.group("braced") or match.group("plain") or ""
+    converted = _translate_script_text(raw_value, _SUPERSCRIPT_CHARS)
+    if converted is None:
+        return match.group(0)
+    return f"{match.group('base')}{converted}"
+
+
+def _translate_script_text(text: str, table: dict[str, str]) -> str | None:
+    chars: list[str] = []
+    for char in text:
+        mapped = table.get(char)
+        if mapped is None:
+            return None
+        chars.append(mapped)
+    return "".join(chars)
+
+
+def _normalize_latex_symbols(text: str) -> str:
+    text = _LATEX_MATHBB_PATTERN.sub(_replace_latex_mathbb_match, text)
+    for command, symbol in _LATEX_SYMBOLS.items():
+        text = re.sub(rf"(?:\\\\|\\){command}(?![A-Za-z])", symbol, text)
+    return text
+
+
+def _replace_latex_mathbb_match(match: re.Match[str]) -> str:
+    value = match.group(1)
+    return _LATEX_MATHBB_SYMBOLS.get(value, value)
 
 
 def _looks_like_sensitive_text(line: str) -> bool:

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from ragent_forge.app.models import AppConfig, GenerationResult, WorkspaceStatus
-from ragent_forge.app.services.ask_service import AskService
+from ragent_forge.app.services.ask_service import AskAnswerResult, AskService
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.embedding_service import EmbeddingService
-from ragent_forge.app.services.generation_service import GenerationService
+from ragent_forge.app.services.generation_service import (
+    GenerationService,
+    GenerationStreamEvent,
+)
 from ragent_forge.app.services.hybrid_search_service import HybridSearchService
 from ragent_forge.app.services.search_service import (
     BM25SearchService,
@@ -109,6 +113,16 @@ class AskPageState:
     has_run: bool = False
 
 
+TuiAskStreamEventType = Literal["delta", "done"]
+
+
+@dataclass(frozen=True)
+class TuiAskStreamEvent:
+    type: TuiAskStreamEventType
+    text: str = ""
+    state: AskPageState | None = None
+
+
 @dataclass(frozen=True)
 class TracePageModel:
     latest_trace: dict[str, Any] | None = None
@@ -155,6 +169,34 @@ class _SafeTuiGenerationProvider:
                 status="failed",
                 answer=None,
                 error=ASK_GENERATION_FAILED_STATUS,
+            )
+
+    def stream_generate(
+        self,
+        request: Any,
+    ) -> Iterator[GenerationStreamEvent]:
+        stream_generate = getattr(self.provider, "stream_generate", None)
+        try:
+            if callable(stream_generate):
+                stream_generate_fn = cast(
+                    Callable[[Any], Iterator[GenerationStreamEvent]],
+                    stream_generate,
+                )
+                yield from stream_generate_fn(request)
+                return
+            yield GenerationStreamEvent(
+                type="done",
+                result=self.provider.generate(request),
+            )
+        except Exception:
+            yield GenerationStreamEvent(
+                type="done",
+                result=GenerationResult(
+                    provider_name=self.provider_name,
+                    status="failed",
+                    answer=None,
+                    error=ASK_GENERATION_FAILED_STATUS,
+                ),
             )
 
 
@@ -427,46 +469,84 @@ def run_tui_ask(
     max_context_chars: int,
     show_prompt: bool,
 ) -> AskPageState:
+    final_state: AskPageState | None = None
+    for event in stream_tui_ask(
+        workspace_path,
+        question,
+        retrieval_mode,
+        limit,
+        max_context_chars,
+        show_prompt,
+    ):
+        if event.type == "done":
+            final_state = event.state
+    if final_state is not None:
+        return final_state
+    mode = _normalize_retrieval_mode(retrieval_mode)
+    return _ask_error_state(
+        question=question,
+        mode=mode,
+        limit=max(limit, 0),
+        max_context_chars=max(max_context_chars, 0),
+        show_prompt=show_prompt,
+        message="Ask failed. Check configuration and workspace files.",
+    )
+
+
+def stream_tui_ask(
+    workspace_path: str | Path,
+    question: str,
+    retrieval_mode: str,
+    limit: int,
+    max_context_chars: int,
+    show_prompt: bool,
+) -> Iterator[TuiAskStreamEvent]:
     mode = _normalize_retrieval_mode(retrieval_mode)
     safe_limit = max(limit, 0)
     safe_max_context_chars = max(max_context_chars, 0)
     normalized_question = question.strip()
     if not normalized_question:
-        return AskPageState(
-            question=question,
-            retrieval_mode=mode,
-            limit=safe_limit,
-            max_context_chars=safe_max_context_chars,
-            show_prompt=show_prompt,
-            status="Enter a question.",
-            error="Enter a question.",
-            has_run=True,
+        yield TuiAskStreamEvent(
+            type="done",
+            state=_ask_error_state(
+                question=question,
+                mode=mode,
+                limit=safe_limit,
+                max_context_chars=safe_max_context_chars,
+                show_prompt=show_prompt,
+                message="Enter a question.",
+            ),
         )
+        return
 
     workspace = LocalWorkspace(workspace_path)
     if not workspace.has_chunks():
-        return AskPageState(
-            question=question,
-            retrieval_mode=mode,
-            limit=safe_limit,
-            max_context_chars=safe_max_context_chars,
-            show_prompt=show_prompt,
-            status=NO_CHUNKS_MESSAGE,
-            error=NO_CHUNKS_MESSAGE,
-            has_run=True,
+        yield TuiAskStreamEvent(
+            type="done",
+            state=_ask_error_state(
+                question=question,
+                mode=mode,
+                limit=safe_limit,
+                max_context_chars=safe_max_context_chars,
+                show_prompt=show_prompt,
+                message=NO_CHUNKS_MESSAGE,
+            ),
         )
+        return
 
     if mode in {"semantic", "hybrid"} and not workspace.has_vector_index():
-        return AskPageState(
-            question=question,
-            retrieval_mode=mode,
-            limit=safe_limit,
-            max_context_chars=safe_max_context_chars,
-            show_prompt=show_prompt,
-            status=VECTOR_INDEX_MISSING_MESSAGE,
-            error=VECTOR_INDEX_MISSING_MESSAGE,
-            has_run=True,
+        yield TuiAskStreamEvent(
+            type="done",
+            state=_ask_error_state(
+                question=question,
+                mode=mode,
+                limit=safe_limit,
+                max_context_chars=safe_max_context_chars,
+                show_prompt=show_prompt,
+                message=VECTOR_INDEX_MISSING_MESSAGE,
+            ),
         )
+        return
 
     try:
         config = ConfigService(workspace).load()
@@ -475,52 +555,118 @@ def run_tui_ask(
         safe_generation_service = GenerationService(
             _SafeTuiGenerationProvider(generation_service.provider)
         )
-        result = AskService(
+        ask_service = AskService(
             workspace=workspace,
             generation_service=safe_generation_service,
             search_service=retrieval.search_service,
             retrieval_method=retrieval.retrieval_method,
-        ).ask(
+        )
+        answer_result: AskAnswerResult | None = None
+        for event in ask_service.stream_answer(
             normalized_question,
             limit=safe_limit,
             max_context_chars=safe_max_context_chars,
-        )
+        ):
+            if event.type == "delta":
+                yield TuiAskStreamEvent(type="delta", text=event.text)
+            elif event.type == "done":
+                answer_result = event.result
+        if answer_result is None:
+            yield TuiAskStreamEvent(
+                type="done",
+                state=_ask_error_state(
+                    question=question,
+                    mode=mode,
+                    limit=safe_limit,
+                    max_context_chars=safe_max_context_chars,
+                    show_prompt=show_prompt,
+                    message="Ask failed. Check configuration and workspace files.",
+                ),
+            )
+            return
     except (OSError, RuntimeError, ValueError):
-        return AskPageState(
+        yield TuiAskStreamEvent(
+            type="done",
+            state=_ask_error_state(
+                question=question,
+                mode=mode,
+                limit=safe_limit,
+                max_context_chars=safe_max_context_chars,
+                show_prompt=show_prompt,
+                message="Ask failed. Check configuration and workspace files.",
+            ),
+        )
+        return
+
+    yield TuiAskStreamEvent(
+        type="done",
+        state=_ask_page_state_from_answer_result(
             question=question,
-            retrieval_mode=mode,
+            mode=mode,
             limit=safe_limit,
             max_context_chars=safe_max_context_chars,
             show_prompt=show_prompt,
-            status="Ask failed. Check configuration and workspace files.",
-            error="Ask failed. Check configuration and workspace files.",
-            has_run=True,
-        )
+            answer_result=answer_result,
+            retrieval_method=retrieval.retrieval_method,
+        ),
+    )
 
+
+def _ask_page_state_from_answer_result(
+    *,
+    question: str,
+    mode: RetrievalMode,
+    limit: int,
+    max_context_chars: int,
+    show_prompt: bool,
+    answer_result: AskAnswerResult,
+    retrieval_method: str,
+) -> AskPageState:
     sources = [
-        _with_default_retrieval_method(source, retrieval.retrieval_method)
-        for source in result.results
+        _with_default_retrieval_method(source, retrieval_method)
+        for source in answer_result.results
     ]
-    generation_result = result.generation_result
+    generation_result = answer_result.generation_result
     status = _ask_status_for_generation(generation_result.status, bool(sources))
     prompt_preview = (
-        _bounded_prompt_preview(result.context_pack.prompt_preview)
+        _bounded_prompt_preview(answer_result.context_pack.prompt_preview)
         if show_prompt
         else None
     )
     return AskPageState(
         question=question,
         retrieval_mode=mode,
-        limit=safe_limit,
-        max_context_chars=safe_max_context_chars,
+        limit=limit,
+        max_context_chars=max_context_chars,
         show_prompt=show_prompt,
         status=status,
-        answer=result.answer,
+        answer=answer_result.answer,
         sources=sources,
         selected_source=sources[0] if sources else None,
         generation_status=generation_result.status,
         generation_provider=generation_result.provider_name,
         prompt_preview=prompt_preview,
+        has_run=True,
+    )
+
+
+def _ask_error_state(
+    *,
+    question: str,
+    mode: RetrievalMode,
+    limit: int,
+    max_context_chars: int,
+    show_prompt: bool,
+    message: str,
+) -> AskPageState:
+    return AskPageState(
+        question=question,
+        retrieval_mode=mode,
+        limit=limit,
+        max_context_chars=max_context_chars,
+        show_prompt=show_prompt,
+        status=message,
+        error=message,
         has_run=True,
     )
 

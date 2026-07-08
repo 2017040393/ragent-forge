@@ -1,6 +1,7 @@
 import importlib.util
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from textual import events
@@ -15,7 +16,7 @@ from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 from ragent_forge.tui import main as tui_main
 from ragent_forge.tui.main import RagentForgeApp
-from ragent_forge.tui.shell_models import WELCOME_MESSAGE, TranscriptSource
+from ragent_forge.tui.shell_models import TranscriptSource
 from ragent_forge.tui.view_models import AskPageState, SearchPageState
 
 
@@ -82,18 +83,16 @@ async def test_tui_app_opens_as_single_shell_without_old_pages(
 
     async with app.run_test():
         assert not hasattr(app, "current_page")
-        assert "mode: lexical" in str(
+        assert "mode: hybrid" in str(
             app.query_one("#shell-status", Static).renderable
         )
-        assert "RAGentForge command shell." in str(
-            app.query_one("#shell-transcript", Static).renderable
-        )
+        assert str(app.query_one("#shell-transcript", Static).renderable) == ""
         assert app.query_one("#shell-input", Input).placeholder == (
-            "Ask a question or type /help"
+            "Ask your knowledge base...  / for commands"
         )
         assert app.query_one("#shell-suggestions", Static).renderable == ""
         assert app.focused == app.query_one("#shell-input", Input)
-        assert "Shell details" in str(
+        assert "No source selected." in str(
             app.query_one("#inspector-content", Static).renderable
         )
 
@@ -134,11 +133,18 @@ def test_tui_does_not_ship_legacy_placeholder_modules(module_name: str) -> None:
 
 
 @pytest.mark.anyio
-async def test_tui_app_shell_help_and_mode_commands_update_transcript(
+async def test_tui_app_shell_help_opens_modal_and_mode_stays_out_of_transcript(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     workspace = make_tui_workspace(tmp_path)
     app = RagentForgeApp(workspace.root_path)
+    opened_help: list[bool] = []
+
+    def fake_show_help_modal() -> None:
+        opened_help.append(True)
+
+    monkeypatch.setattr(app, "_show_help_modal", fake_show_help_modal)
 
     async with app.run_test():
         shell_input = app.query_one("#shell-input", Input)
@@ -146,7 +152,8 @@ async def test_tui_app_shell_help_and_mode_commands_update_transcript(
         shell_input.value = "/help"
         app._submit_shell_input()
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
-        assert "Slash commands" in transcript
+        assert opened_help == [True]
+        assert "Slash commands" not in transcript
         assert app.focused == shell_input
 
         shell_input.value = "/mode bm25"
@@ -154,6 +161,9 @@ async def test_tui_app_shell_help_and_mode_commands_update_transcript(
         assert app.shell_state.retrieval_mode == "bm25"
         assert "mode: bm25" in str(
             app.query_one("#shell-status", Static).renderable
+        )
+        assert "retrieval mode set to bm25" not in str(
+            app.query_one("#shell-transcript", Static).renderable
         )
         assert app.focused == shell_input
 
@@ -173,7 +183,7 @@ async def test_tui_app_shell_clear_leaves_input_focused(tmp_path: Path) -> None:
 
         assert app.focused == shell_input
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
-        assert "RAGentForge command shell." in transcript
+        assert transcript == ""
         assert "Slash commands" not in transcript
 
 
@@ -192,7 +202,7 @@ async def test_tui_app_shell_running_submission_preserves_input_text(
         app._submit_shell_input()
 
         assert shell_input.value == "Do not lose this"
-        assert app.shell_state.messages[-1].text == WELCOME_MESSAGE
+        assert app.shell_state.messages == ()
 
 
 @pytest.mark.anyio
@@ -247,9 +257,66 @@ async def test_tui_app_shell_source_command_updates_inspector(tmp_path: Path) ->
 
         inspector = str(app.query_one("#inspector-content", Static).renderable)
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
-        assert "selected source: source_2.md" in inspector
+        assert "source: source_2.md" in inspector
         assert "rank: 2" in inspector
-        assert "selected source 2: source_2.md" in transcript
+        assert "selected source 2: source_2.md" not in transcript
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_sources_command_opens_source_picker(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    first = make_transcript_source(1)
+    second = make_transcript_source(2)
+    opened_sources: list[tuple[TranscriptSource, ...]] = []
+
+    def fake_show_sources_modal() -> None:
+        opened_sources.append(app.shell_state.available_sources)
+
+    monkeypatch.setattr(app, "_show_sources_modal", fake_show_sources_modal)
+
+    async with app.run_test():
+        app.shell_state = replace(
+            app.shell_state,
+            available_sources=(first, second),
+            selected_source=first,
+        )
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "/sources"
+
+        app._submit_shell_input()
+
+        assert opened_sources == [(first, second)]
+        assert str(app.query_one("#shell-transcript", Static).renderable) == ""
+
+
+@pytest.mark.anyio
+async def test_tui_app_source_picker_selection_updates_inspector(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    first = make_transcript_source(1)
+    second = make_transcript_source(2)
+
+    async with app.run_test():
+        app.shell_state = replace(
+            app.shell_state,
+            available_sources=(first, second),
+            selected_source=first,
+        )
+
+        app._handle_source_picker_result(second)
+
+        inspector = str(app.query_one("#inspector-content", Static).renderable)
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert app.shell_state.selected_source == second
+        assert "source: source_2.md" in inspector
+        assert "rank: 2" in inspector
+        assert transcript == ""
 
 
 @pytest.mark.anyio
@@ -267,7 +334,8 @@ async def test_tui_app_shell_docs_command_uses_inspector_for_details(
 
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         inspector = str(app.query_one("#inspector-content", Static).renderable)
-        assert "Document summary loaded in Inspector." in transcript
+        assert "Document summary loaded in Inspector." not in transcript
+        assert "Workspace\n" not in transcript
         assert "Workspace\n" not in transcript
         assert "Workspace" in inspector
         assert "Ingest" in inspector
@@ -395,24 +463,32 @@ async def test_tui_app_shell_submission_starts_ask_worker_and_uses_shell_setting
     started_workers: list[tuple[object, dict[str, object]]] = []
     calls: list[tuple[object, str, str, int, int, bool]] = []
 
-    def fake_run_tui_ask(
+    def forbidden_run_tui_ask(*_args: object, **_kwargs: object) -> AskPageState:
+        raise AssertionError("TUI ask should use stream_tui_ask")
+
+    def fake_stream_tui_ask(
         workspace_path: object,
         question: str,
         mode: str,
         limit: int,
         max_context_chars: int,
         show_prompt: bool,
-    ) -> AskPageState:
+    ):
         calls.append(
             (workspace_path, question, mode, limit, max_context_chars, show_prompt)
         )
-        return AskPageState(question=question, answer="answer", has_run=True)
+        yield SimpleNamespace(
+            type="done",
+            text="",
+            state=AskPageState(question=question, answer="answer", has_run=True),
+        )
 
     def fake_run_worker(work: object, **kwargs: object) -> object:
         started_workers.append((work, kwargs))
         return object()
 
-    monkeypatch.setattr(tui_main, "run_tui_ask", fake_run_tui_ask)
+    monkeypatch.setattr(tui_main, "run_tui_ask", forbidden_run_tui_ask)
+    monkeypatch.setattr(tui_main, "stream_tui_ask", fake_stream_tui_ask)
     monkeypatch.setattr(app, "run_worker", fake_run_worker)
 
     async with app.run_test():
@@ -440,7 +516,8 @@ async def test_tui_app_shell_submission_starts_ask_worker_and_uses_shell_setting
         assert shell_input.value == ""
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         assert "User:\n  What is Agentic RAG?" in transcript
-        assert "Running ask for: What is Agentic RAG?" in transcript
+        assert "Assistant:" in transcript
+        assert "Running ask for: What is Agentic RAG?" not in transcript
 
         work = started_workers[0][0]
         assert callable(work)
@@ -457,6 +534,110 @@ async def test_tui_app_shell_submission_starts_ask_worker_and_uses_shell_setting
                 True,
             )
         ]
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_ask_worker_streams_answer_into_current_message(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    source = SearchResult(
+        chunk_id="/knowledge/agentic_rag.md::chunk-0000",
+        document_id="/knowledge/agentic_rag.md",
+        source_path="/knowledge/agentic_rag.md",
+        start_char=0,
+        end_char=42,
+        score=1.0,
+        text="Agentic RAG adds planning before retrieval.",
+        metadata={"retrieval_method": "hybrid_rrf"},
+    )
+    started_workers: list[tuple[object, dict[str, object]]] = []
+    snapshots: list[str] = []
+
+    def forbidden_run_tui_ask(*_args: object, **_kwargs: object) -> AskPageState:
+        raise AssertionError("TUI ask should use stream_tui_ask")
+
+    def fake_stream_tui_ask(
+        workspace_path: object,
+        question: str,
+        mode: str,
+        limit: int,
+        max_context_chars: int,
+        show_prompt: bool,
+    ):
+        assert workspace_path == workspace.root_path
+        assert question == "What is Agentic RAG?"
+        assert mode == "hybrid"
+        assert limit == 5
+        assert max_context_chars == 4000
+        assert show_prompt is False
+        yield SimpleNamespace(type="delta", text="Agentic ", state=None)
+        snapshots.append(str(app.query_one("#shell-transcript", Static).renderable))
+        yield SimpleNamespace(type="delta", text="RAG", state=None)
+        snapshots.append(str(app.query_one("#shell-transcript", Static).renderable))
+        yield SimpleNamespace(
+            type="done",
+            text="",
+            state=AskPageState(
+                question=question,
+                retrieval_mode="hybrid",
+                answer="Agentic RAG",
+                sources=[source],
+                generation_status="success",
+                generation_provider="openai_responses",
+                has_run=True,
+            ),
+        )
+
+    def fake_run_worker(work: object, **kwargs: object) -> object:
+        started_workers.append((work, kwargs))
+        return object()
+
+    def immediate_call_from_thread(callback, *args):
+        callback(*args)
+
+    monkeypatch.setattr(tui_main, "run_tui_ask", forbidden_run_tui_ask)
+    monkeypatch.setattr(tui_main, "stream_tui_ask", fake_stream_tui_ask, raising=False)
+    monkeypatch.setattr(app, "run_worker", fake_run_worker)
+    monkeypatch.setattr(app, "call_from_thread", immediate_call_from_thread)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        shell_input.value = "What is Agentic RAG?"
+
+        app._submit_shell_input()
+
+        work = started_workers[0][0]
+        assert callable(work)
+        result = work()
+
+        assert isinstance(result, AskPageState)
+        assert snapshots[0].endswith("Assistant:\n  Agentic ")
+        assert snapshots[1].endswith("Assistant:\n  Agentic RAG")
+        final_result = result
+
+        class FakeWorker:
+            name = "shell-ask"
+            result = final_result
+
+        class FakeEvent:
+            state = WorkerState.SUCCESS
+            worker = FakeWorker()
+            stopped = False
+
+            def stop(self) -> None:
+                self.stopped = True
+
+        event = FakeEvent()
+        app._handle_shell_ask_worker_state(event)  # type: ignore[arg-type]
+
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert transcript.count("Assistant:") == 1
+        assert "Assistant:\n  Agentic RAG" in transcript
+        assert "agentic_rag.md" not in transcript
+        assert app.shell_state.selected_source is not None
 
 
 @pytest.mark.anyio
@@ -508,8 +689,8 @@ async def test_tui_app_shell_ask_worker_success_appends_messages_and_selects_sou
         assert app.focused == app.query_one("#shell-input", Input)
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         assert "Assistant:\n  Agentic RAG adds planning." in transcript
-        assert "Sources:" in transcript
-        assert "agentic_rag.md" in transcript
+        assert "Sources:" not in transcript
+        assert "agentic_rag.md" not in transcript
         assert app.shell_state.selected_source is not None
         assert app.shell_state.selected_source.source_path == (
             "/knowledge/agentic_rag.md"
@@ -577,6 +758,50 @@ async def test_tui_app_shell_ask_worker_shows_prompt_preview_in_inspector(
 
 
 @pytest.mark.anyio
+async def test_tui_app_shell_ask_missing_vector_index_guidance_is_actionable(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+    guidance = (
+        "Vector index not found.\n"
+        "Run `ragent index build` first.\n"
+        "Use /mode bm25 or /mode lexical to continue without vectors."
+    )
+
+    class FakeWorker:
+        name = "shell-ask"
+        result = AskPageState(
+            question="What is Agentic RAG?",
+            retrieval_mode="hybrid",
+            error=guidance,
+            has_run=True,
+        )
+
+    class FakeEvent:
+        state = WorkerState.SUCCESS
+        worker = FakeWorker()
+        stopped = False
+
+        def stop(self) -> None:
+            self.stopped = True
+
+    async with app.run_test():
+        app.shell_state = replace(app.shell_state, running=True)
+
+        event = FakeEvent()
+        app._handle_shell_ask_worker_state(event)  # type: ignore[arg-type]
+
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        status = str(app.query_one("#shell-status", Static).renderable)
+        inspector = str(app.query_one("#inspector-content", Static).renderable)
+        assert "Vector index not found." not in transcript
+        assert "Vector index not found." in status
+        assert "ragent index build" in inspector
+        assert event.stopped is True
+
+
+@pytest.mark.anyio
 async def test_tui_app_shell_search_starts_worker_and_disables_input(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -609,7 +834,7 @@ async def test_tui_app_shell_search_starts_worker_and_disables_input(
         assert shell_input.disabled is True
         assert app.shell_state.running is True
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
-        assert "Running search for: Agentic" in transcript
+        assert "Running search for: Agentic" not in transcript
         assert "status: running" in str(
             app.query_one("#shell-status", Static).renderable
         )
@@ -660,8 +885,8 @@ async def test_tui_app_shell_search_worker_success_refocuses_input(
         assert app.query_one("#shell-input", Input).disabled is False
         assert app.focused == app.query_one("#shell-input", Input)
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
-        assert "Search results for: Agentic" in transcript
-        assert "agentic_rag.md" in transcript
+        assert "Search results for: Agentic" not in transcript
+        assert "agentic_rag.md" not in transcript
 
 
 @pytest.mark.anyio

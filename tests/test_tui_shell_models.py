@@ -11,6 +11,7 @@ from ragent_forge.tui.shell_models import (
     append_messages,
     clear_transcript,
     create_initial_shell_state,
+    format_conversation_transcript,
     format_shell_inspector,
     format_shell_source_details,
     format_shell_status,
@@ -69,16 +70,15 @@ def make_source(rank: int = 1) -> TranscriptSource:
 def test_initial_shell_state_has_default_settings_and_welcome_message() -> None:
     state = create_initial_shell_state()
 
-    assert state.retrieval_mode == "lexical"
+    assert state.retrieval_mode == "hybrid"
     assert state.limit == 5
     assert state.max_context_chars == 4000
     assert state.show_prompt is False
     assert state.running is False
+    assert state.notice is None
     assert state.selected_source is None
     assert state.available_sources == ()
-    assert state.messages == (
-        TranscriptMessage(role="system", text=WELCOME_MESSAGE),
-    )
+    assert state.messages == ()
 
 
 def test_append_message_returns_new_state_and_preserves_old_state() -> None:
@@ -88,7 +88,7 @@ def test_append_message_returns_new_state_and_preserves_old_state() -> None:
     updated = append_message(state, message)
 
     assert updated is not state
-    assert state.messages == (TranscriptMessage(role="system", text=WELCOME_MESSAGE),)
+    assert state.messages == ()
     assert updated.messages[-1] == message
 
 
@@ -191,7 +191,8 @@ def test_clear_transcript_preserves_settings_and_resets_transcript() -> None:
     assert cleared.running is False
     assert cleared.selected_source is None
     assert cleared.available_sources == ()
-    assert cleared.messages == (TranscriptMessage(role="system", text=WELCOME_MESSAGE),)
+    assert cleared.notice is None
+    assert cleared.messages == ()
 
 
 @pytest.mark.parametrize("mode", ["lexical", "bm25", "semantic", "hybrid"])
@@ -389,6 +390,15 @@ def test_format_shell_status_reflects_settings_and_running_state() -> None:
     )
 
 
+def test_format_shell_status_includes_notice_when_present() -> None:
+    state = ShellState(notice="Vector index not found.")
+
+    assert format_shell_status(state) == (
+        "mode: hybrid | limit: 5 | context: 4000 | prompt: off | status: idle\n"
+        "Vector index not found."
+    )
+
+
 def test_format_shell_inspector_without_selected_source_keeps_basic_details() -> None:
     state = ShellState(
         retrieval_mode="semantic",
@@ -400,14 +410,24 @@ def test_format_shell_inspector_without_selected_source_keeps_basic_details() ->
 
     text = format_shell_inspector(state)
 
-    assert "Shell details" in text
-    assert "mode: semantic" in text
-    assert "limit: 5" in text
-    assert "context: 4000" in text
-    assert "prompt: off" in text
-    assert "messages: 1" in text
-    assert "selected source: none" in text
+    assert text == "Inspector\n\nNo source selected."
     assert "Selected source" not in text
+
+
+def test_format_shell_inspector_shows_notice_without_source() -> None:
+    text = format_shell_inspector(
+        ShellState(
+            notice=(
+                "Vector index not found.\n"
+                "Run `ragent index build` first."
+            )
+        )
+    )
+
+    assert "Status" in text
+    assert "Vector index not found." in text
+    assert "ragent index build" in text
+    assert "Shell details" not in text
 
 
 def test_format_shell_inspector_with_selected_source_shows_source_details() -> None:
@@ -426,7 +446,6 @@ def test_format_shell_inspector_with_selected_source_shows_source_details() -> N
 
     text = format_shell_inspector(state)
 
-    assert "selected source: agentic_rag.md" in text
     assert "Selected source" in text
     assert "Evidence" in text
     assert "Location" in text
@@ -610,6 +629,57 @@ def test_format_transcript_message_indents_multiline_text() -> None:
     text = format_transcript_message(message)
 
     assert text == "Assistant:\n  line 1\n  line 2"
+
+
+def test_format_conversation_transcript_only_renders_user_and_assistant() -> None:
+    source = make_source()
+    text = format_conversation_transcript(
+        (
+            TranscriptMessage(role="system", text=WELCOME_MESSAGE),
+            TranscriptMessage(role="tool", text="Running ask for: question"),
+            TranscriptMessage(role="error", text="Vector index not found."),
+            TranscriptMessage(role="user", text="question"),
+            TranscriptMessage(role="assistant", text="answer", sources=(source,)),
+        )
+    )
+
+    assert text == "User:\n  question\n\nAssistant:\n  answer"
+    assert "System:" not in text
+    assert "Tool:" not in text
+    assert "Error:" not in text
+    assert "Sources:" not in text
+
+
+def test_format_transcript_message_normalizes_assistant_latex_math() -> None:
+    message = TranscriptMessage(
+        role="assistant",
+        text=(
+            r"High-dimensional probability studies \\(R^n\\), "
+            r"\(\mathbb{R}^n\), \(\alpha \leq \beta\), and \(x_i^2\)."
+        ),
+    )
+
+    text = format_transcript_message(message)
+
+    assert text == (
+        "Assistant:\n"
+        "  High-dimensional probability studies R\u207f, "
+        "\u211d\u207f, \u03b1 \u2264 \u03b2, and x\u1d62\u00b2."
+    )
+
+
+def test_format_transcript_message_normalizes_plain_superscript_math() -> None:
+    message = TranscriptMessage(
+        role="assistant",
+        text=r"Use R^n, x^2, and \mathbb{R}^d as readable formulas.",
+    )
+
+    text = format_transcript_message(message)
+
+    assert text == (
+        "Assistant:\n"
+        "  Use R\u207f, x\u00b2, and \u211d\u1d48 as readable formulas."
+    )
 
 
 def test_format_transcript_message_with_sources_appends_source_block() -> None:

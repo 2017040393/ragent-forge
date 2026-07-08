@@ -1,4 +1,3 @@
-from ragent_forge.tui.commands import format_tui_command_help
 from ragent_forge.tui.shell_dispatch import ShellReadOnlyHandlers, apply_shell_input
 from ragent_forge.tui.shell_models import (
     ShellState,
@@ -26,9 +25,9 @@ def test_shell_initial_state_renders_status_and_welcome_transcript() -> None:
     state = create_initial_shell_state()
 
     assert format_shell_status(state) == (
-        "mode: lexical | limit: 5 | context: 4000 | prompt: off | status: idle"
+        "mode: hybrid | limit: 5 | context: 4000 | prompt: off | status: idle"
     )
-    assert "RAGentForge command shell." in format_transcript(state.messages)
+    assert format_transcript(state.messages) == ""
 
 
 def test_apply_shell_input_normal_text_returns_ask_action() -> None:
@@ -54,9 +53,9 @@ def test_apply_shell_input_ask_without_question_appends_parser_error() -> None:
 
     assert result.action == "none"
     assert result.ask_question is None
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Missing arguments for /ask. Usage: /ask <question>",
+    assert result.state.messages == ()
+    assert result.state.notice == (
+        "Missing arguments for /ask. Usage: /ask <question>"
     )
 
 
@@ -69,13 +68,11 @@ def test_apply_shell_input_search_returns_search_action() -> None:
     assert result.state == create_initial_shell_state()
 
 
-def test_apply_shell_input_help_appends_command_help() -> None:
+def test_apply_shell_input_help_returns_help_action_without_transcript_noise() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/help")
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text=format_tui_command_help(),
-    )
+    assert result.action == "help"
+    assert result.state.messages == ()
 
 
 def test_apply_shell_input_clear_resets_transcript() -> None:
@@ -90,70 +87,56 @@ def test_apply_shell_input_mode_updates_retrieval_mode() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/mode bm25")
 
     assert result.state.retrieval_mode == "bm25"
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="retrieval mode set to bm25",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "retrieval mode set to bm25"
 
 
 def test_apply_shell_input_invalid_mode_appends_error_without_changing_mode() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/mode rerank")
 
-    assert result.state.retrieval_mode == "lexical"
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Invalid retrieval mode: rerank",
-    )
+    assert result.state.retrieval_mode == "hybrid"
+    assert result.state.messages == ()
+    assert result.state.notice == "Invalid retrieval mode: rerank"
 
 
 def test_apply_shell_input_limit_updates_limit() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/limit 7")
 
     assert result.state.limit == 7
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="limit set to 7",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "limit set to 7"
 
 
 def test_apply_shell_input_non_positive_limit_appends_error_without_change() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/limit 0")
 
     assert result.state.limit == 5
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Limit must be positive.",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Limit must be positive."
 
 
 def test_apply_shell_input_invalid_limit_appends_error_without_changing_limit() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/limit nope")
 
     assert result.state.limit == 5
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Invalid limit: nope",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Invalid limit: nope"
 
 
 def test_apply_shell_input_context_updates_max_context_chars() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/context 2000")
 
     assert result.state.max_context_chars == 2000
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="max context chars set to 2000",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "max context chars set to 2000"
 
 
 def test_apply_shell_input_invalid_context_appends_error_without_change() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/context nope")
 
     assert result.state.max_context_chars == 4000
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Invalid context value: nope",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Invalid context value: nope"
 
 
 def test_apply_shell_input_prompt_on_and_off_toggle_preview() -> None:
@@ -161,52 +144,41 @@ def test_apply_shell_input_prompt_on_and_off_toggle_preview() -> None:
     disabled = apply_shell_input(enabled.state, "/prompt off")
 
     assert enabled.state.show_prompt is True
-    assert enabled.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="prompt preview enabled",
-    )
+    assert enabled.state.messages == ()
+    assert enabled.state.notice == "prompt preview enabled"
     assert disabled.state.show_prompt is False
-    assert disabled.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="prompt preview disabled",
-    )
+    assert disabled.state.messages == ()
+    assert disabled.state.notice == "prompt preview disabled"
 
 
 def test_apply_shell_input_invalid_prompt_appends_usage_error() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/prompt maybe")
 
     assert result.state.show_prompt is False
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Usage: /prompt on|off",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Usage: /prompt on|off"
 
 
 def test_apply_shell_input_sources_without_sources_appends_friendly_message() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/sources")
 
     assert result.action == "none"
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="No sources available. Run /search <query> or ask a question first.",
+    assert result.state.messages == ()
+    assert result.state.notice == (
+        "No sources available. Run /search <query> or ask a question first."
     )
 
 
-def test_apply_shell_input_sources_with_sources_appends_source_list_message() -> None:
+def test_apply_shell_input_sources_with_sources_returns_source_picker_action() -> None:
     first = make_source(1)
     second = make_source(2)
     state = ShellState(available_sources=(first, second), selected_source=first)
 
     result = apply_shell_input(state, "/sources")
 
-    assert result.action == "none"
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="Current sources",
-        metadata={"operation": "source_list"},
-        sources=(first, second),
-    )
-    assert "Sources:" in format_transcript((result.state.messages[-1],))
+    assert result.action == "sources"
+    assert result.state.messages == ()
+    assert result.state.available_sources == (first, second)
 
 
 def test_apply_shell_input_sources_preserves_selected_source() -> None:
@@ -219,15 +191,10 @@ def test_apply_shell_input_sources_preserves_selected_source() -> None:
 
     result = apply_shell_input(state, "/sources")
 
-    assert result.action == "none"
+    assert result.action == "sources"
     assert result.state.available_sources == (first, second)
     assert result.state.selected_source == second
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="Current sources",
-        metadata={"operation": "source_list"},
-        sources=(first, second),
-    )
+    assert result.state.messages == ()
 
 
 def test_apply_shell_input_source_rank_selects_source() -> None:
@@ -241,10 +208,8 @@ def test_apply_shell_input_source_rank_selects_source() -> None:
     assert result.search_query is None
     assert result.ask_question is None
     assert result.state.selected_source == second
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="selected source 2: source_2.md",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "selected source 2: source_2.md"
 
 
 def test_apply_shell_input_source_next_selects_next_and_wraps() -> None:
@@ -256,9 +221,11 @@ def test_apply_shell_input_source_next_selects_next_and_wraps() -> None:
     wrapped = apply_shell_input(moved.state, "/source next")
 
     assert moved.state.selected_source == second
-    assert moved.state.messages[-1].text == "selected source 2: source_2.md"
+    assert moved.state.messages == ()
+    assert moved.state.notice == "selected source 2: source_2.md"
     assert wrapped.state.selected_source == first
-    assert wrapped.state.messages[-1].text == "selected source 1: source_1.md"
+    assert wrapped.state.messages == ()
+    assert wrapped.state.notice == "selected source 1: source_1.md"
 
 
 def test_apply_shell_input_source_prev_selects_previous_and_wraps() -> None:
@@ -270,17 +237,19 @@ def test_apply_shell_input_source_prev_selects_previous_and_wraps() -> None:
     wrapped = apply_shell_input(moved.state, "/source prev")
 
     assert moved.state.selected_source == first
-    assert moved.state.messages[-1].text == "selected source 1: source_1.md"
+    assert moved.state.messages == ()
+    assert moved.state.notice == "selected source 1: source_1.md"
     assert wrapped.state.selected_source == second
-    assert wrapped.state.messages[-1].text == "selected source 2: source_2.md"
+    assert wrapped.state.messages == ()
+    assert wrapped.state.notice == "selected source 2: source_2.md"
 
 
 def test_apply_shell_input_source_without_sources_appends_friendly_message() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/source 1")
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="No sources available. Run /search <query> or ask a question first.",
+    assert result.state.messages == ()
+    assert result.state.notice == (
+        "No sources available. Run /search <query> or ask a question first."
     )
 
 
@@ -289,10 +258,8 @@ def test_apply_shell_input_source_zero_appends_friendly_error() -> None:
 
     result = apply_shell_input(state, "/source 0")
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Source rank must be a positive integer.",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Source rank must be a positive integer."
 
 
 def test_apply_shell_input_source_invalid_arg_appends_usage_error() -> None:
@@ -300,10 +267,8 @@ def test_apply_shell_input_source_invalid_arg_appends_usage_error() -> None:
 
     result = apply_shell_input(state, "/source nope")
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Usage: /source <rank|next|prev>",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Usage: /source <rank|next|prev>"
 
 
 def test_apply_shell_input_source_out_of_range_appends_friendly_error() -> None:
@@ -311,10 +276,8 @@ def test_apply_shell_input_source_out_of_range_appends_friendly_error() -> None:
 
     result = apply_shell_input(state, "/source 99")
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Source rank out of range. Available sources: 1-2.",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Source rank out of range. Available sources: 1-2."
 
 
 def test_apply_shell_input_planned_not_wired_commands_append_messages() -> None:
@@ -326,19 +289,15 @@ def test_apply_shell_input_planned_not_wired_commands_append_messages() -> None:
 
     for command, message in expectations.items():
         result = apply_shell_input(create_initial_shell_state(), command)
-        assert result.state.messages[-1] == TranscriptMessage(
-            role="tool",
-            text=message,
-        )
+        assert result.state.messages == ()
+        assert result.state.notice == message
 
 
 def test_apply_shell_input_config_without_handlers_uses_settings_fallback() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/config")
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="/settings is unavailable in this shell context.",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "/settings is unavailable in this shell context."
 
 
 def test_apply_shell_input_docs_handler_sends_output_to_inspector() -> None:
@@ -348,15 +307,8 @@ def test_apply_shell_input_docs_handler_sends_output_to_inspector() -> None:
         handlers=ShellReadOnlyHandlers(docs=lambda: "Workspace\n  status: ready"),
     )
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="Document summary loaded in Inspector.",
-        metadata={
-            "operation": "shell_command",
-            "command": "docs",
-            "display": "inspector",
-        },
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Document summary loaded in Inspector."
     assert result.state.inspector_text == "Workspace\n  status: ready"
     assert "Workspace\n  status: ready" in format_shell_inspector(result.state)
     assert "Workspace\n  status: ready" not in format_transcript(
@@ -371,15 +323,8 @@ def test_apply_shell_input_trace_handler_sends_output_to_inspector() -> None:
         handlers=ShellReadOnlyHandlers(trace=lambda: "Latest trace\n\nSteps"),
     )
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="Trace summary loaded in Inspector.",
-        metadata={
-            "operation": "shell_command",
-            "command": "trace",
-            "display": "inspector",
-        },
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Trace summary loaded in Inspector."
     assert result.state.inspector_text == "Latest trace\n\nSteps"
 
 
@@ -390,15 +335,8 @@ def test_apply_shell_input_settings_handler_sends_output_to_inspector() -> None:
         handlers=ShellReadOnlyHandlers(settings=lambda: "config path: .ragent"),
     )
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="Settings summary loaded in Inspector.",
-        metadata={
-            "operation": "shell_command",
-            "command": "settings",
-            "display": "inspector",
-        },
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Settings summary loaded in Inspector."
     assert result.state.inspector_text == "config path: .ragent"
 
 
@@ -409,15 +347,8 @@ def test_apply_shell_input_config_uses_settings_handler() -> None:
         handlers=ShellReadOnlyHandlers(settings=lambda: "config path: .ragent"),
     )
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="tool",
-        text="Settings summary loaded in Inspector.",
-        metadata={
-            "operation": "shell_command",
-            "command": "settings",
-            "display": "inspector",
-        },
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Settings summary loaded in Inspector."
     assert result.state.inspector_text == "config path: .ragent"
 
 
@@ -431,10 +362,8 @@ def test_apply_shell_input_docs_handler_error_appends_friendly_error() -> None:
         handlers=ShellReadOnlyHandlers(docs=fail),
     )
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Unable to load document summary.",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Unable to load document summary."
 
 
 def test_apply_shell_input_trace_handler_error_appends_friendly_error() -> None:
@@ -447,10 +376,8 @@ def test_apply_shell_input_trace_handler_error_appends_friendly_error() -> None:
         handlers=ShellReadOnlyHandlers(trace=fail),
     )
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Unable to load trace summary.",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Unable to load trace summary."
 
 
 def test_apply_shell_input_settings_handler_error_appends_friendly_error() -> None:
@@ -463,14 +390,12 @@ def test_apply_shell_input_settings_handler_error_appends_friendly_error() -> No
         handlers=ShellReadOnlyHandlers(settings=fail),
     )
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Unable to load settings summary.",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Unable to load settings summary."
 
 
 def test_apply_shell_input_handler_output_is_only_displayed_as_text() -> None:
-    state = apply_shell_input(create_initial_shell_state(), "question").state
+    state = create_initial_shell_state()
 
     result = apply_shell_input(
         state,
@@ -478,8 +403,8 @@ def test_apply_shell_input_handler_output_is_only_displayed_as_text() -> None:
         handlers=ShellReadOnlyHandlers(docs=lambda: "/clear"),
     )
 
-    assert len(result.state.messages) == len(state.messages) + 1
-    assert result.state.messages[-1].text == "Document summary loaded in Inspector."
+    assert result.state.messages == state.messages
+    assert result.state.notice == "Document summary loaded in Inspector."
     assert result.state.inspector_text == "/clear"
 
 
@@ -490,9 +415,9 @@ def test_apply_shell_input_does_not_display_read_only_command_metadata() -> None
         handlers=ShellReadOnlyHandlers(docs=lambda: "Workspace"),
     )
 
-    rendered = format_transcript((result.state.messages[-1],))
+    rendered = format_transcript(result.state.messages)
 
-    assert "Document summary loaded in Inspector." in rendered
+    assert "Document summary loaded in Inspector." not in rendered
     assert "Workspace" not in rendered
     assert "shell_command" not in rendered
     assert "command" not in rendered
@@ -516,10 +441,8 @@ def test_read_only_handler_output_with_api_key_is_hidden_by_formatter() -> None:
 def test_apply_shell_input_unknown_command_appends_error() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/unknown value")
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Unknown command: /unknown",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Unknown command: /unknown"
 
 
 def test_apply_shell_input_missing_arguments_appends_parser_error() -> None:
@@ -528,19 +451,17 @@ def test_apply_shell_input_missing_arguments_appends_parser_error() -> None:
     assert result.action == "none"
     assert result.search_query is None
     assert result.ask_question is None
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Missing arguments for /search. Usage: /search <query>",
+    assert result.state.messages == ()
+    assert result.state.notice == (
+        "Missing arguments for /search. Usage: /search <query>"
     )
 
 
 def test_apply_shell_input_empty_input_appends_parser_error() -> None:
     result = apply_shell_input(create_initial_shell_state(), "   ")
 
-    assert result.state.messages[-1] == TranscriptMessage(
-        role="error",
-        text="Enter a question or slash command.",
-    )
+    assert result.state.messages == ()
+    assert result.state.notice == "Enter a question or slash command."
 
 
 def test_apply_shell_input_exit_returns_quit_action() -> None:
