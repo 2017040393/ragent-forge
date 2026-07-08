@@ -118,7 +118,7 @@ uv run ragent eval compare --workspace .ragent --cases examples/eval/synthetic_s
 Inspect the command-first TUI:
 
 ```bash
-uv run ragent tui
+uv run ragent tui --workspace .ragent
 ```
 
 Inside the TUI, try:

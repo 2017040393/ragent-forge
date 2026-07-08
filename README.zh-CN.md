@@ -283,8 +283,8 @@ reports、failure analysis、retrieval comparison 和 BM25。
 ## 发布与作品集材料
 
 - [v0.1 Demo Script](docs/DEMO_SCRIPT.zh-CN.md)
-- [v0.2 Retrieval Evaluation Guide](docs/RETRIEVAL_EVALUATION.md)
-- [v0.2 Release Notes](docs/RELEASE_NOTES_V0_2.md)
+- [v0.2 Retrieval Evaluation Guide](docs/RETRIEVAL_EVALUATION.zh-CN.md)
+- [v0.2 Release Notes](docs/RELEASE_NOTES_V0_2.zh-CN.md)
 - [v0.1 Release Notes](docs/RELEASE_NOTES_V0_1.zh-CN.md)
 - [Portfolio Summary](docs/PORTFOLIO_SUMMARY.zh-CN.md)
 
