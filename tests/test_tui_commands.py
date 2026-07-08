@@ -16,6 +16,20 @@ EXPECTED_COMMANDS = {
     "search",
     "source",
     "sources",
+    "new",
+    "sessions",
+    "switch",
+    "rename",
+    "delete",
+    "pin",
+    "star",
+    "session-search",
+    "export",
+    "branch",
+    "rerun",
+    "continue-sources",
+    "title",
+    "turn",
     "docs",
     "trace",
     "settings",
@@ -83,6 +97,22 @@ def test_normal_text_parses_as_ask() -> None:
         ("/source next", "source", "next"),
         ("/source prev", "source", "prev"),
         ("/sources", "sources", ""),
+        ("/new", "new", ""),
+        ("/sessions", "sessions", ""),
+        ("/switch session-1", "switch", "session-1"),
+        ("/rename Research chat", "rename", "Research chat"),
+        ("/delete", "delete", ""),
+        ("/pin", "pin", ""),
+        ("/star", "star", ""),
+        ("/session-search agent", "session-search", "agent"),
+        ("/export markdown", "export", "markdown"),
+        ("/export json", "export", "json"),
+        ("/branch", "branch", ""),
+        ("/rerun", "rerun", ""),
+        ("/continue-sources", "continue-sources", ""),
+        ("/title", "title", ""),
+        ("/title auto", "title", "auto"),
+        ("/turn next", "turn", "next"),
         ("/docs", "docs", ""),
         ("/trace", "trace", ""),
         ("/settings", "settings", ""),
@@ -126,6 +156,11 @@ def test_unknown_slash_command_returns_unknown_with_error() -> None:
         ("/ask", "ask", "/ask <question>"),
         ("/search", "search", "/search <query>"),
         ("/source", "source", "/source <rank|next|prev>"),
+        ("/switch", "switch", "/switch <session-id>"),
+        ("/rename", "rename", "/rename <title>"),
+        ("/session-search", "session-search", "/session-search <query>"),
+        ("/export", "export", "/export markdown|json"),
+        ("/turn", "turn", "/turn <id|number|next|prev|first|last>"),
         ("/mode", "mode", "/mode lexical|bm25|semantic|hybrid"),
         ("/limit", "limit", "/limit <n>"),
         ("/context", "context", "/context <n>"),
@@ -154,7 +189,12 @@ def test_match_tui_commands_slash_returns_all_commands() -> None:
 def test_match_tui_commands_prefix_matches_names_and_aliases() -> None:
     matches = match_tui_commands("/se")
 
-    assert {command.name for command in matches} == {"search", "settings"}
+    assert {command.name for command in matches} == {
+        "search",
+        "settings",
+        "sessions",
+        "session-search",
+    }
 
 
 def test_match_tui_commands_prefix_matches_source_commands() -> None:
@@ -179,6 +219,20 @@ def test_format_tui_command_help_includes_major_commands() -> None:
         "/search <query>",
         "/source <rank|next|prev>",
         "/sources",
+        "/new",
+        "/sessions",
+        "/switch <session-id>",
+        "/rename <title>",
+        "/delete",
+        "/pin",
+        "/star",
+        "/session-search <query>",
+        "/export markdown|json",
+        "/branch",
+        "/rerun",
+        "/continue-sources",
+        "/title [auto|text]",
+        "/turn <id|number|next|prev|first|last>",
         "/docs",
         "/trace",
         "/settings",
@@ -221,10 +275,10 @@ def test_format_tui_command_suggestions_scrolls_to_selected_item() -> None:
 
     assert "/ask <question>" not in text
     assert "/search <query>" in text
-    assert "/docs" in text
-    assert "/trace" in text
+    assert "/sessions" in text
+    assert "/new" in text
     assert "/mode lexical|bm25|semantic|hybrid" in text
-    assert "> /limit <n>" in text
+    assert "> /new" in text
     assert _suggestion_command_count(text) == 8
     assert "use Up/Down for more" in text
 
@@ -349,10 +403,41 @@ def test_format_tui_command_suggestions_source_argument_options() -> None:
     )
 
 
+def test_format_tui_command_suggestions_export_argument_options() -> None:
+    text = format_tui_command_suggestions("/export ", selected_index=1)
+
+    assert text == (
+        "Suggestions:\n"
+        "  markdown  Export current session as Markdown.\n"
+        "> json      Export current session as JSON."
+    )
+
+
+def test_format_tui_command_suggestions_title_argument_options() -> None:
+    text = format_tui_command_suggestions("/title ", selected_index=0)
+
+    assert text == "Suggestions:\n> auto  Generate a short title."
+
+
+def test_format_tui_command_suggestions_turn_argument_options() -> None:
+    text = format_tui_command_suggestions("/turn ", selected_index=2)
+
+    assert text == (
+        "Suggestions:\n"
+        "  next   Select next answer.\n"
+        "  prev   Select previous answer.\n"
+        "> first  Select first answer.\n"
+        "  last   Select latest answer."
+    )
+
+
 def test_format_tui_command_suggestions_hides_exact_argument_match() -> None:
     assert format_tui_command_suggestions("/mode bm25") == ""
     assert format_tui_command_suggestions("/prompt on") == ""
     assert format_tui_command_suggestions("/source next") == ""
+    assert format_tui_command_suggestions("/export markdown") == ""
+    assert format_tui_command_suggestions("/title auto") == ""
+    assert format_tui_command_suggestions("/turn next") == ""
 
 
 def test_format_tui_command_suggestions_does_not_mutate_command_registry() -> None:
@@ -366,7 +451,12 @@ def test_format_tui_command_suggestions_does_not_mutate_command_registry() -> No
 def test_get_tui_command_suggestion_items_returns_matching_specs() -> None:
     items = get_tui_command_suggestion_items("/se")
 
-    assert [item.name for item in items] == ["search", "settings"]
+    assert [item.name for item in items] == [
+        "search",
+        "settings",
+        "sessions",
+        "session-search",
+    ]
 
 
 def test_get_tui_command_suggestion_items_hides_for_command_arguments() -> None:
@@ -395,11 +485,17 @@ def test_complete_tui_command_suggestion_completes_command_arguments() -> None:
         "/prompt off"
     )
     assert complete_tui_command_suggestion("/source n") == "/source next"
+    assert complete_tui_command_suggestion("/export j") == "/export json"
+    assert complete_tui_command_suggestion("/title a") == "/title auto"
+    assert complete_tui_command_suggestion("/turn l") == "/turn last"
 
 
 def test_count_tui_command_suggestions_counts_arguments() -> None:
     assert count_tui_command_suggestions("/mode ") == 4
     assert count_tui_command_suggestions("/prompt o") == 2
+    assert count_tui_command_suggestions("/export ") == 2
+    assert count_tui_command_suggestions("/title ") == 1
+    assert count_tui_command_suggestions("/turn ") == 4
     assert count_tui_command_suggestions("/mode bm25") == 0
 
 

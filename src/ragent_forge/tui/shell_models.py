@@ -6,6 +6,12 @@ from typing import Any, Final, Literal, cast
 
 from ragent_forge.app.services.chunk_service import make_preview
 from ragent_forge.app.services.search_service import SearchResult
+from ragent_forge.app.services.session_service import (
+    TuiSession,
+    TuiSessionSource,
+    TuiSessionSummary,
+    TuiSessionTurn,
+)
 from ragent_forge.app.source_labels import (
     format_source_metadata as _format_structured_source_metadata,
 )
@@ -232,6 +238,7 @@ class TranscriptMessage:
     text: str
     metadata: dict[str, Any] = field(default_factory=dict)
     sources: tuple[TranscriptSource, ...] = ()
+    turn_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -246,10 +253,68 @@ class ShellState:
     selected_source: TranscriptSource | None = None
     available_sources: tuple[TranscriptSource, ...] = ()
     inspector_text: str | None = None
+    current_session_id: str | None = None
+    current_session_title: str | None = None
+    session_pinned: bool = False
+    session_starred: bool = False
+    session_summaries: tuple[TuiSessionSummary, ...] = ()
+    selected_turn_id: str | None = None
 
 
 def create_initial_shell_state() -> ShellState:
     return ShellState()
+
+
+def replace_state_from_session(
+    state: ShellState,
+    session: TuiSession,
+    summaries: list[TuiSessionSummary] | tuple[TuiSessionSummary, ...] = (),
+) -> ShellState:
+    messages = _messages_from_session(session)
+    selected_turn_id = session.turns[-1].id if session.turns else None
+    available_sources = _sources_for_turn(messages, selected_turn_id)
+    return replace(
+        state,
+        messages=messages,
+        notice=None,
+        selected_source=available_sources[0] if available_sources else None,
+        available_sources=available_sources,
+        inspector_text=None,
+        current_session_id=session.id,
+        current_session_title=session.title,
+        session_pinned=session.pinned,
+        session_starred=session.starred,
+        session_summaries=tuple(summaries),
+        selected_turn_id=selected_turn_id,
+    )
+
+
+def set_session_summaries(
+    state: ShellState,
+    summaries: list[TuiSessionSummary] | tuple[TuiSessionSummary, ...],
+) -> ShellState:
+    return replace(state, session_summaries=tuple(summaries))
+
+
+def select_turn_by_id(state: ShellState, turn_id: str) -> ShellState:
+    sources = _sources_for_turn(state.messages, turn_id)
+    if not sources and not _has_turn(state.messages, turn_id):
+        raise ValueError(f"Turn not found: {turn_id}")
+    return replace(
+        state,
+        selected_turn_id=turn_id,
+        available_sources=sources,
+        selected_source=sources[0] if sources else None,
+        inspector_text=None,
+    )
+
+
+def select_next_turn(state: ShellState) -> ShellState:
+    return _select_relative_turn(state, 1)
+
+
+def select_previous_turn(state: ShellState) -> ShellState:
+    return _select_relative_turn(state, -1)
 
 
 def append_message(state: ShellState, message: TranscriptMessage) -> ShellState:
@@ -262,6 +327,7 @@ def append_message(state: ShellState, message: TranscriptMessage) -> ShellState:
         state,
         messages=(*state.messages, message),
         notice=notice,
+        selected_turn_id=message.turn_id or state.selected_turn_id,
     )
     if message.sources:
         return set_available_sources(updated, message.sources)
@@ -287,6 +353,7 @@ def clear_transcript(state: ShellState) -> ShellState:
         selected_source=None,
         available_sources=(),
         inspector_text=None,
+        selected_turn_id=None,
     )
 
 
@@ -397,6 +464,12 @@ def format_selected_source_ack(source: TranscriptSource) -> str:
     )
 
 
+def format_selected_turn_ack(state: ShellState) -> str:
+    if state.selected_turn_id is None:
+        return "No answer turn selected."
+    return f"selected answer turn: {state.selected_turn_id}"
+
+
 def _selected_source_index(state: ShellState) -> int | None:
     if state.selected_source is None:
         return None
@@ -404,6 +477,115 @@ def _selected_source_index(state: ShellState) -> int | None:
         if source == state.selected_source:
             return index
     return None
+
+
+def _select_relative_turn(state: ShellState, delta: int) -> ShellState:
+    turn_ids = _assistant_turn_ids(state.messages)
+    if not turn_ids:
+        raise ValueError("No assistant answers available.")
+    if state.selected_turn_id not in turn_ids:
+        next_index = 0
+    else:
+        current_index = turn_ids.index(cast(str, state.selected_turn_id))
+        next_index = (current_index + delta) % len(turn_ids)
+    return select_turn_by_id(state, turn_ids[next_index])
+
+
+def _assistant_turn_ids(
+    messages: list[TranscriptMessage] | tuple[TranscriptMessage, ...],
+) -> list[str]:
+    turn_ids: list[str] = []
+    for message in messages:
+        if (
+            message.role == "assistant"
+            and message.turn_id is not None
+            and message.turn_id not in turn_ids
+        ):
+            turn_ids.append(message.turn_id)
+    return turn_ids
+
+
+def _has_turn(
+    messages: list[TranscriptMessage] | tuple[TranscriptMessage, ...],
+    turn_id: str,
+) -> bool:
+    return any(message.turn_id == turn_id for message in messages)
+
+
+def _sources_for_turn(
+    messages: list[TranscriptMessage] | tuple[TranscriptMessage, ...],
+    turn_id: str | None,
+) -> tuple[TranscriptSource, ...]:
+    if turn_id is None:
+        return ()
+    for message in messages:
+        if message.role == "assistant" and message.turn_id == turn_id:
+            return message.sources
+    return ()
+
+
+def _messages_from_session(session: TuiSession) -> tuple[TranscriptMessage, ...]:
+    messages: list[TranscriptMessage] = []
+    for turn in session.turns:
+        messages.append(
+            TranscriptMessage(
+                role="user",
+                text=turn.user_message.text,
+                metadata=dict(turn.user_message.metadata),
+                turn_id=turn.id,
+            )
+        )
+        sources = _transcript_sources_from_session_sources(turn.sources)
+        messages.append(
+            TranscriptMessage(
+                role="assistant",
+                text=turn.assistant_message.text,
+                metadata=_metadata_from_session_turn(turn),
+                sources=sources,
+                turn_id=turn.id,
+            )
+        )
+    return tuple(messages)
+
+
+def _transcript_sources_from_session_sources(
+    sources: list[TuiSessionSource] | tuple[TuiSessionSource, ...],
+) -> tuple[TranscriptSource, ...]:
+    return tuple(
+        TranscriptSource(
+            rank=source.rank,
+            chunk_id=source.chunk_id,
+            source_path=source.source_path,
+            score=source.score,
+            preview=source.preview,
+            metadata=_safe_metadata(source.metadata),
+        )
+        for source in sources
+    )
+
+
+def _metadata_from_session_turn(turn: TuiSessionTurn) -> dict[str, Any]:
+    run = turn.run
+    metadata = {
+        "operation": "ask",
+        "source_count": len(turn.sources),
+    }
+    if run is None:
+        return metadata
+    metadata.update(
+        {
+            "retrieval_mode": run.retrieval_mode,
+            "retrieval_method": run.retrieval_method,
+            "limit": run.limit,
+            "max_context_chars": run.max_context_chars,
+            "show_prompt": run.show_prompt,
+            "generation_status": run.generation_status,
+            "generation_provider": run.generation_provider,
+        }
+    )
+    if run.error:
+        metadata["error"] = run.error
+    return metadata
 
 
 def transcript_sources_from_search_results(
@@ -611,8 +793,15 @@ def format_shell_inspector(state: ShellState) -> str:
     if state.inspector_text is not None:
         return _safe_display_text(state.inspector_text)
 
+    selected_turn_text = _format_selected_turn_details(state)
     if state.selected_source is not None:
-        return format_shell_source_details(state.selected_source)
+        source_details = format_shell_source_details(state.selected_source)
+        if selected_turn_text:
+            return "\n\n".join([selected_turn_text, source_details])
+        return source_details
+
+    if selected_turn_text:
+        return selected_turn_text
 
     if state.notice:
         return "\n".join(["Status", "", _safe_display_text(state.notice)])
@@ -646,6 +835,59 @@ def format_shell_source_details(source: TranscriptSource) -> str:
     if metadata_lines:
         lines.extend(["", "Retrieval metadata", "", *metadata_lines])
     return "\n".join(lines)
+
+
+def _format_selected_turn_details(state: ShellState) -> str | None:
+    if state.selected_turn_id is None:
+        return None
+    assistant = _selected_assistant_message(state)
+    if assistant is None:
+        return None
+
+    metadata = assistant.metadata
+    lines = [
+        "Answer run",
+        "",
+        f"turn: {state.selected_turn_id}",
+    ]
+    if state.current_session_title:
+        lines.append(f"session: {state.current_session_title}")
+    if metadata.get("retrieval_mode") is not None:
+        lines.append(f"mode: {metadata['retrieval_mode']}")
+    if metadata.get("retrieval_method") is not None:
+        lines.append(f"method: {metadata['retrieval_method']}")
+    if metadata.get("limit") is not None:
+        lines.append(f"limit: {metadata['limit']}")
+    if metadata.get("max_context_chars") is not None:
+        lines.append(f"context: {metadata['max_context_chars']}")
+    if metadata.get("show_prompt") is not None:
+        prompt = "on" if bool(metadata["show_prompt"]) else "off"
+        lines.append(f"prompt: {prompt}")
+    if metadata.get("generation_status") is not None:
+        lines.append(f"generation: {metadata['generation_status']}")
+    if metadata.get("generation_provider") is not None:
+        lines.append(f"provider: {metadata['generation_provider']}")
+    if metadata.get("error") is not None:
+        lines.extend(["", "Error", _safe_display_text(str(metadata["error"]))])
+    if assistant.sources:
+        lines.extend(["", "Sources"])
+        lines.extend(
+            (
+                f"{source.rank}. "
+                f"{compact_source_label(source.source_path, source.metadata)}"
+            )
+            for source in assistant.sources
+        )
+    return "\n".join(lines)
+
+
+def _selected_assistant_message(state: ShellState) -> TranscriptMessage | None:
+    if state.selected_turn_id is None:
+        return None
+    for message in state.messages:
+        if message.role == "assistant" and message.turn_id == state.selected_turn_id:
+            return message
+    return None
 
 
 def format_prompt_preview_inspector(prompt_preview: str) -> str:

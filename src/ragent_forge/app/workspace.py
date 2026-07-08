@@ -22,6 +22,8 @@ class LocalWorkspace:
         self.index_dir = self.root_path / "index"
         self.eval_dir = self.root_path / "eval"
         self.eval_runs_dir = self.eval_dir / "runs"
+        self.sessions_dir = self.root_path / "sessions"
+        self.session_exports_dir = self.sessions_dir / "exports"
         self.chunks_path = self.chunks_dir / "chunks.jsonl"
         self.latest_summary_path = self.ingest_dir / "latest_summary.json"
         self.latest_trace_path = self.traces_dir / "latest_trace.json"
@@ -31,6 +33,8 @@ class LocalWorkspace:
         self.latest_retrieval_compare_path = (
             self.eval_dir / "latest_retrieval_compare.json"
         )
+        self.session_index_path = self.sessions_dir / "index.json"
+        self.latest_session_path = self.sessions_dir / "latest.json"
         self.config_path = self.root_path / "config.toml"
         self.vector_index_path = self.index_dir / "vector_index.jsonl"
         self.vector_index_manifest_path = (
@@ -59,6 +63,8 @@ class LocalWorkspace:
         self.index_dir.mkdir(parents=True, exist_ok=True)
         self.eval_dir.mkdir(parents=True, exist_ok=True)
         self.eval_runs_dir.mkdir(parents=True, exist_ok=True)
+        self.sessions_dir.mkdir(parents=True, exist_ok=True)
+        self.session_exports_dir.mkdir(parents=True, exist_ok=True)
 
     def write_chunks(self, chunks: list[DocumentChunk]) -> Path:
         self.ensure_exists()

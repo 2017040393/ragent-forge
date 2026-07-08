@@ -181,6 +181,49 @@ def test_apply_shell_input_sources_with_sources_returns_source_picker_action() -
     assert result.state.available_sources == (first, second)
 
 
+def test_apply_shell_input_session_commands_return_actions() -> None:
+    expectations = {
+        "/new": ("new", None),
+        "/sessions": ("sessions", None),
+        "/switch session-123": ("switch", "session-123"),
+        "/rename Better title": ("rename", "Better title"),
+        "/delete": ("delete", None),
+        "/pin": ("pin", None),
+        "/star": ("star", None),
+        "/session-search agent memory": ("session-search", "agent memory"),
+        "/export markdown": ("export", "markdown"),
+        "/branch": ("branch", None),
+        "/rerun": ("rerun", None),
+        "/continue-sources": ("continue-sources", None),
+        "/title": ("title", None),
+        "/title auto": ("title", "auto"),
+        "/turn next": ("turn", "next"),
+    }
+
+    for command, (action, payload) in expectations.items():
+        result = apply_shell_input(create_initial_shell_state(), command)
+        assert result.action == action
+        if action == "switch":
+            assert result.session_id == payload
+        elif action == "rename":
+            assert result.title == payload
+        elif action == "session-search":
+            assert result.session_search_query == payload
+        elif action == "export":
+            assert result.export_format == payload
+        elif action == "title":
+            assert result.title == payload
+        elif action == "turn":
+            assert result.turn_selector == payload
+
+
+def test_apply_shell_input_rejects_unknown_export_format() -> None:
+    result = apply_shell_input(create_initial_shell_state(), "/export pdf")
+
+    assert result.action == "none"
+    assert result.state.notice == "Usage: /export markdown|json"
+
+
 def test_apply_shell_input_sources_preserves_selected_source() -> None:
     first = make_source(1)
     second = make_source(2)

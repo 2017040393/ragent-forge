@@ -1,6 +1,13 @@
 import pytest
 
 from ragent_forge.app.services.search_service import SearchResult
+from ragent_forge.app.services.session_service import (
+    TuiSession,
+    TuiSessionMessage,
+    TuiSessionRun,
+    TuiSessionSource,
+    TuiSessionTurn,
+)
 from ragent_forge.tui.shell_models import (
     WELCOME_MESSAGE,
     ShellState,
@@ -21,10 +28,13 @@ from ragent_forge.tui.shell_models import (
     message_from_search_results,
     message_from_search_state,
     messages_from_ask_state,
+    replace_state_from_session,
     select_next_source,
+    select_next_turn,
     select_previous_source,
     select_source,
     select_source_by_rank,
+    select_turn_by_id,
     set_available_sources,
     set_limit,
     set_max_context_chars,
@@ -79,6 +89,107 @@ def test_initial_shell_state_has_default_settings_and_welcome_message() -> None:
     assert state.selected_source is None
     assert state.available_sources == ()
     assert state.messages == ()
+    assert state.current_session_id is None
+    assert state.current_session_title is None
+    assert state.selected_turn_id is None
+
+
+def test_replace_state_from_session_loads_chat_turns_and_selects_latest() -> None:
+    session = make_session()
+
+    state = replace_state_from_session(create_initial_shell_state(), session)
+
+    assert state.current_session_id == "session-1"
+    assert state.current_session_title == "Agentic RAG chat"
+    assert state.session_pinned is True
+    assert state.session_starred is False
+    assert state.selected_turn_id == "turn-2"
+    assert state.available_sources[0].source_path == "/knowledge/source_2.md"
+    assert state.messages == (
+        TranscriptMessage(
+            role="user",
+            text="What is Agentic RAG?",
+            turn_id="turn-1",
+        ),
+        TranscriptMessage(
+            role="assistant",
+            text="Agentic RAG plans before retrieval.",
+            metadata={
+                "operation": "ask",
+                "retrieval_mode": "hybrid",
+                "retrieval_method": "hybrid_rrf",
+                "limit": 5,
+                "max_context_chars": 4000,
+                "show_prompt": False,
+                "generation_status": "success",
+                "generation_provider": "openai_responses",
+                "source_count": 1,
+            },
+            sources=(
+                TranscriptSource(
+                    rank=1,
+                    chunk_id="/knowledge/rag.md::chunk-0001",
+                    source_path="/knowledge/source_1.md",
+                    score=0.1,
+                    preview="Preview 1",
+                    metadata={"retrieval_method": "hybrid_rrf"},
+                ),
+            ),
+            turn_id="turn-1",
+        ),
+        TranscriptMessage(role="user", text="And BM25?", turn_id="turn-2"),
+        TranscriptMessage(
+            role="assistant",
+            text="BM25 is a lexical baseline.",
+            metadata={
+                "operation": "ask",
+                "retrieval_mode": "bm25",
+                "retrieval_method": "bm25",
+                "limit": 3,
+                "max_context_chars": 2000,
+                "show_prompt": True,
+                "generation_status": "not_configured",
+                "generation_provider": "null",
+                "source_count": 1,
+            },
+            sources=(
+                TranscriptSource(
+                    rank=2,
+                    chunk_id="/knowledge/rag.md::chunk-0002",
+                    source_path="/knowledge/source_2.md",
+                    score=0.2,
+                    preview="Preview 2",
+                    metadata={"retrieval_method": "hybrid_rrf"},
+                ),
+            ),
+            turn_id="turn-2",
+        ),
+    )
+
+
+def test_select_turn_by_id_updates_sources_and_inspector() -> None:
+    state = replace_state_from_session(create_initial_shell_state(), make_session())
+
+    selected = select_turn_by_id(state, "turn-1")
+
+    assert selected.selected_turn_id == "turn-1"
+    assert selected.available_sources[0].source_path == "/knowledge/source_1.md"
+    assert selected.selected_source == selected.available_sources[0]
+    inspector = format_shell_inspector(selected)
+    assert "Answer run" in inspector
+    assert "turn: turn-1" in inspector
+    assert "mode: hybrid" in inspector
+    assert "source_1.md" in inspector
+
+
+def test_select_next_turn_cycles_across_assistant_turns() -> None:
+    state = replace_state_from_session(create_initial_shell_state(), make_session())
+
+    wrapped = select_next_turn(state)
+
+    assert wrapped.selected_turn_id == "turn-1"
+    assert wrapped.selected_source is not None
+    assert wrapped.selected_source.source_path == "/knowledge/source_1.md"
 
 
 def test_append_message_returns_new_state_and_preserves_old_state() -> None:
@@ -387,6 +498,78 @@ def test_format_shell_status_reflects_settings_and_running_state() -> None:
 
     assert format_shell_status(state) == (
         "mode: hybrid | limit: 7 | context: 999 | prompt: on | status: running"
+    )
+
+
+def make_session_source(rank: int = 1) -> TuiSessionSource:
+    return TuiSessionSource(
+        rank=rank,
+        chunk_id=f"/knowledge/rag.md::chunk-{rank:04d}",
+        source_path=f"/knowledge/source_{rank}.md",
+        score=0.1 * rank,
+        preview=f"Preview {rank}",
+        metadata={"retrieval_method": "hybrid_rrf"},
+    )
+
+
+def make_session() -> TuiSession:
+    return TuiSession(
+        id="session-1",
+        title="Agentic RAG chat",
+        created_at="2026-07-08T00:00:00Z",
+        updated_at="2026-07-08T00:00:01Z",
+        pinned=True,
+        starred=False,
+        turns=(
+            TuiSessionTurn(
+                id="turn-1",
+                created_at="2026-07-08T00:00:01Z",
+                user_message=TuiSessionMessage(
+                    role="user",
+                    text="What is Agentic RAG?",
+                    created_at="2026-07-08T00:00:01Z",
+                ),
+                assistant_message=TuiSessionMessage(
+                    role="assistant",
+                    text="Agentic RAG plans before retrieval.",
+                    created_at="2026-07-08T00:00:02Z",
+                ),
+                sources=(make_session_source(1),),
+                run=TuiSessionRun(
+                    retrieval_mode="hybrid",
+                    retrieval_method="hybrid_rrf",
+                    limit=5,
+                    max_context_chars=4000,
+                    show_prompt=False,
+                    generation_status="success",
+                    generation_provider="openai_responses",
+                ),
+            ),
+            TuiSessionTurn(
+                id="turn-2",
+                created_at="2026-07-08T00:00:03Z",
+                user_message=TuiSessionMessage(
+                    role="user",
+                    text="And BM25?",
+                    created_at="2026-07-08T00:00:03Z",
+                ),
+                assistant_message=TuiSessionMessage(
+                    role="assistant",
+                    text="BM25 is a lexical baseline.",
+                    created_at="2026-07-08T00:00:04Z",
+                ),
+                sources=(make_session_source(2),),
+                run=TuiSessionRun(
+                    retrieval_mode="bm25",
+                    retrieval_method="bm25",
+                    limit=3,
+                    max_context_chars=2000,
+                    show_prompt=True,
+                    generation_status="not_configured",
+                    generation_provider="null",
+                ),
+            ),
+        ),
     )
 
 

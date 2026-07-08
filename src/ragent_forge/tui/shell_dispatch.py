@@ -19,7 +19,29 @@ from ragent_forge.tui.shell_models import (
     set_show_prompt,
 )
 
-ShellAction = Literal["none", "quit", "search", "ask", "sources", "help"]
+ShellAction = Literal[
+    "none",
+    "quit",
+    "search",
+    "ask",
+    "sources",
+    "help",
+    "new",
+    "sessions",
+    "switch",
+    "rename",
+    "delete",
+    "pin",
+    "star",
+    "session-search",
+    "export",
+    "branch",
+    "rerun",
+    "continue-sources",
+    "title",
+    "turn",
+]
+ExportFormat = Literal["markdown", "json"]
 NO_SOURCES_MESSAGE = (
     "No sources available. Run /search <query> or ask a question first."
 )
@@ -56,6 +78,11 @@ class ShellDispatchResult:
     action: ShellAction = "none"
     search_query: str | None = None
     ask_question: str | None = None
+    session_id: str | None = None
+    title: str | None = None
+    session_search_query: str | None = None
+    export_format: ExportFormat | None = None
+    turn_selector: str | None = None
 
 
 def apply_shell_input(
@@ -72,6 +99,50 @@ def apply_shell_input(
         return ShellDispatchResult(state, action="ask", ask_question=parsed.args)
     if parsed.name == "help":
         return ShellDispatchResult(state, action="help")
+    if parsed.name == "new":
+        return ShellDispatchResult(state, action="new")
+    if parsed.name == "sessions":
+        return ShellDispatchResult(state, action="sessions")
+    if parsed.name == "switch":
+        return ShellDispatchResult(
+            state,
+            action="switch",
+            session_id=parsed.args,
+        )
+    if parsed.name == "rename":
+        return ShellDispatchResult(state, action="rename", title=parsed.args)
+    if parsed.name == "delete":
+        return ShellDispatchResult(state, action="delete")
+    if parsed.name == "pin":
+        return ShellDispatchResult(state, action="pin")
+    if parsed.name == "star":
+        return ShellDispatchResult(state, action="star")
+    if parsed.name == "session-search":
+        return ShellDispatchResult(
+            state,
+            action="session-search",
+            session_search_query=parsed.args,
+        )
+    if parsed.name == "export":
+        return _apply_export_command(state, parsed.args)
+    if parsed.name == "branch":
+        return ShellDispatchResult(state, action="branch")
+    if parsed.name == "rerun":
+        return ShellDispatchResult(state, action="rerun")
+    if parsed.name == "continue-sources":
+        return ShellDispatchResult(state, action="continue-sources")
+    if parsed.name == "title":
+        return ShellDispatchResult(
+            state,
+            action="title",
+            title=parsed.args or None,
+        )
+    if parsed.name == "turn":
+        return ShellDispatchResult(
+            state,
+            action="turn",
+            turn_selector=parsed.args,
+        )
     if parsed.name == "clear":
         return ShellDispatchResult(clear_transcript(state))
     if parsed.name == "mode":
@@ -161,6 +232,17 @@ def _apply_prompt_command(state: ShellState, value: str) -> ShellState:
     updated = set_show_prompt(state, enabled)
     status = "enabled" if enabled else "disabled"
     return set_notice(updated, f"prompt preview {status}")
+
+
+def _apply_export_command(state: ShellState, value: str) -> ShellDispatchResult:
+    normalized = value.lower()
+    if normalized not in {"markdown", "json"}:
+        return ShellDispatchResult(set_notice(state, "Usage: /export markdown|json"))
+    return ShellDispatchResult(
+        state,
+        action="export",
+        export_format=cast(ExportFormat, normalized),
+    )
 
 
 def _apply_sources_command(state: ShellState) -> ShellDispatchResult:

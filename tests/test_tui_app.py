@@ -12,6 +12,11 @@ from textual.worker import WorkerState
 
 from ragent_forge.app.models import Document, IngestResult, OperationTrace, TraceStep
 from ragent_forge.app.services.search_service import SearchResult
+from ragent_forge.app.services.session_service import (
+    SessionService,
+    TuiSessionRun,
+    TuiSessionSource,
+)
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 from ragent_forge.tui import main as tui_main
@@ -69,6 +74,28 @@ def make_transcript_source(rank: int = 1) -> TranscriptSource:
     )
 
 
+def make_session_source(rank: int = 1) -> TuiSessionSource:
+    return TuiSessionSource(
+        rank=rank,
+        chunk_id=f"/knowledge/rag.md::chunk-{rank:04d}",
+        source_path=f"/knowledge/source_{rank}.md",
+        score=0.1 * rank,
+        preview=f"Preview {rank}",
+    )
+
+
+def make_session_run() -> TuiSessionRun:
+    return TuiSessionRun(
+        retrieval_mode="hybrid",
+        retrieval_method="hybrid_rrf",
+        limit=5,
+        max_context_chars=4000,
+        show_prompt=False,
+        generation_status="success",
+        generation_provider="openai_responses",
+    )
+
+
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"
@@ -112,6 +139,28 @@ async def test_tui_app_opens_as_single_shell_without_old_pages(
             assert_missing_widget(app, selector)
         with pytest.raises(NoMatches):
             app.query_one(Footer)
+
+
+@pytest.mark.anyio
+async def test_tui_app_restores_latest_session_on_mount(tmp_path: Path) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    service = SessionService(workspace.root_path)
+    session = service.create_session()
+    service.append_turn(
+        session.id,
+        question="What is saved?",
+        assistant_text="A persisted answer.",
+        sources=[make_session_source()],
+        run=make_session_run(),
+    )
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert app.shell_state.current_session_id == session.id
+        assert app.shell_state.current_session_title == "What is saved?"
+        assert "User:\n  What is saved?" in transcript
+        assert "Assistant:\n  A persisted answer." in transcript
 
 
 def test_tui_app_has_no_global_key_bindings() -> None:
@@ -326,6 +375,101 @@ async def test_tui_app_source_picker_selection_updates_inspector(
 
 
 @pytest.mark.anyio
+async def test_tui_app_session_commands_manage_current_session(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    service = SessionService(workspace.root_path)
+    session = service.create_session()
+    saved_session, turn = service.append_turn(
+        session.id,
+        question="Original question?",
+        assistant_text="Original answer.",
+        sources=[make_session_source()],
+        run=make_session_run(),
+    )
+    app = RagentForgeApp(workspace.root_path)
+    reruns: list[str] = []
+
+    def fake_rerun(question: str) -> None:
+        reruns.append(question)
+
+    monkeypatch.setattr(app, "_run_shell_ask_from_dispatch", fake_rerun)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        assert app.shell_state.current_session_id == saved_session.id
+
+        shell_input.value = "/rename Better title"
+        app._submit_shell_input()
+        assert app.shell_state.current_session_title == "Better title"
+
+        shell_input.value = "/pin"
+        app._submit_shell_input()
+        assert app.shell_state.session_pinned is True
+
+        shell_input.value = "/star"
+        app._submit_shell_input()
+        assert app.shell_state.session_starred is True
+
+        shell_input.value = "/export markdown"
+        app._submit_shell_input()
+        assert "Exported session:" in str(
+            app.query_one("#shell-status", Static).renderable
+        )
+
+        shell_input.value = "/continue-sources"
+        app._submit_shell_input()
+        assert shell_input.value.startswith("Using the selected sources, ")
+
+        shell_input.value = "/rerun"
+        app._submit_shell_input()
+        assert reruns == ["Original question?"]
+
+        shell_input.value = "/branch"
+        app._submit_shell_input()
+        assert app.shell_state.current_session_id != saved_session.id
+        branch = SessionService(workspace.root_path).load_latest_or_create()
+        assert branch.branched_from_session_id == saved_session.id
+        assert branch.branched_from_turn_id == turn.id
+
+
+@pytest.mark.anyio
+async def test_tui_app_switch_and_session_search_open_session_modal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    service = SessionService(workspace.root_path)
+    first = service.create_session("First chat")
+    second = service.create_session("Second chat")
+    app = RagentForgeApp(workspace.root_path)
+    opened: list[list[str]] = []
+
+    def fake_show_sessions_modal() -> None:
+        opened.append([summary.title for summary in app.shell_state.session_summaries])
+
+    monkeypatch.setattr(app, "_show_sessions_modal", fake_show_sessions_modal)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        assert app.shell_state.current_session_id == second.id
+
+        shell_input.value = f"/switch {first.id}"
+        app._submit_shell_input()
+        assert app.shell_state.current_session_id == first.id
+
+        shell_input.value = "/sessions"
+        app._submit_shell_input()
+        assert opened[-1] == ["Second chat", "First chat"]
+
+        shell_input.value = "/session-search second"
+        app._submit_shell_input()
+        assert opened[-1] == ["Second chat"]
+
+
+@pytest.mark.anyio
 async def test_tui_app_shell_docs_command_uses_inspector_for_details(
     tmp_path: Path,
 ) -> None:
@@ -392,7 +536,7 @@ async def test_tui_app_shell_suggestions_can_move_beyond_visible_window(
 
         suggestions = str(app.query_one("#shell-suggestions", Static).renderable)
         assert "/ask <question>" not in suggestions
-        assert "> /limit <n>" in suggestions
+        assert "> /new" in suggestions
 
 
 @pytest.mark.anyio
@@ -645,6 +789,14 @@ async def test_tui_app_shell_ask_worker_streams_answer_into_current_message(
         assert "Assistant:\n  Agentic RAG" in transcript
         assert "agentic_rag.md" not in transcript
         assert app.shell_state.selected_source is not None
+        assert app.shell_state.selected_turn_id is not None
+
+        saved = SessionService(workspace.root_path).load_latest_or_create()
+        assert saved.turns[-1].user_message.text == "What is Agentic RAG?"
+        assert saved.turns[-1].assistant_message.text == "Agentic RAG"
+        assert saved.turns[-1].sources[0].source_path == "/knowledge/agentic_rag.md"
+        assert saved.turns[-1].run is not None
+        assert saved.turns[-1].run.retrieval_mode == "hybrid"
 
 
 @pytest.mark.anyio
@@ -802,10 +954,15 @@ async def test_tui_app_shell_ask_missing_vector_index_guidance_is_actionable(
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         status = str(app.query_one("#shell-status", Static).renderable)
         inspector = str(app.query_one("#inspector-content", Static).renderable)
-        assert "Vector index not found." not in transcript
-        assert "Vector index not found." in status
+        assert "Assistant:\n  Vector index not found." in transcript
+        assert "Vector index not found." not in status
         assert "ragent index build" in inspector
         assert event.stopped is True
+        saved = SessionService(workspace.root_path).load_latest_or_create()
+        assert saved.turns[-1].assistant_message.text == guidance
+        assert saved.turns[-1].run is not None
+        assert saved.turns[-1].run.generation_status == "failed"
+        assert saved.turns[-1].run.error == guidance
 
 
 @pytest.mark.anyio

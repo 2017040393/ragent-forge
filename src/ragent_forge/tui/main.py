@@ -11,32 +11,54 @@ from textual.screen import ModalScreen
 from textual.widgets import Header, Input, Label, ListItem, ListView, Static
 from textual.worker import Worker, WorkerState
 
+from ragent_forge.app.services.config_service import ConfigService
+from ragent_forge.app.services.session_service import (
+    SessionService,
+    TuiSession,
+    TuiSessionExportFormat,
+    TuiSessionRun,
+    TuiSessionSource,
+    TuiSessionSummary,
+)
+from ragent_forge.app.services.text_generation_client import (
+    OpenAIResponsesTextGenerationClient,
+)
 from ragent_forge.tui.commands import (
     complete_tui_command_suggestion,
     count_tui_command_suggestions,
     format_tui_command_help,
     format_tui_command_suggestions,
 )
-from ragent_forge.tui.shell_dispatch import ShellReadOnlyHandlers, apply_shell_input
+from ragent_forge.tui.shell_dispatch import (
+    ShellDispatchResult,
+    ShellReadOnlyHandlers,
+    apply_shell_input,
+)
 from ragent_forge.tui.shell_models import (
     ShellState,
     TranscriptMessage,
     TranscriptSource,
     append_message,
-    append_messages,
     create_initial_shell_state,
     format_conversation_transcript,
     format_prompt_preview_inspector,
     format_selected_source_ack,
+    format_selected_turn_ack,
     format_shell_inspector,
     format_shell_status,
     message_from_search_state,
     messages_from_ask_state,
+    replace_state_from_session,
+    select_next_turn,
+    select_previous_turn,
     select_source,
+    select_turn_by_id,
     set_available_sources,
     set_inspector_text,
     set_notice,
     set_running,
+    set_session_summaries,
+    transcript_sources_from_search_results,
 )
 from ragent_forge.tui.theme import (
     style_command_suggestions,
@@ -115,9 +137,124 @@ class HelpModal(ModalScreen[None]):
         self.dismiss(None)
 
 
+class SessionPickerModal(ModalScreen[str | None]):
+    BINDINGS = [("escape", "close", "Close")]
+
+    def __init__(
+        self,
+        summaries: tuple[TuiSessionSummary, ...],
+        selected_session_id: str | None,
+    ) -> None:
+        super().__init__()
+        self.summaries = summaries
+        self.selected_session_id = selected_session_id
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="session-picker-dialog"):
+            yield Label("Sessions")
+            yield Static("Use Up/Down and Enter, or click a session.")
+            yield ListView(
+                *(
+                    ListItem(Label(_session_picker_label(summary)))
+                    for summary in self.summaries
+                ),
+                id="session-picker-list",
+            )
+
+    def on_mount(self) -> None:
+        if self.selected_session_id is None:
+            return
+        for index, summary in enumerate(self.summaries):
+            if summary.id == self.selected_session_id:
+                self.query_one("#session-picker-list", ListView).index = index
+                return
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        self.dismiss(self.summaries[event.index].id)
+
+    def action_close(self) -> None:
+        self.dismiss(None)
+
+
 def _source_picker_label(source: TranscriptSource) -> str:
     label = Path(source.source_path).name or source.source_path
     return f"{source.rank}. {label}  score={source.score:.4g}"
+
+
+def _session_picker_label(summary: TuiSessionSummary) -> str:
+    markers: list[str] = []
+    if summary.pinned:
+        markers.append("pin")
+    if summary.starred:
+        markers.append("star")
+    prefix = f"[{','.join(markers)}] " if markers else ""
+    return (
+        f"{prefix}{summary.title}  "
+        f"turns={summary.turn_count}  updated={summary.updated_at}"
+    )
+
+
+def _retrieval_method_from_mode(mode: str) -> str:
+    if mode == "hybrid":
+        return "hybrid_rrf"
+    if mode == "semantic":
+        return "semantic_cosine_similarity"
+    if mode == "bm25":
+        return "bm25"
+    return "lexical_token_overlap"
+
+
+def _retrieval_method_from_sources(
+    sources: tuple[TranscriptSource, ...],
+    fallback_mode: str,
+) -> str:
+    for source in sources:
+        method = source.metadata.get("retrieval_method")
+        if isinstance(method, str) and method:
+            return method
+    return _retrieval_method_from_mode(fallback_mode)
+
+
+def _session_sources_from_transcript_sources(
+    sources: tuple[TranscriptSource, ...],
+) -> tuple[TuiSessionSource, ...]:
+    return tuple(
+        TuiSessionSource(
+            rank=source.rank,
+            chunk_id=source.chunk_id,
+            source_path=source.source_path,
+            score=source.score,
+            preview=source.preview,
+            metadata=dict(source.metadata),
+        )
+        for source in sources
+    )
+
+
+def _run_metadata_from_session_run(
+    run: TuiSessionRun,
+    *,
+    source_count: int,
+) -> dict[str, object]:
+    return {
+        "operation": "ask",
+        "retrieval_mode": run.retrieval_mode,
+        "retrieval_method": run.retrieval_method,
+        "limit": run.limit,
+        "max_context_chars": run.max_context_chars,
+        "show_prompt": run.show_prompt,
+        "generation_status": run.generation_status,
+        "generation_provider": run.generation_provider,
+        "error": run.error,
+        "source_count": source_count,
+    }
+
+
+def _fallback_title_from_question(question: str) -> str:
+    title = " ".join(question.split())
+    if len(title) <= 80:
+        return title
+    return f"{title[:77].rstrip()}..."
 
 
 class RagentForgeApp(App[None]):
@@ -174,7 +311,7 @@ class RagentForgeApp(App[None]):
         color: #9aa7bd;
     }
 
-    #source-picker-dialog, #help-dialog {
+    #source-picker-dialog, #help-dialog, #session-picker-dialog {
         width: 74;
         max-height: 80%;
         margin: 2 4;
@@ -184,7 +321,7 @@ class RagentForgeApp(App[None]):
         color: #d7deea;
     }
 
-    #source-picker-list {
+    #source-picker-list, #session-picker-list {
         height: auto;
         max-height: 18;
     }
@@ -199,8 +336,11 @@ class RagentForgeApp(App[None]):
     def __init__(self, workspace_path: str | Path = ".ragent") -> None:
         super().__init__()
         self.workspace_path = workspace_path
+        self.session_service = SessionService(workspace_path)
         self.shell_state: ShellState = create_initial_shell_state()
         self.shell_suggestion_index = 0
+        self._pending_ask_question: str | None = None
+        self._pending_ask_run: TuiSessionRun | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -220,9 +360,245 @@ class RagentForgeApp(App[None]):
                 yield Static("", id="inspector-content")
 
     def on_mount(self) -> None:
+        self._restore_latest_session()
         self._render_shell()
         self._render_inspector()
         self._focus_shell_input()
+
+    def _handle_session_dispatch(self, result: ShellDispatchResult) -> None:
+        try:
+            if result.action == "new":
+                self._create_new_session()
+            elif result.action == "sessions":
+                self._open_sessions(self.session_service.list_sessions())
+            elif result.action == "switch" and result.session_id is not None:
+                self._switch_session(result.session_id)
+            elif result.action == "rename" and result.title is not None:
+                self._rename_current_session(result.title)
+            elif result.action == "delete":
+                self._delete_current_session()
+            elif result.action == "pin":
+                self._toggle_current_session_pin()
+            elif result.action == "star":
+                self._toggle_current_session_star()
+            elif result.action == "session-search":
+                self._search_sessions(result.session_search_query or "")
+            elif result.action == "export" and result.export_format is not None:
+                self._export_current_session(result.export_format)
+            elif result.action == "branch":
+                self._branch_current_session()
+            elif result.action == "rerun":
+                self._rerun_selected_turn()
+            elif result.action == "continue-sources":
+                self._continue_from_selected_sources()
+            elif result.action == "title":
+                self._title_current_session(result.title)
+            elif result.action == "turn" and result.turn_selector is not None:
+                self._select_turn(result.turn_selector)
+        except (OSError, ValueError) as exc:
+            self.shell_state = set_notice(self.shell_state, str(exc))
+
+        self._render_shell()
+        self._render_inspector()
+        self._focus_shell_input()
+
+    def _create_new_session(self) -> None:
+        session = self.session_service.create_session()
+        self._load_session_into_shell(session)
+        self.shell_state = set_notice(self.shell_state, "Started a new session.")
+
+    def _open_sessions(self, summaries: list[TuiSessionSummary]) -> None:
+        self.shell_state = set_session_summaries(self.shell_state, summaries)
+        self._render_shell()
+        self._render_inspector()
+        self._show_sessions_modal()
+
+    def _switch_session(self, session_id: str) -> None:
+        session = self.session_service.load_session(session_id)
+        self.session_service.set_latest(session.id)
+        self._load_session_into_shell(session)
+        self.shell_state = set_notice(
+            self.shell_state,
+            f"Switched session: {session.title}",
+        )
+
+    def _rename_current_session(self, title: str) -> None:
+        session_id = self._current_session_id()
+        session = self.session_service.rename_session(session_id, title)
+        self._load_session_into_shell(session)
+        self.shell_state = set_notice(
+            self.shell_state,
+            f"Renamed session: {session.title}",
+        )
+
+    def _delete_current_session(self) -> None:
+        session_id = self._current_session_id()
+        self.session_service.delete_session(session_id)
+        session = self.session_service.load_latest_or_create()
+        self._load_session_into_shell(session)
+        self.shell_state = set_notice(self.shell_state, "Deleted current session.")
+
+    def _toggle_current_session_pin(self) -> None:
+        session_id = self._current_session_id()
+        session = self.session_service.load_session(session_id)
+        updated = self.session_service.set_pinned(session_id, not session.pinned)
+        self._load_session_into_shell(updated)
+        status = "pinned" if updated.pinned else "unpinned"
+        self.shell_state = set_notice(self.shell_state, f"Session {status}.")
+
+    def _toggle_current_session_star(self) -> None:
+        session_id = self._current_session_id()
+        session = self.session_service.load_session(session_id)
+        updated = self.session_service.set_starred(session_id, not session.starred)
+        self._load_session_into_shell(updated)
+        status = "starred" if updated.starred else "unstarred"
+        self.shell_state = set_notice(self.shell_state, f"Session {status}.")
+
+    def _search_sessions(self, query: str) -> None:
+        summaries = self.session_service.search_sessions(query)
+        self.shell_state = set_notice(
+            set_session_summaries(self.shell_state, summaries),
+            f"Found {len(summaries)} session(s).",
+        )
+        self._show_sessions_modal()
+
+    def _export_current_session(self, export_format: TuiSessionExportFormat) -> None:
+        path = self.session_service.export_session(
+            self._current_session_id(),
+            export_format,
+        )
+        self.shell_state = set_notice(self.shell_state, f"Exported session: {path}")
+
+    def _branch_current_session(self) -> None:
+        branch = self.session_service.branch_session(
+            self._current_session_id(),
+            self.shell_state.selected_turn_id,
+        )
+        self._load_session_into_shell(branch)
+        self.shell_state = set_notice(
+            self.shell_state,
+            f"Branched session: {branch.title}",
+        )
+
+    def _rerun_selected_turn(self) -> None:
+        question = self._selected_turn_question()
+        if question is None:
+            self.shell_state = set_notice(
+                self.shell_state,
+                "No answer turn selected.",
+            )
+            return
+        self._run_shell_ask_from_dispatch(question)
+
+    def _continue_from_selected_sources(self) -> None:
+        if not self.shell_state.available_sources:
+            self.shell_state = set_notice(
+                self.shell_state,
+                "No selected answer sources to continue from.",
+            )
+            return
+        shell_input = self.query_one("#shell-input", Input)
+        shell_input.value = "Using the selected sources, "
+        shell_input.cursor_position = len(shell_input.value)
+        self.shell_state = set_notice(
+            self.shell_state,
+            "Drafting follow-up from selected sources.",
+        )
+
+    def _title_current_session(self, title: str | None) -> None:
+        if title is None:
+            current = self.shell_state.current_session_title or "Untitled session"
+            self.shell_state = set_notice(self.shell_state, f"Session title: {current}")
+            return
+        if title == "auto":
+            generated = self._generate_session_title()
+            if generated is None:
+                self.shell_state = set_notice(
+                    self.shell_state,
+                    "Unable to generate a title with current configuration.",
+                )
+                return
+            self._rename_current_session(generated)
+            return
+        self._rename_current_session(title)
+
+    def _select_turn(self, selector: str) -> None:
+        normalized = selector.strip().lower()
+        if normalized == "next":
+            updated = select_next_turn(self.shell_state)
+            self.shell_state = set_notice(
+                updated,
+                format_selected_turn_ack(updated),
+            )
+            return
+        if normalized == "prev":
+            updated = select_previous_turn(self.shell_state)
+            self.shell_state = set_notice(
+                updated,
+                format_selected_turn_ack(updated),
+            )
+            return
+        turn_id = self._turn_id_from_selector(selector)
+        self.shell_state = set_notice(
+            select_turn_by_id(self.shell_state, turn_id),
+            f"selected answer turn: {turn_id}",
+        )
+
+    def _turn_id_from_selector(self, selector: str) -> str:
+        normalized = selector.strip().lower()
+        turn_ids = self._assistant_turn_ids()
+        if not turn_ids:
+            raise ValueError("No assistant answers available.")
+        if normalized == "first":
+            return turn_ids[0]
+        if normalized == "last":
+            return turn_ids[-1]
+        if normalized.isdigit():
+            index = int(normalized)
+            if index <= 0 or index > len(turn_ids):
+                raise ValueError(
+                    f"Turn number out of range. Available: 1-{len(turn_ids)}."
+                )
+            return turn_ids[index - 1]
+        return selector.strip()
+
+    def _assistant_turn_ids(self) -> list[str]:
+        turn_ids: list[str] = []
+        for message in self.shell_state.messages:
+            if (
+                message.role == "assistant"
+                and message.turn_id is not None
+                and message.turn_id not in turn_ids
+            ):
+                turn_ids.append(message.turn_id)
+        return turn_ids
+
+    def _selected_turn_question(self) -> str | None:
+        selected_turn_id = self.shell_state.selected_turn_id
+        if selected_turn_id is None:
+            return None
+        for message in self.shell_state.messages:
+            if message.role == "user" and message.turn_id == selected_turn_id:
+                return message.text
+        return None
+
+    def _current_session_id(self) -> str:
+        if self.shell_state.current_session_id is not None:
+            return self.shell_state.current_session_id
+        session = self.session_service.load_latest_or_create()
+        self._load_session_into_shell(session)
+        return session.id
+
+    def _restore_latest_session(self) -> None:
+        session = self.session_service.load_latest_or_create()
+        self._load_session_into_shell(session)
+
+    def _load_session_into_shell(self, session: TuiSession) -> None:
+        self.shell_state = replace_state_from_session(
+            self.shell_state,
+            session,
+            self.session_service.list_sessions(),
+        )
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "shell-input":
@@ -287,6 +663,24 @@ class RagentForgeApp(App[None]):
         if result.action == "quit":
             self.exit()
             return
+        if result.action in {
+            "new",
+            "sessions",
+            "switch",
+            "rename",
+            "delete",
+            "pin",
+            "star",
+            "session-search",
+            "export",
+            "branch",
+            "rerun",
+            "continue-sources",
+            "title",
+            "turn",
+        }:
+            self._handle_session_dispatch(result)
+            return
         if result.action == "search" and result.search_query is not None:
             self._run_shell_search_from_dispatch(result.search_query)
             return
@@ -314,6 +708,15 @@ class RagentForgeApp(App[None]):
         limit = self.shell_state.limit
         max_context_chars = self.shell_state.max_context_chars
         show_prompt = self.shell_state.show_prompt
+        self._pending_ask_question = question
+        self._pending_ask_run = TuiSessionRun(
+            retrieval_mode=mode,
+            retrieval_method=_retrieval_method_from_mode(mode),
+            limit=limit,
+            max_context_chars=max_context_chars,
+            show_prompt=show_prompt,
+            generation_status="running",
+        )
         self.shell_state = set_notice(
             append_message(
                 append_message(
@@ -505,10 +908,41 @@ class RagentForgeApp(App[None]):
 
     def _show_shell_ask_worker_failure(self) -> None:
         self._discard_streaming_assistant()
-        self.shell_state = append_message(
-            self.shell_state,
-            TranscriptMessage(role="error", text=SHELL_ASK_FAILED_STATUS),
+        question = self._pending_ask_question or ""
+        run = self._pending_ask_run or TuiSessionRun(
+            retrieval_mode=self.shell_state.retrieval_mode,
+            retrieval_method=_retrieval_method_from_mode(
+                self.shell_state.retrieval_mode,
+            ),
+            limit=self.shell_state.limit,
+            max_context_chars=self.shell_state.max_context_chars,
+            show_prompt=self.shell_state.show_prompt,
+            generation_status="failed",
+            error=SHELL_ASK_FAILED_STATUS,
         )
+        failed_run = replace(
+            run,
+            generation_status="failed",
+            error=SHELL_ASK_FAILED_STATUS,
+        )
+        message = TranscriptMessage(
+            role="assistant",
+            text=SHELL_ASK_FAILED_STATUS,
+            metadata=_run_metadata_from_session_run(failed_run, source_count=0),
+        )
+        if question:
+            session, _turn = self.session_service.append_turn(
+                self._current_session_id(),
+                question=question,
+                assistant_text=SHELL_ASK_FAILED_STATUS,
+                sources=(),
+                run=failed_run,
+            )
+            self._load_session_into_shell(session)
+        else:
+            self.shell_state = append_message(self.shell_state, message)
+        self._pending_ask_question = None
+        self._pending_ask_run = None
 
     def _call_from_worker_thread(
         self,
@@ -542,45 +976,140 @@ class RagentForgeApp(App[None]):
         self._render_shell()
 
     def _complete_shell_ask_result(self, result: AskPageState) -> None:
-        messages = messages_from_ask_state(result)
-        index = self._last_streaming_assistant_index()
-        if index is None:
-            self.shell_state = append_messages(self.shell_state, messages)
+        message = self._assistant_message_from_ask_result(result)
+        question = result.question or self._pending_ask_question or ""
+        if question:
+            session, _turn = self.session_service.append_turn(
+                self._current_session_id(),
+                question=question,
+                assistant_text=message.text,
+                sources=_session_sources_from_transcript_sources(message.sources),
+                run=self._session_run_from_ask_result(result, message),
+            )
+            self._load_session_into_shell(session)
         else:
-            current_messages = list(self.shell_state.messages)
-            replacement_messages = list(messages)
-            replacement = (
-                replacement_messages.pop(0)
-                if replacement_messages
-                and replacement_messages[0].role == "assistant"
-                else None
-            )
-            if replacement is None:
-                del current_messages[index]
+            index = self._last_streaming_assistant_index()
+            if index is None:
+                self.shell_state = append_message(self.shell_state, message)
             else:
-                current_messages[index] = replacement
-            self.shell_state = replace(
-                self.shell_state,
-                messages=tuple(current_messages),
-                notice=None,
-            )
-            if replacement is not None and replacement.sources:
-                self.shell_state = set_available_sources(
+                current_messages = list(self.shell_state.messages)
+                current_messages[index] = message
+                self.shell_state = replace(
                     self.shell_state,
-                    replacement.sources,
+                    messages=tuple(current_messages),
+                    notice=None,
                 )
-            self.shell_state = append_messages(
-                self.shell_state,
-                tuple(replacement_messages),
+                if message.sources:
+                    self.shell_state = set_available_sources(
+                        self.shell_state,
+                        message.sources,
+                    )
+
+        if message.sources:
+            self.shell_state = select_source(self.shell_state, message.sources[0])
+        self._pending_ask_question = None
+        self._pending_ask_run = None
+
+    def _assistant_message_from_ask_result(
+        self,
+        result: AskPageState,
+    ) -> TranscriptMessage:
+        if result.error:
+            sources = transcript_sources_from_search_results(result.sources)
+            metadata = {
+                "operation": "ask",
+                "retrieval_mode": result.retrieval_mode,
+                "retrieval_method": _retrieval_method_from_sources(
+                    sources,
+                    result.retrieval_mode,
+                ),
+                "limit": result.limit,
+                "max_context_chars": result.max_context_chars,
+                "show_prompt": result.show_prompt,
+                "generation_status": "failed",
+                "generation_provider": result.generation_provider,
+                "error": result.error,
+                "source_count": len(sources),
+            }
+            return TranscriptMessage(
+                role="assistant",
+                text=result.error,
+                metadata=metadata,
+                sources=sources,
             )
 
+        messages = messages_from_ask_state(result)
         for message in messages:
-            if message.sources:
-                self.shell_state = select_source(
-                    self.shell_state,
-                    message.sources[0],
+            if message.role == "assistant":
+                metadata = dict(message.metadata)
+                metadata.setdefault(
+                    "retrieval_method",
+                    _retrieval_method_from_sources(
+                        message.sources,
+                        result.retrieval_mode,
+                    ),
                 )
-                break
+                metadata.setdefault("limit", result.limit)
+                metadata.setdefault("max_context_chars", result.max_context_chars)
+                metadata.setdefault("show_prompt", result.show_prompt)
+                return replace(message, metadata=metadata)
+
+        sources = transcript_sources_from_search_results(result.sources)
+        text = result.status or "Ask completed."
+        metadata = {
+            "operation": "ask",
+            "retrieval_mode": result.retrieval_mode,
+            "retrieval_method": _retrieval_method_from_sources(
+                sources,
+                result.retrieval_mode,
+            ),
+            "limit": result.limit,
+            "max_context_chars": result.max_context_chars,
+            "show_prompt": result.show_prompt,
+            "generation_status": result.generation_status,
+            "generation_provider": result.generation_provider,
+            "source_count": len(sources),
+        }
+        return TranscriptMessage(
+            role="assistant",
+            text=text,
+            metadata=metadata,
+            sources=sources,
+        )
+
+    def _session_run_from_ask_result(
+        self,
+        result: AskPageState,
+        message: TranscriptMessage,
+    ) -> TuiSessionRun:
+        metadata = message.metadata
+        return TuiSessionRun(
+            retrieval_mode=result.retrieval_mode,
+            retrieval_method=str(
+                metadata.get(
+                    "retrieval_method",
+                    _retrieval_method_from_sources(
+                        message.sources,
+                        result.retrieval_mode,
+                    ),
+                )
+            ),
+            limit=result.limit,
+            max_context_chars=result.max_context_chars,
+            show_prompt=result.show_prompt,
+            generation_status=str(metadata.get("generation_status") or ""),
+            generation_provider=(
+                str(metadata["generation_provider"])
+                if metadata.get("generation_provider") is not None
+                else None
+            ),
+            error=(
+                str(metadata["error"])
+                if metadata.get("error") is not None
+                else result.error
+            ),
+            prompt_preview=result.prompt_preview,
+        )
 
     def _discard_streaming_assistant(self) -> None:
         index = self._last_streaming_assistant_index()
@@ -612,6 +1141,27 @@ class RagentForgeApp(App[None]):
     def _show_help_modal(self) -> None:
         self.push_screen(HelpModal())
 
+    def _show_sessions_modal(self) -> None:
+        self.push_screen(
+            SessionPickerModal(
+                self.shell_state.session_summaries,
+                self.shell_state.current_session_id,
+            ),
+            self._handle_session_picker_result,
+        )
+
+    def _handle_session_picker_result(self, session_id: str | None) -> None:
+        if session_id is None:
+            self._focus_shell_input()
+            return
+        try:
+            self._switch_session(session_id)
+        except (OSError, ValueError) as exc:
+            self.shell_state = set_notice(self.shell_state, str(exc))
+        self._render_shell()
+        self._render_inspector()
+        self._focus_shell_input()
+
     def _handle_source_picker_result(
         self,
         source: TranscriptSource | None,
@@ -626,6 +1176,34 @@ class RagentForgeApp(App[None]):
         self._render_shell()
         self._render_inspector()
         self._focus_shell_input()
+
+    def _generate_session_title(self) -> str | None:
+        question = self._first_session_question()
+        if question is None:
+            return None
+        try:
+            config = ConfigService(self.session_service.workspace).load()
+            if config.generation.provider != "openai_responses":
+                return _fallback_title_from_question(question)
+            client = OpenAIResponsesTextGenerationClient.from_config(config)
+            raw_title = client.generate_text(
+                (
+                    "Create a concise chat title under 8 words. "
+                    "Return only the title.\n\n"
+                    f"First question: {question}"
+                ),
+                system_prompt="You write short, plain chat titles.",
+            )
+        except (OSError, RuntimeError, ValueError):
+            return _fallback_title_from_question(question)
+        title = " ".join(raw_title.split()).strip('"')
+        return title[:80] or _fallback_title_from_question(question)
+
+    def _first_session_question(self) -> str | None:
+        for message in self.shell_state.messages:
+            if message.role == "user" and message.text.strip():
+                return message.text.strip()
+        return None
 
     def _render_inspector(self) -> None:
         self.query_one("#inspector-content", Static).update(
