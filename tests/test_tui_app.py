@@ -1084,6 +1084,79 @@ async def test_tui_app_shell_ask_missing_vector_index_guidance_is_actionable(
 
 
 @pytest.mark.anyio
+async def test_tui_app_shell_ask_worker_failure_message_is_actionable(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    class FakeWorker:
+        name = "shell-ask"
+        result = None
+
+    class FakeEvent:
+        state = WorkerState.ERROR
+        worker = FakeWorker()
+        stopped = False
+
+        def stop(self) -> None:
+            self.stopped = True
+
+    async with app.run_test():
+        app._pending_ask_question = "Why did this fail?"
+        app._pending_ask_run = TuiSessionRun(
+            retrieval_mode="hybrid",
+            retrieval_method="hybrid_rrf",
+            limit=5,
+            max_context_chars=4000,
+            show_prompt=False,
+            generation_status="running",
+        )
+        app.shell_state = replace(app.shell_state, running=True)
+
+        event = FakeEvent()
+        app._handle_shell_ask_worker_state(event)  # type: ignore[arg-type]
+
+        transcript = str(app.query_one("#shell-transcript", Static).renderable)
+        assert "Try /settings" in transcript
+        assert "/docs" in transcript
+        assert "/mode bm25" in transcript
+        assert event.stopped is True
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_search_worker_failure_message_is_actionable(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    class FakeWorker:
+        name = "shell-search"
+        result = None
+
+    class FakeEvent:
+        state = WorkerState.ERROR
+        worker = FakeWorker()
+        stopped = False
+
+        def stop(self) -> None:
+            self.stopped = True
+
+    async with app.run_test():
+        app.shell_state = replace(app.shell_state, running=True)
+
+        event = FakeEvent()
+        app._handle_shell_search_worker_state(event)  # type: ignore[arg-type]
+
+        status = str(app.query_one("#shell-status", Static).renderable)
+        assert "Try /settings" in status
+        assert "/docs" in status
+        assert "/mode bm25" in status
+        assert event.stopped is True
+
+
+@pytest.mark.anyio
 async def test_tui_app_shell_search_starts_worker_and_keeps_input_enabled(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

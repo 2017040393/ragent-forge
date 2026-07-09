@@ -85,8 +85,14 @@ from ragent_forge.tui.view_models import (
     stream_tui_ask,
 )
 
-SHELL_ASK_FAILED_STATUS = "Ask failed. Check configuration and workspace files."
-SHELL_SEARCH_FAILED_STATUS = "Search failed. Check configuration and workspace files."
+SHELL_ASK_FAILED_STATUS = (
+    "Ask failed. Try /settings to check generation config, /docs to confirm "
+    "ingested chunks, or /mode bm25 to avoid vectors."
+)
+SHELL_SEARCH_FAILED_STATUS = (
+    "Search failed. Try /settings to check retrieval config, /docs to confirm "
+    "ingested chunks, or /mode bm25 for keyword search."
+)
 SHELL_RUNNING_DRAFT_QUEUED_STATUS = (
     "1 draft queued. Press Enter after the current request finishes to send."
 )
