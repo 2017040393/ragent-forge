@@ -87,7 +87,7 @@ SHELL_RUNNING_DRAFT_KEPT_STATUS = "Request is still running. Your draft was kept
 
 
 class SourcePickerModal(ModalScreen[TranscriptSource | None]):
-    BINDINGS = [("escape", "close", "Close")]
+    BINDINGS = [("escape", "close", "Close"), ("enter", "select", "Open")]
 
     def __init__(
         self,
@@ -111,15 +111,26 @@ class SourcePickerModal(ModalScreen[TranscriptSource | None]):
             )
 
     def on_mount(self) -> None:
+        source_list = self.query_one("#source-picker-list", ListView)
         if self.selected_source is None:
+            source_list.focus()
             return
         for index, source in enumerate(self.sources):
             if source == self.selected_source:
-                self.query_one("#source-picker-list", ListView).index = index
+                source_list.index = index
+                source_list.focus()
                 return
+        source_list.focus()
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         self.dismiss(self.sources[event.index])
+
+    def action_select(self) -> None:
+        source_list = self.query_one("#source-picker-list", ListView)
+        index = source_list.index
+        if index is None or index < 0 or index >= len(self.sources):
+            return
+        self.dismiss(self.sources[index])
 
     def action_close(self) -> None:
         self.dismiss(None)
@@ -138,7 +149,7 @@ class HelpModal(ModalScreen[None]):
 
 
 class SessionPickerModal(ModalScreen[str | None]):
-    BINDINGS = [("escape", "close", "Close")]
+    BINDINGS = [("escape", "close", "Close"), ("enter", "select", "Open")]
 
     def __init__(
         self,
@@ -162,15 +173,26 @@ class SessionPickerModal(ModalScreen[str | None]):
             )
 
     def on_mount(self) -> None:
+        session_list = self.query_one("#session-picker-list", ListView)
         if self.selected_session_id is None:
+            session_list.focus()
             return
         for index, summary in enumerate(self.summaries):
             if summary.id == self.selected_session_id:
-                self.query_one("#session-picker-list", ListView).index = index
+                session_list.index = index
+                session_list.focus()
                 return
+        session_list.focus()
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         self.dismiss(self.summaries[event.index].id)
+
+    def action_select(self) -> None:
+        session_list = self.query_one("#session-picker-list", ListView)
+        index = session_list.index
+        if index is None or index < 0 or index >= len(self.summaries):
+            return
+        self.dismiss(self.summaries[index].id)
 
     def action_close(self) -> None:
         self.dismiss(None)
@@ -1152,7 +1174,7 @@ class RagentForgeApp(App[None]):
 
     def _handle_session_picker_result(self, session_id: str | None) -> None:
         if session_id is None:
-            self._focus_shell_input()
+            self._focus_shell_input_after_refresh()
             return
         try:
             self._switch_session(session_id)
@@ -1160,14 +1182,14 @@ class RagentForgeApp(App[None]):
             self.shell_state = set_notice(self.shell_state, str(exc))
         self._render_shell()
         self._render_inspector()
-        self._focus_shell_input()
+        self._focus_shell_input_after_refresh()
 
     def _handle_source_picker_result(
         self,
         source: TranscriptSource | None,
     ) -> None:
         if source is None:
-            self._focus_shell_input()
+            self._focus_shell_input_after_refresh()
             return
         self.shell_state = set_notice(
             select_source(self.shell_state, source),
@@ -1175,7 +1197,7 @@ class RagentForgeApp(App[None]):
         )
         self._render_shell()
         self._render_inspector()
-        self._focus_shell_input()
+        self._focus_shell_input_after_refresh()
 
     def _generate_session_title(self) -> str | None:
         question = self._first_session_question()
@@ -1258,6 +1280,10 @@ class RagentForgeApp(App[None]):
         shell_input = self.query_one("#shell-input", Input)
         if not shell_input.disabled:
             self.set_focus(shell_input)
+
+    def _focus_shell_input_after_refresh(self) -> None:
+        self._focus_shell_input()
+        self.call_after_refresh(self._focus_shell_input)
 
     def _scroll_transcript_to_end(self) -> None:
         container = self.query_one("#shell-transcript-container", ScrollableContainer)

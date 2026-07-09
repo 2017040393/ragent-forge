@@ -470,6 +470,32 @@ async def test_tui_app_switch_and_session_search_open_session_modal(
 
 
 @pytest.mark.anyio
+async def test_tui_app_session_picker_enter_switches_and_refocuses_input(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    service = SessionService(workspace.root_path)
+    first = service.create_session("First chat")
+    second = service.create_session("Second chat")
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test() as pilot:
+        shell_input = app.query_one("#shell-input", Input)
+        assert app.shell_state.current_session_id == second.id
+
+        shell_input.value = "/sessions"
+        app._submit_shell_input()
+        await pilot.pause()
+
+        await pilot.press("down")
+        await pilot.press("enter")
+        await pilot.pause()
+
+        assert app.shell_state.current_session_id == first.id
+        assert app.focused == shell_input
+
+
+@pytest.mark.anyio
 async def test_tui_app_shell_docs_command_uses_inspector_for_details(
     tmp_path: Path,
 ) -> None:
