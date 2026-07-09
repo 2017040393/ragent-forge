@@ -591,6 +591,8 @@ def _metadata_from_session_turn(turn: TuiSessionTurn) -> dict[str, Any]:
 
 def transcript_sources_from_search_results(
     results: list[SearchResult] | tuple[SearchResult, ...],
+    *,
+    query: str | None = None,
 ) -> tuple[TranscriptSource, ...]:
     return tuple(
         TranscriptSource(
@@ -599,7 +601,7 @@ def transcript_sources_from_search_results(
             source_path=result.source_path,
             score=result.score,
             preview=make_preview(result.text, max_length=120),
-            metadata=_safe_metadata(result.metadata),
+            metadata=_source_metadata_with_query(result.metadata, query),
         )
         for index, result in enumerate(results, start=1)
     )
@@ -618,7 +620,10 @@ def messages_from_ask_state(state: AskPageState) -> tuple[TranscriptMessage, ...
             ),
         )
 
-    sources = transcript_sources_from_search_results(state.sources)
+    sources = transcript_sources_from_search_results(
+        state.sources,
+        query=state.question,
+    )
     if state.answer:
         return (
             TranscriptMessage(
@@ -657,7 +662,7 @@ def message_from_search_results(
     retrieval_mode: str,
     results: list[SearchResult] | tuple[SearchResult, ...],
 ) -> TranscriptMessage:
-    sources = transcript_sources_from_search_results(results)
+    sources = transcript_sources_from_search_results(results, query=query)
     result_count = len(results)
     text = (
         f"Search results for: {query}\n"
@@ -691,7 +696,10 @@ def message_from_search_state(state: SearchPageState) -> TranscriptMessage:
             },
         )
 
-    sources = transcript_sources_from_search_results(state.results)
+    sources = transcript_sources_from_search_results(
+        state.results,
+        query=state.query,
+    )
     result_count = len(state.results)
     text = (
         f"Search results for: {state.query}\n"
@@ -821,6 +829,7 @@ def format_shell_source_details(source: TranscriptSource) -> str:
         _safe_display_text(source.preview),
         _MAX_SOURCE_PREVIEW_LENGTH,
     )
+    preview = _highlight_query_terms(preview, source.metadata.get("query"))
     lines = [
         "Selected source",
         "",
@@ -928,6 +937,31 @@ def _format_source_metadata_value(value: Any) -> str:
     if isinstance(value, tuple):
         return ", ".join(str(item) for item in value)
     return str(value)
+
+
+def _highlight_query_terms(text: str, query: Any) -> str:
+    if not isinstance(query, str) or not query.strip():
+        return text
+    terms = _query_highlight_terms(query)
+    highlighted = text
+    for term in terms:
+        highlighted = re.sub(
+            re.escape(term),
+            lambda match: f"[[{match.group(0)}]]",
+            highlighted,
+            flags=re.IGNORECASE,
+        )
+    return highlighted
+
+
+def _query_highlight_terms(query: str) -> list[str]:
+    terms: list[str] = []
+    for term in re.findall(r"[\w-]{3,}", query):
+        normalized = term.lower()
+        if normalized not in terms:
+            terms.append(normalized)
+    terms.sort(key=len, reverse=True)
+    return terms
 
 
 def _truncate_tail(text: str, max_length: int) -> str:
@@ -1079,3 +1113,13 @@ def _safe_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
         for key, value in metadata.items()
         if not any(fragment in key.lower() for fragment in sensitive_fragments)
     }
+
+
+def _source_metadata_with_query(
+    metadata: dict[str, Any],
+    query: str | None,
+) -> dict[str, Any]:
+    safe_metadata = _safe_metadata(metadata)
+    if query and query.strip():
+        safe_metadata["query"] = query.strip()
+    return safe_metadata

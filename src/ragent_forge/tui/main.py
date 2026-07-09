@@ -69,6 +69,7 @@ from ragent_forge.tui.theme import (
 from ragent_forge.tui.view_models import (
     AskPageState,
     SearchPageState,
+    compact_source_label,
     format_documents_page,
     format_settings_page,
     format_trace_overview,
@@ -217,7 +218,7 @@ class SessionPickerModal(ModalScreen[str | None]):
 
 
 def _source_picker_label(source: TranscriptSource) -> str:
-    label = Path(source.source_path).name or source.source_path
+    label = compact_source_label(source.source_path, source.metadata)
     return f"{source.rank}. {label}  score={source.score:.4g}"
 
 

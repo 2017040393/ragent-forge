@@ -643,6 +643,27 @@ def test_format_shell_inspector_with_selected_source_shows_source_details() -> N
     assert "/very/long/path" not in text
 
 
+def test_format_shell_source_details_highlights_query_terms() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="/knowledge/rag.md::chunk-0001",
+        source_path="/knowledge/agentic_rag.md",
+        score=0.832123,
+        preview="Agentic RAG adds planning before retrieval.",
+        metadata={
+            "media_type": "application/pdf",
+            "query": "agentic planning",
+            "page_start": 3,
+            "page_end": 3,
+        },
+    )
+
+    text = format_shell_source_details(source)
+
+    assert "source: agentic_rag.md p.3" in text
+    assert "[[Agentic]] RAG adds [[planning]] before retrieval." in text
+
+
 def test_format_shell_inspector_shows_allowlisted_retrieval_metadata() -> None:
     source = TranscriptSource(
         rank=1,
