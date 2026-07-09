@@ -253,9 +253,32 @@ async def test_tui_app_shell_running_submission_preserves_input_text(
         assert shell_input.value == "Do not lose this"
         assert app.shell_state.messages == ()
         assert app.shell_state.notice == (
-            "Request is still running. Your draft was kept."
+            "Draft queued. Press Enter after the current request finishes to send."
         )
-        assert "Request is still running" in str(
+        assert "Draft queued" in str(
+            app.query_one("#shell-status", Static).renderable
+        )
+
+
+@pytest.mark.anyio
+async def test_tui_app_shell_running_draft_is_ready_after_completion(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        app.shell_state = replace(app.shell_state, running=True)
+        shell_input.value = "Queued question"
+        app._submit_shell_input()
+
+        app._set_shell_running(False)
+        app._render_shell()
+
+        assert shell_input.value == "Queued question"
+        assert app.shell_state.notice == "Draft ready. Press Enter to send."
+        assert "Draft ready" in str(
             app.query_one("#shell-status", Static).renderable
         )
 

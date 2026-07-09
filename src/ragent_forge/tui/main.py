@@ -84,7 +84,11 @@ from ragent_forge.tui.view_models import (
 
 SHELL_ASK_FAILED_STATUS = "Ask failed. Check configuration and workspace files."
 SHELL_SEARCH_FAILED_STATUS = "Search failed. Check configuration and workspace files."
-SHELL_RUNNING_DRAFT_KEPT_STATUS = "Request is still running. Your draft was kept."
+SHELL_RUNNING_DRAFT_QUEUED_STATUS = (
+    "Draft queued. Press Enter after the current request finishes to send."
+)
+SHELL_DRAFT_READY_STATUS = "Draft ready. Press Enter to send."
+SHELL_RUNNING_EMPTY_SUBMIT_STATUS = "Request is still running."
 
 
 class SourcePickerModal(ModalScreen[TranscriptSource | None]):
@@ -391,6 +395,7 @@ class RagentForgeApp(App[None]):
         self._pending_ask_question: str | None = None
         self._pending_ask_run: TuiSessionRun | None = None
         self._pending_delete_session_id: str | None = None
+        self._queued_shell_input: str | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -705,14 +710,20 @@ class RagentForgeApp(App[None]):
         shell_input = self.query_one("#shell-input", Input)
         text = shell_input.value
         if self.shell_state.running:
+            if text.strip():
+                self._queued_shell_input = text
+                notice = SHELL_RUNNING_DRAFT_QUEUED_STATUS
+            else:
+                notice = SHELL_RUNNING_EMPTY_SUBMIT_STATUS
             self.shell_state = set_notice(
                 self.shell_state,
-                SHELL_RUNNING_DRAFT_KEPT_STATUS,
+                notice,
             )
             self._render_shell()
             self._render_inspector()
             self._focus_shell_input()
             return
+        self._queued_shell_input = None
         shell_input.value = ""
         self.shell_suggestion_index = 0
         self._render_shell_suggestions("")
@@ -889,6 +900,8 @@ class RagentForgeApp(App[None]):
 
     def _set_shell_running(self, running: bool) -> None:
         self.shell_state = set_running(self.shell_state, running)
+        if not running and self._queued_shell_input:
+            self.shell_state = set_notice(self.shell_state, SHELL_DRAFT_READY_STATUS)
         self.query_one("#shell-input", Input).disabled = False
 
     def _shell_read_only_handlers(self) -> ShellReadOnlyHandlers:
