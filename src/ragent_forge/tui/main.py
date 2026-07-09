@@ -16,6 +16,7 @@ from ragent_forge.app.services.session_service import (
     SessionService,
     TuiSession,
     TuiSessionExportFormat,
+    TuiSessionListFilter,
     TuiSessionRun,
     TuiSessionSource,
     TuiSessionSummary,
@@ -234,10 +235,13 @@ def _session_picker_label(summary: TuiSessionSummary) -> str:
     if summary.starred:
         markers.append("star")
     prefix = f"[{','.join(markers)}] " if markers else ""
-    return (
-        f"{prefix}{summary.title}  "
-        f"turns={summary.turn_count}  updated={summary.updated_at}"
-    )
+    metrics = [f"turns={summary.turn_count}"]
+    if summary.source_count:
+        metrics.append(f"sources={summary.source_count}")
+    if summary.failed_turn_count:
+        metrics.append(f"failed={summary.failed_turn_count}")
+    metrics.append(f"updated={summary.updated_at}")
+    return f"{prefix}{summary.title}  {'  '.join(metrics)}"
 
 
 def _retrieval_method_from_mode(mode: str) -> str:
@@ -428,7 +432,7 @@ class RagentForgeApp(App[None]):
             if result.action == "new":
                 self._create_new_session()
             elif result.action == "sessions":
-                self._open_sessions(self.session_service.list_sessions())
+                self._open_sessions(result.session_filter or "recent")
             elif result.action == "switch" and result.session_id is not None:
                 self._switch_session(result.session_id)
             elif result.action == "rename" and result.title is not None:
@@ -465,7 +469,8 @@ class RagentForgeApp(App[None]):
         self._load_session_into_shell(session)
         self.shell_state = set_notice(self.shell_state, "Started a new session.")
 
-    def _open_sessions(self, summaries: list[TuiSessionSummary]) -> None:
+    def _open_sessions(self, filter_by: TuiSessionListFilter = "recent") -> None:
+        summaries = self.session_service.list_sessions(filter_by)
         self.shell_state = set_session_summaries(self.shell_state, summaries)
         self._render_shell()
         self._render_inspector()

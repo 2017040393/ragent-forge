@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Literal, cast
 
+from ragent_forge.app.services.session_service import TuiSessionListFilter
 from ragent_forge.tui.commands import parse_tui_input
 from ragent_forge.tui.shell_models import (
     ShellState,
@@ -46,6 +47,10 @@ ExportFormat = Literal["markdown", "json"]
 NO_SOURCES_MESSAGE = (
     "No sources available. Run /search <query> or ask a question first."
 )
+SESSION_FILTER_USAGE = (
+    "Usage: /sessions [recent|pinned|starred|failed|has-sources]"
+)
+_SESSION_FILTERS = {"recent", "pinned", "starred", "failed", "has-sources"}
 
 _PLANNED_NOT_WIRED_MESSAGES = {
     "docs": "/docs is unavailable in this shell context.",
@@ -86,6 +91,7 @@ class ShellDispatchResult:
     search_query: str | None = None
     ask_question: str | None = None
     session_id: str | None = None
+    session_filter: TuiSessionListFilter | None = None
     title: str | None = None
     session_search_query: str | None = None
     export_format: ExportFormat | None = None
@@ -111,7 +117,7 @@ def apply_shell_input(
     if parsed.name == "new":
         return ShellDispatchResult(state, action="new")
     if parsed.name == "sessions":
-        return ShellDispatchResult(state, action="sessions")
+        return _apply_sessions_command(state, parsed.args)
     if parsed.name == "switch":
         return ShellDispatchResult(
             state,
@@ -249,6 +255,17 @@ def _apply_export_command(state: ShellState, value: str) -> ShellDispatchResult:
         state,
         action="export",
         export_format=cast(ExportFormat, normalized),
+    )
+
+
+def _apply_sessions_command(state: ShellState, value: str) -> ShellDispatchResult:
+    normalized = value.lower().replace(" ", "-") if value else "recent"
+    if normalized not in _SESSION_FILTERS:
+        return ShellDispatchResult(set_notice(state, SESSION_FILTER_USAGE))
+    return ShellDispatchResult(
+        state,
+        action="sessions",
+        session_filter=cast(TuiSessionListFilter, normalized),
     )
 
 

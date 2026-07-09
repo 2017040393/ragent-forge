@@ -487,6 +487,11 @@ async def test_tui_app_switch_and_session_search_open_session_modal(
         app._submit_shell_input()
         assert opened[-1] == ["Second chat", "First chat"]
 
+        service.set_pinned(first.id, True)
+        shell_input.value = "/sessions pinned"
+        app._submit_shell_input()
+        assert opened[-1] == ["First chat"]
+
         shell_input.value = "/session-search second"
         app._submit_shell_input()
         assert opened[-1] == ["Second chat"]

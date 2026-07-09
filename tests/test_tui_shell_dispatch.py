@@ -217,6 +217,22 @@ def test_apply_shell_input_session_commands_return_actions() -> None:
             assert result.turn_selector == payload
 
 
+def test_apply_shell_input_sessions_accepts_filter() -> None:
+    result = apply_shell_input(create_initial_shell_state(), "/sessions pinned")
+
+    assert result.action == "sessions"
+    assert result.session_filter == "pinned"
+
+
+def test_apply_shell_input_sessions_rejects_unknown_filter() -> None:
+    result = apply_shell_input(create_initial_shell_state(), "/sessions archived")
+
+    assert result.action == "none"
+    assert result.state.notice == (
+        "Usage: /sessions [recent|pinned|starred|failed|has-sources]"
+    )
+
+
 def test_apply_shell_input_rejects_unknown_export_format() -> None:
     result = apply_shell_input(create_initial_shell_state(), "/export pdf")
 

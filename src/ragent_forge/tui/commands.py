@@ -95,6 +95,13 @@ _ARGUMENT_SUGGESTIONS = {
         SlashArgumentSuggestion("markdown", "Export current session as Markdown."),
         SlashArgumentSuggestion("json", "Export current session as JSON."),
     ),
+    "sessions": (
+        SlashArgumentSuggestion("recent", "Show recent sessions."),
+        SlashArgumentSuggestion("pinned", "Show pinned sessions."),
+        SlashArgumentSuggestion("starred", "Show starred sessions."),
+        SlashArgumentSuggestion("failed", "Show sessions with failed answers."),
+        SlashArgumentSuggestion("has-sources", "Show sessions with sources."),
+    ),
     "title": (
         SlashArgumentSuggestion("auto", "Generate a short title."),
     ),
@@ -158,8 +165,8 @@ def list_tui_commands() -> list[SlashCommandSpec]:
         SlashCommandSpec(
             name="sessions",
             aliases=(),
-            description="Show saved sessions.",
-            usage="/sessions",
+            description="Show saved sessions, optionally filtered.",
+            usage="/sessions [recent|pinned|starred|failed|has-sources]",
         ),
         SlashCommandSpec(
             name="new",

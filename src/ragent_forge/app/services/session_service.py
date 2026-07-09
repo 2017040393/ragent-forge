@@ -13,6 +13,7 @@ from ragent_forge.app.workspace import LocalWorkspace
 TuiSessionMessageRole = Literal["user", "assistant"]
 TuiSessionRetrievalMode = Literal["lexical", "bm25", "semantic", "hybrid"]
 TuiSessionExportFormat = Literal["markdown", "json"]
+TuiSessionListFilter = Literal["recent", "pinned", "starred", "failed", "has-sources"]
 
 _UNTITLED_TITLE = "New chat"
 _SENSITIVE_KEY_FRAGMENTS = (
@@ -230,6 +231,8 @@ class TuiSessionSummary:
     pinned: bool
     starred: bool
     path: str
+    source_count: int = 0
+    failed_turn_count: int = 0
     branched_from_session_id: str | None = None
     branched_from_turn_id: str | None = None
 
@@ -243,12 +246,20 @@ class TuiSessionSummary:
             "pinned": self.pinned,
             "starred": self.starred,
             "path": self.path,
+            "source_count": self.source_count,
+            "failed_turn_count": self.failed_turn_count,
             "branched_from_session_id": self.branched_from_session_id,
             "branched_from_turn_id": self.branched_from_turn_id,
         }
 
     @classmethod
     def from_session(cls, session: TuiSession, path: Path) -> TuiSessionSummary:
+        source_count = sum(len(turn.sources) for turn in session.turns)
+        failed_turn_count = sum(
+            1
+            for turn in session.turns
+            if turn.run is not None and turn.run.generation_status == "failed"
+        )
         return cls(
             id=session.id,
             title=session.title,
@@ -258,6 +269,8 @@ class TuiSessionSummary:
             pinned=session.pinned,
             starred=session.starred,
             path=str(path),
+            source_count=source_count,
+            failed_turn_count=failed_turn_count,
             branched_from_session_id=session.branched_from_session_id,
             branched_from_turn_id=session.branched_from_turn_id,
         )
@@ -273,6 +286,8 @@ class TuiSessionSummary:
             pinned=bool(value.get("pinned", False)),
             starred=bool(value.get("starred", False)),
             path=str(value.get("path", "")),
+            source_count=_int_value(value.get("source_count")),
+            failed_turn_count=_int_value(value.get("failed_turn_count")),
             branched_from_session_id=_optional_string(
                 value.get("branched_from_session_id")
             ),
@@ -343,8 +358,14 @@ class SessionService:
             encoding="utf-8",
         )
 
-    def list_sessions(self) -> list[TuiSessionSummary]:
-        sessions = self._sort_sessions(self._load_all_sessions())
+    def list_sessions(
+        self,
+        filter_by: TuiSessionListFilter = "recent",
+    ) -> list[TuiSessionSummary]:
+        sessions = self._filter_sessions(
+            self._sort_sessions(self._load_all_sessions()),
+            filter_by,
+        )
         summaries = [
             TuiSessionSummary.from_session(session, self._session_path(session.id))
             for session in sessions
@@ -352,13 +373,17 @@ class SessionService:
         self._write_index_from_summaries(summaries)
         return summaries
 
-    def search_sessions(self, query: str) -> list[TuiSessionSummary]:
+    def search_sessions(
+        self,
+        query: str,
+        filter_by: TuiSessionListFilter = "recent",
+    ) -> list[TuiSessionSummary]:
         normalized = query.strip().lower()
         if not normalized:
-            return self.list_sessions()
+            return self.list_sessions(filter_by)
         return [
             summary
-            for summary in self.list_sessions()
+            for summary in self.list_sessions(filter_by)
             if normalized in self._session_search_text(summary.id).lower()
         ]
 
@@ -536,6 +561,34 @@ class SessionService:
             sorted_sessions,
             key=lambda session: not session.pinned,
         )
+
+    def _filter_sessions(
+        self,
+        sessions: list[TuiSession],
+        filter_by: TuiSessionListFilter,
+    ) -> list[TuiSession]:
+        if filter_by == "recent":
+            return sessions
+        if filter_by == "pinned":
+            return [session for session in sessions if session.pinned]
+        if filter_by == "starred":
+            return [session for session in sessions if session.starred]
+        if filter_by == "failed":
+            return [
+                session
+                for session in sessions
+                if any(
+                    turn.run is not None and turn.run.generation_status == "failed"
+                    for turn in session.turns
+                )
+            ]
+        if filter_by == "has-sources":
+            return [
+                session
+                for session in sessions
+                if any(turn.sources for turn in session.turns)
+            ]
+        raise ValueError(f"Invalid session filter: {filter_by}")
 
     def _write_index(self) -> None:
         summaries = [

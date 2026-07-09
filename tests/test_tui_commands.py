@@ -451,6 +451,19 @@ def test_format_tui_command_suggestions_export_argument_options() -> None:
     )
 
 
+def test_format_tui_command_suggestions_sessions_argument_options() -> None:
+    text = format_tui_command_suggestions("/sessions ", selected_index=4)
+
+    assert text == (
+        "Suggestions:\n"
+        "  recent       Show recent sessions.\n"
+        "  pinned       Show pinned sessions.\n"
+        "  starred      Show starred sessions.\n"
+        "  failed       Show sessions with failed answers.\n"
+        "> has-sources  Show sessions with sources."
+    )
+
+
 def test_format_tui_command_suggestions_title_argument_options() -> None:
     text = format_tui_command_suggestions("/title ", selected_index=0)
 

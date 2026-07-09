@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 from ragent_forge.app.services.session_service import (
@@ -116,6 +117,39 @@ def test_session_service_pin_star_rename_delete_and_latest_update(
 
     assert service.load_latest_or_create().id == first.id
     assert [item.id for item in service.list_sessions()] == [first.id]
+
+
+def test_session_service_list_sessions_filters_workbench_modes(
+    tmp_path: Path,
+) -> None:
+    service = SessionService(tmp_path / ".ragent")
+    pinned = service.set_pinned(service.create_session("Pinned").id, True)
+    starred = service.set_starred(service.create_session("Starred").id, True)
+    failed = service.create_session("Failed")
+    sourced = service.create_session("Has sources")
+
+    failed, _ = service.append_turn(
+        failed.id,
+        question="Will this fail?",
+        assistant_text="Ask failed.",
+        sources=[],
+        run=replace(make_run(), generation_status="failed"),
+    )
+    sourced, _ = service.append_turn(
+        sourced.id,
+        question="Use evidence?",
+        assistant_text="Yes.",
+        sources=[make_source()],
+        run=make_run(),
+    )
+
+    assert [item.id for item in service.list_sessions("pinned")] == [pinned.id]
+    assert [item.id for item in service.list_sessions("starred")] == [starred.id]
+    assert [item.id for item in service.list_sessions("failed")] == [failed.id]
+    has_sources = service.list_sessions("has-sources")
+    assert [item.id for item in has_sources] == [sourced.id]
+    assert has_sources[0].source_count == 1
+    assert service.list_sessions("recent")
 
 
 def test_session_service_exports_markdown_and_json_without_secrets(
