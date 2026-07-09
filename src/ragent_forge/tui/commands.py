@@ -63,6 +63,14 @@ class ParsedTuiCommand:
 
 
 @dataclass(frozen=True)
+class TuiCommandSuggestionContext:
+    retrieval_mode: Literal["lexical", "bm25", "semantic", "hybrid"] | None = None
+    limit: int | None = None
+    max_context_chars: int | None = None
+    show_prompt: bool | None = None
+
+
+@dataclass(frozen=True)
 class _ArgumentSuggestionContext:
     command: SlashCommandSpec
     matches: list[SlashArgumentSuggestion]
@@ -529,10 +537,15 @@ def format_tui_command_suggestions(
     *,
     limit: int = DEFAULT_SUGGESTION_LIMIT,
     selected_index: int | None = None,
+    context: TuiCommandSuggestionContext | None = None,
 ) -> str:
     argument_context = _argument_suggestion_context(text)
     if argument_context is not None:
-        return _format_argument_suggestions(argument_context, selected_index)
+        return _format_argument_suggestions(
+            argument_context,
+            selected_index,
+            context,
+        )
 
     all_matches = get_tui_command_suggestion_matches(text)
     if not all_matches:
@@ -571,6 +584,7 @@ def format_tui_command_suggestions(
 def _format_argument_suggestions(
     context: _ArgumentSuggestionContext,
     selected_index: int | None,
+    runtime_context: TuiCommandSuggestionContext | None,
 ) -> str:
     if not context.matches:
         return ""
@@ -579,13 +593,39 @@ def _format_argument_suggestions(
     selected_match_index = (
         selected_index % len(context.matches) if selected_index is not None else None
     )
-    lines = ["Suggestions:"]
+    current_value = _current_argument_value(context.command.name, runtime_context)
+    header = (
+        f"Suggestions (current: {current_value}):"
+        if current_value is not None
+        else "Suggestions:"
+    )
+    lines = [header]
     for index, item in enumerate(context.matches):
         marker = ">" if index == selected_match_index else " "
+        description = item.description
+        if current_value == item.value:
+            description = f"{description} (current)"
         lines.append(
-            f"{marker} {item.value.ljust(value_width)}  {item.description}"
+            f"{marker} {item.value.ljust(value_width)}  {description}"
         )
     return "\n".join(lines)
+
+
+def _current_argument_value(
+    command_name: str,
+    context: TuiCommandSuggestionContext | None,
+) -> str | None:
+    if context is None:
+        return None
+    if command_name == "mode":
+        return context.retrieval_mode
+    if command_name == "limit" and context.limit is not None:
+        return str(context.limit)
+    if command_name == "context" and context.max_context_chars is not None:
+        return str(context.max_context_chars)
+    if command_name == "prompt" and context.show_prompt is not None:
+        return "on" if context.show_prompt else "off"
+    return None
 
 
 def _argument_suggestion_context(text: str) -> _ArgumentSuggestionContext | None:

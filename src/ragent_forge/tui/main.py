@@ -24,6 +24,7 @@ from ragent_forge.app.services.text_generation_client import (
     OpenAIResponsesTextGenerationClient,
 )
 from ragent_forge.tui.commands import (
+    TuiCommandSuggestionContext,
     complete_tui_command_suggestion,
     count_tui_command_suggestions,
     format_tui_command_suggestions,
@@ -1317,6 +1318,12 @@ class RagentForgeApp(App[None]):
         suggestions = format_tui_command_suggestions(
             text,
             selected_index=selected_index,
+            context=TuiCommandSuggestionContext(
+                retrieval_mode=self.shell_state.retrieval_mode,
+                limit=self.shell_state.limit,
+                max_context_chars=self.shell_state.max_context_chars,
+                show_prompt=self.shell_state.show_prompt,
+            ),
         )
         renderable = "" if not suggestions else style_command_suggestions(suggestions)
         self.query_one("#shell-suggestions", Static).update(renderable)

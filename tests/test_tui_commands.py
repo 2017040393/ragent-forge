@@ -1,6 +1,7 @@
 import pytest
 
 from ragent_forge.tui.commands import (
+    TuiCommandSuggestionContext,
     complete_tui_command_suggestion,
     count_tui_command_suggestions,
     format_tui_command_help,
@@ -395,6 +396,22 @@ def test_format_tui_command_suggestions_mode_argument_options() -> None:
         "  bm25      Use BM25 retrieval.\n"
         "  semantic  Use semantic retrieval.\n"
         "  hybrid    Use hybrid retrieval."
+    )
+
+
+def test_format_tui_command_suggestions_mode_argument_options_show_current() -> None:
+    text = format_tui_command_suggestions(
+        "/mode ",
+        selected_index=3,
+        context=TuiCommandSuggestionContext(retrieval_mode="hybrid"),
+    )
+
+    assert text == (
+        "Suggestions (current: hybrid):\n"
+        "  lexical   Use lexical retrieval.\n"
+        "  bm25      Use BM25 retrieval.\n"
+        "  semantic  Use semantic retrieval.\n"
+        "> hybrid    Use hybrid retrieval. (current)"
     )
 
 
