@@ -963,6 +963,7 @@ class RagentForgeApp(App[None]):
         self,
         event: Worker.StateChanged,
     ) -> None:
+        show_sources = False
         if event.state == WorkerState.SUCCESS:
             result = event.worker.result
             if isinstance(result, SearchPageState):
@@ -973,6 +974,7 @@ class RagentForgeApp(App[None]):
                         self.shell_state,
                         message.sources[0],
                     )
+                    show_sources = True
             else:
                 self._show_shell_search_worker_failure()
         elif event.state in {WorkerState.ERROR, WorkerState.CANCELLED}:
@@ -983,7 +985,10 @@ class RagentForgeApp(App[None]):
         self._set_shell_running(False)
         self._render_shell()
         self._render_inspector()
-        self._focus_shell_input()
+        if show_sources:
+            self._show_sources_modal()
+        else:
+            self._focus_shell_input()
         event.stop()
 
     def _show_shell_search_worker_failure(self) -> None:

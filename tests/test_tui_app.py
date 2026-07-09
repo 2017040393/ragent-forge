@@ -1099,8 +1099,9 @@ async def test_tui_app_shell_search_starts_worker_and_keeps_input_enabled(
 
 
 @pytest.mark.anyio
-async def test_tui_app_shell_search_worker_success_refocuses_input(
+async def test_tui_app_shell_search_worker_success_opens_source_picker(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     workspace = make_tui_workspace(tmp_path)
     app = RagentForgeApp(workspace.root_path)
@@ -1132,6 +1133,13 @@ async def test_tui_app_shell_search_worker_success_refocuses_input(
         def stop(self) -> None:
             self.stopped = True
 
+    opened_sources: list[tuple[TranscriptSource, ...]] = []
+
+    def fake_show_sources_modal() -> None:
+        opened_sources.append(app.shell_state.available_sources)
+
+    monkeypatch.setattr(app, "_show_sources_modal", fake_show_sources_modal)
+
     async with app.run_test():
         app._set_shell_running(True)
 
@@ -1141,10 +1149,11 @@ async def test_tui_app_shell_search_worker_success_refocuses_input(
         assert event.stopped is True
         assert app.shell_state.running is False
         assert app.query_one("#shell-input", Input).disabled is False
-        assert app.focused == app.query_one("#shell-input", Input)
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         assert "Search results for: Agentic" not in transcript
         assert "agentic_rag.md" not in transcript
+        assert opened_sources
+        assert opened_sources[0][0].chunk_id == source.chunk_id
 
 
 @pytest.mark.anyio
