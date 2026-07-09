@@ -5,6 +5,7 @@ from ragent_forge.tui.commands import (
     count_tui_command_suggestions,
     format_tui_command_help,
     format_tui_command_suggestions,
+    format_tui_task_help,
     get_tui_command_suggestion_items,
     list_tui_commands,
     match_tui_commands,
@@ -244,6 +245,26 @@ def test_format_tui_command_help_includes_major_commands() -> None:
         "/exit",
     ):
         assert usage in text
+
+
+def test_format_tui_task_help_groups_commands_by_workflow() -> None:
+    text = format_tui_task_help()
+
+    assert text.startswith("TUI help")
+    for section in (
+        "Ask",
+        "Search",
+        "Sources",
+        "Sessions",
+        "Workspace",
+        "Debug",
+        "General",
+    ):
+        assert f"{section}\n" in text
+    assert "/ask <question>" in text
+    assert "Example: What is Agentic RAG?" in text
+    assert "/sessions" in text
+    assert "Example: /export markdown" in text
 
 
 @pytest.mark.parametrize("text", ["", "   "])

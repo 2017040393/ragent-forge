@@ -376,6 +376,60 @@ def format_tui_command_help(
     return "\n".join(lines)
 
 
+def format_tui_task_help(
+    commands: list[SlashCommandSpec] | None = None,
+) -> str:
+    command_specs = commands or list_tui_commands()
+    specs_by_name = {command.name: command for command in command_specs}
+    lines = [
+        "TUI help",
+        "",
+        "Type a question to ask. Type / for command suggestions.",
+    ]
+    for section, command_names, example in _TUI_HELP_GROUPS:
+        section_commands = [
+            specs_by_name[name] for name in command_names if name in specs_by_name
+        ]
+        if not section_commands:
+            continue
+        usage_width = max(len(command.usage) for command in section_commands)
+        lines.extend(["", section])
+        lines.extend(
+            f"{command.usage.ljust(usage_width)}  {command.description}"
+            for command in section_commands
+        )
+        lines.append(f"Example: {example}")
+    return "\n".join(lines)
+
+
+_TUI_HELP_GROUPS = (
+    ("Ask", ("ask", "context", "prompt"), "What is Agentic RAG?"),
+    ("Search", ("search", "mode", "limit"), "/search Agentic RAG"),
+    ("Sources", ("sources", "source", "turn", "continue-sources"), "/source next"),
+    (
+        "Sessions",
+        (
+            "sessions",
+            "new",
+            "switch",
+            "rename",
+            "delete",
+            "pin",
+            "star",
+            "session-search",
+            "export",
+            "branch",
+            "rerun",
+            "title",
+        ),
+        "/export markdown",
+    ),
+    ("Workspace", ("docs", "settings"), "/docs"),
+    ("Debug", ("trace",), "/trace"),
+    ("General", ("help", "clear", "exit"), "/help"),
+)
+
+
 def get_tui_command_suggestion_items(
     text: str,
     *,

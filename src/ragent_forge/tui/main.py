@@ -26,8 +26,8 @@ from ragent_forge.app.services.text_generation_client import (
 from ragent_forge.tui.commands import (
     complete_tui_command_suggestion,
     count_tui_command_suggestions,
-    format_tui_command_help,
     format_tui_command_suggestions,
+    format_tui_task_help,
 )
 from ragent_forge.tui.shell_dispatch import (
     ShellDispatchResult,
@@ -147,7 +147,7 @@ class HelpModal(ModalScreen[None]):
     def compose(self) -> ComposeResult:
         with Vertical(id="help-dialog"):
             yield Label("Commands")
-            yield Static(format_tui_command_help())
+            yield Static(format_tui_task_help())
 
     def action_close(self) -> None:
         self.dismiss(None)
