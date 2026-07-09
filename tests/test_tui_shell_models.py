@@ -1202,8 +1202,48 @@ def test_messages_from_ask_state_with_answer_returns_assistant_message() -> None
         "generation_status": "success",
         "generation_provider": "openai_responses",
         "source_count": 1,
+        "retrieved_context_chars": 43,
+        "estimated_context_tokens": 11,
+        "prompt_preview_available": False,
     }
     assert len(message.sources) == 1
+
+
+def test_ask_answer_metadata_feeds_selected_turn_inspector() -> None:
+    result = make_search_result(text="Agentic RAG adds planning.")
+    state = AskPageState(
+        question="What is RAG?",
+        retrieval_mode="hybrid",
+        answer="Agentic RAG adds planning.",
+        sources=[result],
+        generation_status="success",
+        generation_provider="openai_responses",
+        prompt_preview="Use only retrieved context.",
+        show_prompt=True,
+        has_run=True,
+    )
+    message = messages_from_ask_state(state)[0]
+    message = TranscriptMessage(
+        role=message.role,
+        text=message.text,
+        metadata=message.metadata,
+        sources=message.sources,
+        turn_id="turn-1",
+    )
+    shell_state = ShellState(
+        messages=(message,),
+        selected_turn_id="turn-1",
+    )
+
+    inspector = format_shell_inspector(shell_state)
+    transcript = format_chat_transcript((message,))
+
+    assert "context chars: 26" in inspector
+    assert "estimated tokens: 7" in inspector
+    assert "prompt preview: available" in inspector
+    assert "sources: 1" in inspector
+    assert "context chars" not in transcript
+    assert "estimated tokens" not in transcript
 
 
 def test_messages_from_ask_state_with_answer_renders_sources_block() -> None:

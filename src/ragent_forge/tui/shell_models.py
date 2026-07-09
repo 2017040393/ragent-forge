@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field, replace
 from typing import Any, Final, Literal, cast
@@ -866,9 +867,20 @@ def _format_selected_turn_details(state: ShellState) -> str | None:
         lines.append(f"limit: {metadata['limit']}")
     if metadata.get("max_context_chars") is not None:
         lines.append(f"context: {metadata['max_context_chars']}")
+    if metadata.get("retrieved_context_chars") is not None:
+        lines.append(f"context chars: {metadata['retrieved_context_chars']}")
+    if metadata.get("estimated_context_tokens") is not None:
+        lines.append(f"estimated tokens: {metadata['estimated_context_tokens']}")
+    if metadata.get("source_count") is not None:
+        lines.append(f"sources: {metadata['source_count']}")
     if metadata.get("show_prompt") is not None:
         prompt = "on" if bool(metadata["show_prompt"]) else "off"
         lines.append(f"prompt: {prompt}")
+    if metadata.get("prompt_preview_available") is not None:
+        prompt_preview = (
+            "available" if bool(metadata["prompt_preview_available"]) else "none"
+        )
+        lines.append(f"prompt preview: {prompt_preview}")
     if metadata.get("generation_status") is not None:
         lines.append(f"generation: {metadata['generation_status']}")
     if metadata.get("generation_provider") is not None:
@@ -931,12 +943,16 @@ def _welcome_message() -> TranscriptMessage:
 
 
 def _ask_metadata(state: AskPageState) -> dict[str, Any]:
+    retrieved_context_chars = sum(len(source.text) for source in state.sources)
     return {
         "operation": "ask",
         "retrieval_mode": state.retrieval_mode,
         "generation_status": state.generation_status,
         "generation_provider": state.generation_provider,
         "source_count": len(state.sources),
+        "retrieved_context_chars": retrieved_context_chars,
+        "estimated_context_tokens": math.ceil(retrieved_context_chars / 4),
+        "prompt_preview_available": bool(state.prompt_preview),
     }
 
 
