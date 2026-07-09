@@ -737,6 +737,12 @@ def format_transcript(
 def format_conversation_transcript(
     messages: list[TranscriptMessage] | tuple[TranscriptMessage, ...],
 ) -> str:
+    return format_chat_transcript(messages)
+
+
+def format_chat_transcript(
+    messages: list[TranscriptMessage] | tuple[TranscriptMessage, ...],
+) -> str:
     visible_messages = [
         replace(message, sources=())
         for message in messages

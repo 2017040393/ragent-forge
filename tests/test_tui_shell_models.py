@@ -18,6 +18,7 @@ from ragent_forge.tui.shell_models import (
     append_messages,
     clear_transcript,
     create_initial_shell_state,
+    format_chat_transcript,
     format_conversation_transcript,
     format_shell_inspector,
     format_shell_source_details,
@@ -830,6 +831,36 @@ def test_format_conversation_transcript_only_renders_user_and_assistant() -> Non
     assert "System:" not in text
     assert "Tool:" not in text
     assert "Error:" not in text
+    assert "Sources:" not in text
+
+
+def test_format_chat_transcript_hides_operational_command_output() -> None:
+    source = make_source()
+
+    text = format_chat_transcript(
+        (
+            TranscriptMessage(role="system", text=WELCOME_MESSAGE),
+            TranscriptMessage(role="tool", text="Search results loaded."),
+            TranscriptMessage(role="error", text="Trace load failed."),
+            TranscriptMessage(role="user", text="What is Agentic RAG?"),
+            TranscriptMessage(
+                role="assistant",
+                text="Agentic RAG plans retrieval steps.",
+                metadata={"retrieval_mode": "hybrid", "source_count": 1},
+                sources=(source,),
+            ),
+        )
+    )
+
+    assert text == (
+        "User:\n"
+        "  What is Agentic RAG?\n\n"
+        "Assistant:\n"
+        "  Agentic RAG plans retrieval steps."
+    )
+    assert "Search results loaded" not in text
+    assert "Trace load failed" not in text
+    assert "retrieval_mode" not in text
     assert "Sources:" not in text
 
 
