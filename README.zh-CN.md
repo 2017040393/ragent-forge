@@ -211,6 +211,15 @@ TUI 启动时会恢复最近保存的 session。成功或失败的 Ask 都会作
 保存，并绑定 sources 和 run metadata，位置在 `.ragent/sessions/`。Inspector 会
 跟随 selected answer，因此可以用 `/turn`、`/source` 和 source picker 查看某条
 回答对应的 evidence。
+主 transcript 会保持聚焦，只显示用户问题和 assistant 回复；retrieval details、
+selected-source previews、prompt preview state 和 run metadata 会放在 Inspector
+或 command-result modals 中。Assistant 回复只用 `[1 source]` 或 `[failed]`
+这类轻量状态标记，不把操作细节展开到聊天区。
+
+`/search <query>` 返回结果后，TUI 会直接打开 source picker，方便立即选择
+evidence。Source picker 行会显示 location、retrieval method、score 和 chunk id；
+如果是 PDF source，会尽量保留 page-aware label。`/docs`、`/trace` 和
+`/settings` 会打开只读结果弹窗，并同步更新 Inspector。
 
 常用 Shell commands：
 
@@ -226,7 +235,7 @@ TUI 启动时会恢复最近保存的 session。成功或失败的 Ask 都会作
 /source <rank>
 /source next
 /source prev
-/sessions
+/sessions [recent|pinned|starred|failed|has-sources]
 /new
 /switch <session-id>
 /rename <title>
@@ -260,7 +269,13 @@ Shell source navigation：
 ```
 
 输入 `/` 会打开 inline command candidates。使用 Up/Down 选择命令，再用
-Tab 或 Enter 补全到 composer。命令执行仍通过 composer text 完成。
+Tab 或 Enter 补全到 composer。命令执行仍通过 composer text 完成。参数提示会在
+可用时显示当前值，例如 `/mode ` suggestions 会标出当前 retrieval mode。
+
+Ask 或 Search worker 运行时，输入框仍可编辑。此时提交非空草稿会显示
+`1 draft queued`；当前请求结束后，草稿会留在 composer 中并显示
+`1 draft ready`，用户再按 Enter 才发送。Worker 失败时会给出 `/settings`、
+`/docs` 或 `/mode bm25` 这类下一步提示，而不是展示 stack trace。
 
 TUI 有意避免 `q` 这种全局单键快捷键。请在 composer 中输入 `/exit`、
 `/quit` 或 `/q` 退出。
@@ -304,9 +319,10 @@ v0.2 增加 retrieval quality foundation：span-grounded eval generation、
 evidence-to-chunk mapping、更丰富的 retrieval metrics、持久化 eval run
 reports、failure analysis、retrieval comparison 和 BM25。
 
-当前 TUI 还包含本地 session workbench：saved conversations、pin/star/search、
-session export、branch/rerun helpers、selected-answer source inspection 和
-streaming Ask output。
+当前 TUI 还包含本地 session workbench：saved conversations、
+recent/pinned/starred/failed/has-sources filters、pin/star/search、session
+export、branch/rerun helpers、selected-answer source inspection、source picker
+inspection、actionable worker errors、queued drafts 和 streaming Ask output。
 
 ## 发布与作品集材料
 

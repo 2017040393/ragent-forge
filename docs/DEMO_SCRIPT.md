@@ -158,8 +158,9 @@ Type into the composer:
 /search Agentic RAG
 ```
 
-Point out inline command suggestions, background Shell Search, source lists in
-the transcript, and the selected-source Inspector.
+Point out inline command suggestions, background Shell Search, the source
+picker that opens after search results, lightweight answer badges in the clean
+chat transcript, and the selected-source Inspector.
 
 ### 10. Navigate Sources
 
@@ -172,8 +173,10 @@ Type:
 /source prev
 ```
 
-Explain that source navigation is command-first. There is no source table UI or
-mouse selection in v0.1.
+Explain that source navigation is command-first while current `main` also
+offers focused source/session pickers. Source picker rows show compact location,
+retrieval method, score, and chunk id; `/source <rank|next|prev>` remains
+available for precise command input.
 
 ### 11. Show Read-Only Workspace State
 
@@ -189,6 +192,8 @@ What is Agentic RAG?
 Explain that ordinary text runs Shell Ask in a background worker. `/trace` and
 `/settings` are read-only inspection commands. Use `/exit`, `/quit`, or `/q`
 from the composer to quit; there are no global single-key shortcuts such as `q`.
+If a request is running, the composer still accepts a draft and reports
+`1 draft queued`, then `1 draft ready` when the current request finishes.
 
 ## Reference Screenshots
 
@@ -258,6 +263,7 @@ In the TUI, use:
 What is Agentic RAG?
 /sources
 /source next
+/sessions has-sources
 /trace
 /exit
 ```

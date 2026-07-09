@@ -48,11 +48,14 @@ dataset 仍然有用。
 - 带 `failure_type` 和 `failure_reason` 的 deterministic failure analysis。
 - `ragent eval compare`：一个命令比较多个 retrieval modes 和 top-k limits。
 - Command-first TUI polish：default hybrid Ask、streaming answer display、
-  source navigation、inspector context、visual theme、BM25 mode selection 和
+  clean chat transcript badges、focused source/session pickers、source
+  navigation、inspector context、visual theme、BM25 mode selection、contextual
+  command argument suggestions、queued drafts、actionable worker failures 和
   prompt preview。
 - 本地 TUI session workbench：latest-session restore、saved turns 和 sources、
-  session picker、pin/star/search、export、branch、rerun、continue-from-sources、
-  auto title 和 answer-turn selection。
+  session picker、recent/pinned/starred/failed/has-sources filters、
+  pin/star/search、export、branch、rerun、continue-from-sources、auto title 和
+  answer-turn selection。
 - 适合 review 和 automation 的本地 JSON/JSONL/Markdown eval artifacts。
 
 ## Changed
@@ -132,6 +135,8 @@ uv run ragent tui --workspace .ragent
 /source next
 /prompt on
 /sessions
+/sessions failed
+/sessions has-sources
 /export markdown
 /turn last
 /exit

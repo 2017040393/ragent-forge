@@ -50,12 +50,17 @@ reports 等本地 artifacts。CLI `ragent ask` 是会产生 Ask trace 的 workfl
 `src/ragent_forge/tui/` 中的 Textual Shell 是一个可检查的命令控制台，而不是
 管理 dashboard。它提供 composer、transcript、status line、command
 suggestions、source/session pickers、selected-answer 和 selected-source
-Inspector views、read-only summaries、Shell Search 和 streaming Shell Ask。
+Inspector views、read-only summaries、Shell Search 和 streaming Shell Ask。主
+transcript 有意保持 chat-focused：只渲染用户问题和 assistant 回复，并使用
+`[1 source]` 或 `[failed]` 这类轻量状态标记；retrieval details 留在 source
+pickers、command-result modals 和 Inspector 中。
 
 Shell 有意不运行 ingest、不构建 indexes、不运行 eval、不编辑 config，也不打
 开本地文件。它会在 `.ragent/sessions/` 下写入本地 TUI session artifacts，
 包括 saved turns、sources、run metadata、exports 和 latest-session pointer。
 Shell Ask 不写入 operation traces；`/trace` 读取 CLI workflows 产生的 traces。
+Worker 运行时 composer 仍可编辑，并可排队一个 draft；worker failure 会给出
+`/settings`、`/docs` 或 `/mode bm25` 这类可操作下一步。
 
 ### Application Services
 
@@ -205,9 +210,10 @@ TUI 是用于重复检查和查询的 Shell。命令让 workflow 显式、接近
 
 ```text
 /search Agentic RAG
-/source 2
 /sources
+/source 2
 /source next
+/sessions failed
 /trace
 ```
 

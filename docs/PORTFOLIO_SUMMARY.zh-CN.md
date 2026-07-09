@@ -7,8 +7,9 @@
 RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 structured
 Markdown/TXT/PDF ingestion、lexical/BM25/semantic/hybrid retrieval、
 source-grounded asking、span-grounded evaluation、deterministic failure
-analysis、retrieval compare，以及带 streaming Ask、saved sessions 和
-answer-bound source inspection 的 command-first Textual TUI。
+analysis、retrieval compare，以及带 streaming Ask、saved sessions、聚焦的
+source/session pickers 和 answer-bound source inspection 的 command-first
+Textual TUI。
 
 ## Short Project Description
 
@@ -22,9 +23,9 @@ reports、answers 和 sources 都会作为本地 artifacts 被保存或展示，
 lexical 和 BM25 retrieval、带 embeddings 的可选 semantic 和 hybrid retrieval、
 source-grounded Ask、CLI traces、span-grounded eval generation、
 evidence-to-current-chunk mapping、持久化 eval reports、deterministic failure
-analysis、retrieval compare，以及用于 search、ask 和 source inspection 的
-command-first TUI。当前 TUI 还支持 streaming Ask、saved sessions、session
-export 和 selected-answer review。
+analysis、retrieval compare，以及用于 search、ask 和 source/session picker
+inspection 的 command-first TUI。当前 TUI 还支持 streaming Ask、saved sessions、
+session export、filtered session review 和 selected-answer review。
 
 ## Chinese Description
 
@@ -45,14 +46,16 @@ Hit@k、Recall@k、MRR、latency 和 context-size metrics, 不绑定当前 chunk
 span-based synthetic eval generation, evaluation-time
 evidence-to-current-chunk mapping, persisted eval reports, deterministic
 failure analysis, retrieval compare across modes，以及 command-first Textual
-TUI with background Ask/Search workers, streaming answer display, compact
-source lists, saved-session management, export/branch/rerun helpers, source
-navigation, and an Inspector panel tied to the selected answer.
+TUI with background Ask/Search workers, contextual inline command suggestions,
+streaming answer display, clean chat transcript badges, focused source/session
+pickers, saved-session management, export/branch/rerun helpers, queued drafts,
+actionable worker failures, source navigation, and an Inspector panel tied to
+the selected answer.
 
 ## Resume Bullets
 
 - Built a local-first RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
-- Implemented a command-first Textual TUI with background Ask/Search workers, streaming answer display, saved sessions, inline command suggestions, source navigation, and an Inspector panel tied to the selected answer.
+- Implemented a command-first Textual TUI with background Ask/Search workers, streaming answer display, saved sessions, inline command suggestions, filtered session pickers, source navigation, queued drafts, actionable failures, and an Inspector panel tied to the selected answer.
 - Designed local JSONL workspace storage for chunks, vector index, traces, and persisted retrieval evaluation reports to make RAG workflows inspectable and reproducible.
 - Added retrieval evaluation with Hit@k, Recall@k, MRR, latency, and context-size metrics over JSONL cases.
 - Added span-based synthetic eval generation, evidence-to-current-chunk mapping, deterministic failure analysis, and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.
@@ -117,9 +120,10 @@ navigation, and an Inspector panel tied to the selected answer.
 
 - Command-first interaction model 让 TUI actions 可重复，并且适合 demo 讲解。
 - Inline command suggestions 帮助用户发现可用 Shell commands，而不把 TUI 变成 dashboard。
-- Compact source lists 和 `/source <rank>`、`/source next`、`/source prev` commands
-  让用户可以快速从 composer 检查 sources。
-- Inspector panel 在 transcript 保留 workflow history 的同时，让 selected source 保持可见。
+- Focused source pickers 加上 `/source <rank>`、`/source next`、`/source prev`
+  commands，让用户可以快速从 composer 检查 sources。
+- Inspector panel 在主 transcript 保持 user/assistant chat 的同时，让
+  selected-answer 和 selected-source details 保持可见。
 - Read-only TUI workspace inspection 避免把 demo 时的 search/ask flows 和 ingest、index、
   eval 或 config mutation 混在一起。
 

@@ -36,7 +36,7 @@ TXT ingestion 是当前实现的一部分，但这次本地 corpus 没有 `.txt`
 | ![v0.2 retrieval eval](assets/v0_2/v0_2_retrieval_eval_bm25.png) | BM25@5 retrieval evaluation 和持久化 report paths。 |
 | ![v0.2 retrieval compare](assets/v0_2/v0_2_retrieval_compare.png) | 跨 modes 和 top-k limits 的 retrieval compare。 |
 | ![v0.2 failure analysis](assets/v0_2/v0_2_failure_analysis.png) | Compare runs 产生的 deterministic failure types。 |
-| ![v0.2 TUI shell](assets/v0_2/v0_2_tui_shell.svg) | Command-first TUI，BM25 search、source inspection 和 prompt preview 已启用。当前 main 还包含 streaming Ask 和 saved sessions。 |
+| ![v0.2 TUI shell](assets/v0_2/v0_2_tui_shell.svg) | Command-first TUI，BM25 search、source inspection 和 prompt preview 已启用。当前 main 还包含 streaming Ask、saved sessions、source/session pickers、干净 chat transcript badges、queued drafts 和 actionable failure messages。 |
 
 ## 1. Prepare Workspace
 
@@ -255,6 +255,7 @@ Observed checks：
 | TUI launches | pass | Textual test harness 打开了 `RagentForgeApp`。 |
 | BM25 mode is selectable | pass | Status 变为 `mode: bm25`。 |
 | Search completes | pass | BM25 search 从 local chunks 返回 sources。 |
+| Source picker opens | pass | Search results 可以在聚焦的 source picker 中选择。 |
 | Sources are navigable | pass | `/source 1` 选中了第一个 source。 |
 | Inspector shows selected source | pass | Inspector 显示 selected source details。 |
 | Prompt preview toggles | pass | `/prompt on` 启用了 shell state 中的 prompt preview。 |
@@ -265,6 +266,9 @@ Observed checks：
 What is Agentic RAG?
 /turn last
 /sessions
+/sessions pinned
+/sessions failed
+/sessions has-sources
 /rename v0.2 demo session
 /pin
 /star
@@ -277,9 +281,13 @@ What is Agentic RAG?
 |---|---|
 | Ordinary text asks by default | 用户问题会保存为 session turn。 |
 | Answer streams when provider supports it | Assistant text 会增量出现在 transcript 中。 |
+| Transcript stays chat-focused | Assistant 回复使用 `[1 source]` 或 `[failed]` 这类轻量 badges；source details 留在 picker/Inspector。 |
 | Session picker is keyboard usable | Enter 会切换到高亮 session，并把 focus 还给 composer。 |
+| Session filters work | `/sessions pinned`、`/sessions failed` 和 `/sessions has-sources` 会过滤 picker。 |
 | Session metadata persists | `.ragent/sessions/` 下的 session JSON 会记录 title、pin/star state、turns、sources 和 run metadata。 |
 | Session export writes a file | `/export markdown` 会写入 `.ragent/sessions/exports/`。 |
+| Running draft stays editable | running 时提交会显示 `1 draft queued`，随后显示 `1 draft ready`。 |
+| Worker errors are actionable | Failure messages 会指向 `/settings`、`/docs` 或 `/mode bm25`，而不是 stack traces。 |
 
 ## Final Notes
 

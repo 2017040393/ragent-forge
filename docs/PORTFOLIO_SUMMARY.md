@@ -4,7 +4,7 @@
 
 ## One-Sentence Summary
 
-RAGentForge is a local-first, inspectable RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, span-grounded evaluation, deterministic failure analysis, retrieval comparison, and a command-first Textual TUI with streaming Ask, saved sessions, and answer-bound source inspection.
+RAGentForge is a local-first, inspectable RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, span-grounded evaluation, deterministic failure analysis, retrieval comparison, and a command-first Textual TUI with streaming Ask, saved sessions, focused source/session pickers, and answer-bound source inspection.
 
 ## Short Project Description
 
@@ -19,8 +19,9 @@ Markdown/TXT/PDF ingestion, deterministic chunking, lexical and BM25 retrieval,
 optional semantic and hybrid retrieval with embeddings, source-grounded Ask,
 CLI traces, span-grounded eval generation, evidence-to-current-chunk mapping,
 persisted eval reports, deterministic failure analysis, retrieval compare, and
-a command-first TUI for search, streaming Ask, saved sessions, source
-inspection, session export, and selected-answer review.
+a command-first TUI for search, streaming Ask, saved sessions, source/session
+picker inspection, session export, filtered session review, and selected-answer
+review.
 
 ## Chinese Description
 
@@ -42,14 +43,16 @@ eval generation that is not tied to the current chunk ids,
 evidence-to-current-chunk mapping at evaluation time, persisted eval reports,
 deterministic failure analysis, retrieval compare across modes, and a
 command-first Textual TUI with background Ask/Search workers, inline command
-suggestions, streaming answer display, compact source lists, saved-session
-management, export/branch/rerun helpers, source navigation, and an Inspector
-panel tied to the selected answer.
+suggestions with contextual arguments, streaming answer display, a clean chat
+transcript with lightweight answer badges, focused source/session pickers,
+saved-session management, export/branch/rerun helpers, queued drafts,
+actionable worker failures, source navigation, and an Inspector panel tied to
+the selected answer.
 
 ## Resume Bullets
 
 - Built a local-first RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
-- Implemented a command-first Textual TUI with background Ask/Search workers, streaming answer display, saved sessions, inline command suggestions, source navigation, and an Inspector panel tied to the selected answer.
+- Implemented a command-first Textual TUI with background Ask/Search workers, streaming answer display, saved sessions, inline command suggestions, filtered session pickers, source navigation, queued drafts, actionable failures, and an Inspector panel tied to the selected answer.
 - Designed local JSONL workspace storage for chunks, vector index, traces, and persisted retrieval evaluation reports to make RAG workflows inspectable and reproducible.
 - Added retrieval evaluation with Hit@k, Recall@k, MRR, latency, and context-size metrics over JSONL cases.
 - Added span-based synthetic eval generation, evidence-to-current-chunk mapping, deterministic failure analysis, and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.
@@ -122,10 +125,10 @@ panel tied to the selected answer.
   explain during demos.
 - Inline command suggestions help users discover available Shell commands
   without turning the TUI into a dashboard.
-- Compact source lists and `/source <rank>`, `/source next`, `/source prev`
-  commands make source inspection fast from the composer.
-- The Inspector panel keeps the selected source visible while the transcript
-  preserves the workflow history.
+- Focused source pickers plus `/source <rank>`, `/source next`, and
+  `/source prev` commands make source inspection fast from the composer.
+- The Inspector panel keeps selected-answer and selected-source details visible
+  while the main transcript stays focused on user/assistant chat.
 - Read-only TUI workspace inspection avoids mixing demo-time search/ask flows
   with ingest, index, eval, or config mutation.
 

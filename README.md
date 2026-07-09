@@ -252,6 +252,17 @@ The TUI restores the latest saved session on launch. Successful and failed Ask
 runs are saved as assistant turns with their sources and run metadata under
 `.ragent/sessions/`. The Inspector follows the selected answer, so `/turn`,
 `/source`, and the source picker can review evidence for a specific response.
+The main transcript stays focused on user questions and assistant replies;
+retrieval details, selected-source previews, prompt preview state, and run
+metadata live in the Inspector or command-result modals. Assistant replies use
+small status badges such as `[1 source]` or `[failed]` instead of expanding
+operational details into the chat surface.
+
+After `/search <query>` returns results, the TUI opens the source picker so you
+can choose evidence immediately. Source picker rows include location,
+retrieval method, score, and chunk id; PDF rows preserve page-aware labels where
+available. `/docs`, `/trace`, and `/settings` open read-only result modals and
+also update the Inspector.
 
 Useful Shell commands:
 
@@ -267,7 +278,7 @@ Useful Shell commands:
 /source <rank>
 /source next
 /source prev
-/sessions
+/sessions [recent|pinned|starred|failed|has-sources]
 /new
 /switch <session-id>
 /rename <title>
@@ -302,7 +313,14 @@ Shell source navigation:
 
 Typing `/` opens inline command candidates. Use Up/Down to choose a command,
 then Tab or Enter to complete it into the composer. Command execution still
-happens through composer text.
+happens through composer text. Argument suggestions show the current value when
+available, for example the active retrieval mode in `/mode ` suggestions.
+
+If an Ask or Search worker is running, the input remains editable. Submitting a
+non-empty draft records `1 draft queued`; when the current request completes,
+the draft stays in the composer with `1 draft ready` so you can press Enter to
+send it. Worker failures print next-step hints such as `/settings`, `/docs`, or
+`/mode bm25` instead of stack traces.
 
 The TUI intentionally avoids global single-key shortcuts such as `q` to quit.
 Use `/exit`, `/quit`, or `/q` from the composer.
@@ -356,8 +374,9 @@ evidence-to-chunk mapping, richer retrieval metrics, persisted eval run
 reports, failure analysis, retrieval comparison, and BM25.
 
 The current TUI also includes a local session workbench with saved conversations,
-pin/star/search, session export, branch/rerun helpers, selected-answer source
-inspection, and streaming Ask output.
+recent/pinned/starred/failed/has-sources filters, pin/star/search, session
+export, branch/rerun helpers, selected-answer source inspection, source picker
+inspection, actionable worker errors, queued drafts, and streaming Ask output.
 
 ## Release and Portfolio Materials
 

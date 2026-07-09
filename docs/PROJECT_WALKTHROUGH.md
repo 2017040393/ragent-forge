@@ -173,6 +173,8 @@ Try this Shell sequence:
 What is Agentic RAG?
 /turn last
 /sessions
+/sessions failed
+/sessions has-sources
 /rename Agentic RAG demo
 /pin
 /star
@@ -182,11 +184,18 @@ What is Agentic RAG?
 /exit
 ```
 
-`/sources` shows the current source list. `/source <rank>`, `/source next`,
-and `/source prev` change the source shown in the Inspector. `/turn` changes
-which assistant answer is selected, and the Inspector follows that selected
-answer's sources. `/sessions` opens the saved-session picker; Enter switches to
-the highlighted session and focus returns to the composer.
+`/search <query>` opens a source picker when results are available. `/sources`
+reopens the current source picker. `/source <rank>`, `/source next`, and
+`/source prev` change the source shown in the Inspector. Source picker rows show
+the compact location, retrieval method, score, and chunk id; the main transcript
+stays focused on user/assistant chat and uses lightweight badges such as
+`[1 source]` or `[failed]`.
+
+`/turn` changes which assistant answer is selected, and the Inspector follows
+that selected answer's sources. `/sessions` opens the saved-session picker;
+`/sessions pinned`, `/sessions starred`, `/sessions failed`, and
+`/sessions has-sources` filter the picker. Enter switches to the highlighted
+session and focus returns to the composer.
 
 The TUI intentionally avoids global single-key shortcuts such as `q`; use
 `/exit`, `/quit`, or `/q` from the composer.

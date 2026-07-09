@@ -20,8 +20,8 @@ settings 运行现有 Ask flow。默认 retrieval mode 是 `hybrid`。
 Slash commands 控制显式 workflows：
 
 - `/ask <question>` 显式运行 Ask。
-- `/search <query>` 运行 retrieval search。
-- `/sources` 显示当前 source list。
+- `/search <query>` 运行 retrieval search；有结果时会打开 source picker。
+- `/sources` 打开当前 source picker。
 - `/source <rank|next|prev>` 切换 Inspector 中显示的 source。
 - `/docs` 显示 workspace 和 document summary。
 - `/trace` 显示最新 trace。
@@ -30,7 +30,8 @@ Slash commands 控制显式 workflows：
 - `/limit <n>` 修改 retrieval result limit。
 - `/context <n>` 修改 Ask 的 max context chars。
 - `/prompt on|off` 切换 prompt preview。
-- `/sessions` 打开 saved-session picker。
+- `/sessions [recent|pinned|starred|failed|has-sources]` 打开 saved-session
+  picker，并可选过滤。
 - `/new`、`/switch <session-id>`、`/rename <title>` 和 `/delete` 管理本地
   TUI sessions。
 - `/pin`、`/star` 和 `/session-search <query>` 用于组织 saved sessions。
@@ -51,11 +52,10 @@ retrieval mode set to hybrid
 > What is Agentic RAG?
 Running ask...
 
-Answer:
+Assistant: [2 sources]
   ...
 
-Sources:
-  1. rag_basics.md score=...
+`/search` 后会打开 source picker，Inspector 显示 selected-source details。
 ```
 
 ## Proposed Layout
@@ -81,8 +81,8 @@ composer 中。
 | --- | --- | --- |
 | `/help` | | Show available commands. |
 | `/ask <question>` | | Run Ask explicitly. |
-| `/search <query>` | `/s` | Search chunks. |
-| `/sources` | | Show current sources. |
+| `/search <query>` | `/s` | Search chunks；有结果时打开 source picker。 |
+| `/sources` | | 打开当前 source picker。 |
 | `/source <rank|next|prev>` | | Select a source by rank, next, or prev. |
 | `/docs` | | Show document summary. |
 | `/trace` | `/t` | Show the latest trace. |
@@ -91,7 +91,7 @@ composer 中。
 | `/limit <n>` | | Set retrieval result limit. |
 | `/context <n>` | | Set max context chars. |
 | `/prompt on|off` | | Toggle prompt preview. |
-| `/sessions` | | Open the saved-session picker. |
+| `/sessions [recent|pinned|starred|failed|has-sources]` | | 打开 saved-session picker，并可选过滤。 |
 | `/new` | | Start a new session. |
 | `/switch <session-id>` | | Switch to a saved session. |
 | `/rename <title>` | | Rename the current session. |
@@ -142,10 +142,11 @@ text: str
 metadata: dict[str, Any]
 ```
 
-用户问题、command acknowledgements、generated answers、search summaries 和
-friendly errors 都可以成为 transcript messages。Metadata 可以携带 selected
-source ids、selected turn ids、retrieval mode、limits、run status 或 trace ids，
-而不强迫这些细节进入可见文本。
+用户问题、generated answers、search summaries、command acknowledgements 和
+friendly errors 都可以表示为 transcript messages，但主 chat transcript 有意只渲染
+user 和 assistant messages。Assistant heading 可以包含 `[1 source]` 或 `[failed]`
+这类轻量 badges。Metadata 可以携带 selected source ids、selected turn ids、
+retrieval mode、limits、run status 或 trace ids，而不强迫这些细节进入可见聊天文本。
 
 Transcript model foundation 位于 `src/ragent_forge/tui/shell_models.py`。它有
 意保持纯粹并独立于 Textual rendering，以便支持未来 Shell 行为，而不改变
@@ -178,16 +179,23 @@ state。Worker failures 应产生友好的 error messages、保存 failed assist
 workspace 的 read-oriented TUI workflows；CLI commands 仍然是 trace-producing
 workflows。
 
+当前 failure messages 会给出可操作的下一步，例如 `/settings`、`/docs`，或在
+合适时提示切到 `/mode bm25` 这类 sparse fallback。
+
 ## Composer Polish
 
 composer 应在 mount 时、本地 commands 后、read-only command output 后、modal
 pickers 关闭后、切换 sessions 后，以及 Ask 或 Search workers 完成或失败后保持
 focus。Worker 运行时不应阻止 composer 接收下一条 command 或问题。
 
+Worker 运行时提交非空输入会排队一个 draft。Status line 会显示
+`1 draft queued`；当前请求完成后显示 `1 draft ready`，draft 保留在 composer
+中，直到用户再次按 Enter 发送。
+
 Transcript updates 应在 local command output、clear、worker start、worker
-completion 和 worker failure 后滚动到最新输出。Source lists 应使用紧凑、对齐
-且有宽度边界的 labels，避免长文件名撑开 transcript。Inspector previews 应保
-持紧凑，并只显示 allowlisted retrieval metadata。
+completion 和 worker failure 后滚动到最新输出。Source picker rows 应使用紧凑
+labels，包含 location、retrieval method、score 和 chunk id，避免长文件名撑开
+transcript。Inspector previews 应保持紧凑，并只显示 allowlisted retrieval metadata。
 
 ## 复用现有 Services
 
@@ -216,8 +224,9 @@ Shell 不应重复 ingestion、indexing、retrieval、generation、trace 或 con
 
 Session commands 保持 command-first，但可以使用聚焦的 modal pickers。Sessions
 picker 支持键盘选择和 Enter 跳转，switch 或 cancel 后会把 focus 还给 composer。
-Source selection 也可以使用 picker；同时 `/source <rank|next|prev>` 仍保留给精确
-command input。
+`/sessions` 支持 `recent`、`pinned`、`starred`、`failed` 和 `has-sources`
+filters。Source selection 也可以使用 picker；同时 `/source <rank|next|prev>`
+仍保留给精确 command input。
 
 ## 实现状态
 
@@ -228,18 +237,21 @@ command input。
 - TUI 现在是单一 command-first Shell。
 - Local Shell commands 已接入。
 - Read-only Shell commands `/docs`、`/trace` 和 `/settings` 已接入。
-- Shell `/search <query>` 已通过 background worker 接入。
-- Shell search sources 会显示在 transcript 中。
-- Shell Inspector 会显示 selected-source details。
+- Shell `/search <query>` 已通过 background worker 接入，有结果时会打开 source
+  picker。
+- 主 Shell transcript 是干净的 user/assistant chat surface，并带轻量 answer badges。
+- Shell Inspector 会显示 selected-answer 和 selected-source details。
 - Shell source navigation commands `/sources` 和 `/source <rank|next|prev>` 已接入。
 - Shell ordinary questions 和 `/ask <question>` 已通过 background worker 接入。
 - Shell Ask 可在可用时把 answer deltas 流式写入 transcript。
 - Shell Ask 会持久化成功和失败的 assistant turns，并绑定 sources 和 run metadata。
 - Saved sessions、latest-session restore、session picker、search、pin/star、
-  rename/delete、export、branch、rerun、continue-from-sources、auto title 和
-  answer-turn selection 已接入。
+  recent/pinned/starred/failed/has-sources filters、rename/delete confirmation、
+  export、branch、rerun、continue-from-sources、auto title 和 answer-turn
+  selection 已接入。
 - Typing slash commands 时有 lightweight inline command candidates，可用 Up/Down
-  选择，并用 Tab/Enter 补全到 composer。
+  选择，并用 Tab/Enter 补全到 composer。参数 candidates 会在有用时显示当前值。
+- Read-only command results 使用 modals；Ask/Search failures 使用可操作的下一步提示。
 
 ## Migration Plan
 

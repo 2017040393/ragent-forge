@@ -169,6 +169,8 @@ uv run ragent tui --workspace .ragent
 What is Agentic RAG?
 /turn last
 /sessions
+/sessions failed
+/sessions has-sources
 /rename Agentic RAG demo
 /pin
 /star
@@ -178,10 +180,16 @@ What is Agentic RAG?
 /exit
 ```
 
-`/sources` 显示当前 source list。`/source <rank>`、`/source next` 和
-`/source prev` 会切换 Inspector 中显示的 source。`/turn` 会切换 selected
-assistant answer，Inspector 会跟随这条回答的 sources。`/sessions` 会打开
-saved-session picker；Enter 会切换到高亮 session，并把 focus 还给 composer。
+`/search <query>` 有结果时会打开 source picker。`/sources` 会重新打开当前
+source picker。`/source <rank>`、`/source next` 和 `/source prev` 会切换
+Inspector 中显示的 source。Source picker rows 会显示紧凑 location、retrieval
+method、score 和 chunk id；主 transcript 保持 user/assistant chat，并只使用
+`[1 source]` 或 `[failed]` 这类轻量 badges。
+
+`/turn` 会切换 selected assistant answer，Inspector 会跟随这条回答的 sources。
+`/sessions` 会打开 saved-session picker；`/sessions pinned`、`/sessions starred`、
+`/sessions failed` 和 `/sessions has-sources` 可以过滤 picker。Enter 会切换到高亮
+session，并把 focus 还给 composer。
 
 TUI 有意避免 `q` 这种全局单键快捷键；请在 composer 中使用 `/exit`、`/quit`
 或 `/q`。

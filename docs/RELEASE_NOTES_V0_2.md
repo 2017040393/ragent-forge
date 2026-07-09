@@ -51,11 +51,14 @@ when chunk size, chunk overlap, ingestion, or retrieval strategy changes.
 - Retrieval compare for evaluating multiple retrieval modes and top-k limits in
   one command.
 - Command-first TUI polish for default hybrid Ask, streaming answer display,
-  source navigation, inspector context, visual theme, BM25 mode selection, and
+  clean chat transcript badges, focused source/session pickers, source
+  navigation, inspector context, visual theme, BM25 mode selection, contextual
+  command argument suggestions, queued drafts, actionable worker failures, and
   prompt preview.
 - Local TUI session workbench with latest-session restore, saved turns and
-  sources, session picker, pin/star/search, export, branch, rerun,
-  continue-from-sources, auto title, and answer-turn selection.
+  sources, session picker, recent/pinned/starred/failed/has-sources filters,
+  pin/star/search, export, branch, rerun, continue-from-sources, auto title, and
+  answer-turn selection.
 - Local JSON/JSONL/Markdown eval artifacts suitable for review and automation.
 
 ## Changed
@@ -135,6 +138,8 @@ Inside the TUI, try:
 /source next
 /prompt on
 /sessions
+/sessions failed
+/sessions has-sources
 /export markdown
 /turn last
 /exit

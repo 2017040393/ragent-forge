@@ -22,8 +22,9 @@ mode is `hybrid`.
 Slash commands control explicit workflows:
 
 - `/ask <question>` explicitly runs Ask.
-- `/search <query>` runs retrieval search.
-- `/sources` shows the current source list.
+- `/search <query>` runs retrieval search and opens the source picker when
+  results are available.
+- `/sources` opens the current source picker.
 - `/source <rank|next|prev>` changes the source shown in the Inspector.
 - `/docs` shows workspace and document summary.
 - `/trace` shows the latest trace.
@@ -32,7 +33,8 @@ Slash commands control explicit workflows:
 - `/limit <n>` changes the retrieval result limit.
 - `/context <n>` changes max context chars for Ask.
 - `/prompt on|off` toggles prompt preview.
-- `/sessions` opens the saved-session picker.
+- `/sessions [recent|pinned|starred|failed|has-sources]` opens the
+  saved-session picker, optionally filtered.
 - `/new`, `/switch <session-id>`, `/rename <title>`, and `/delete` manage local
   TUI sessions.
 - `/pin`, `/star`, and `/session-search <query>` organize saved sessions.
@@ -53,11 +55,11 @@ retrieval mode set to hybrid
 > What is Agentic RAG?
 Running ask...
 
-Answer:
+Assistant: [2 sources]
   ...
 
-Sources:
-  1. rag_basics.md score=...
+The source picker opens after `/search` and the Inspector shows selected-source
+details.
 ```
 
 ## Proposed Layout
@@ -83,8 +85,8 @@ The current command registry stays explicit and predictable:
 | --- | --- | --- |
 | `/help` | | Show available commands. |
 | `/ask <question>` | | Run Ask explicitly. |
-| `/search <query>` | `/s` | Search chunks. |
-| `/sources` | | Show current sources. |
+| `/search <query>` | `/s` | Search chunks and open the source picker when results exist. |
+| `/sources` | | Open the current source picker. |
 | `/source <rank|next|prev>` | | Select a source by rank, next, or prev. |
 | `/docs` | | Show document summary. |
 | `/trace` | `/t` | Show the latest trace. |
@@ -93,7 +95,7 @@ The current command registry stays explicit and predictable:
 | `/limit <n>` | | Set retrieval result limit. |
 | `/context <n>` | | Set max context chars. |
 | `/prompt on|off` | | Toggle prompt preview. |
-| `/sessions` | | Open the saved-session picker. |
+| `/sessions [recent|pinned|starred|failed|has-sources]` | | Open the saved-session picker, optionally filtered. |
 | `/new` | | Start a new session. |
 | `/switch <session-id>` | | Switch to a saved session. |
 | `/rename <title>` | | Rename the current session. |
@@ -145,10 +147,13 @@ text: str
 metadata: dict[str, Any]
 ```
 
-User questions, command acknowledgements, generated answers, search summaries,
-and friendly errors can all become transcript messages. Metadata can carry
-selected source ids, selected turn ids, retrieval mode, limits, run status, or
-trace ids without forcing those details into visible text.
+User questions, generated answers, search summaries, command acknowledgements,
+and friendly errors can all be represented as transcript messages, but the main
+chat transcript intentionally renders only user and assistant messages.
+Assistant headings may include lightweight badges such as `[1 source]` or
+`[failed]`. Metadata can carry selected source ids, selected turn ids, retrieval
+mode, limits, run status, or trace ids without forcing those details into
+visible chat text.
 
 The transcript model foundation lives in
 `src/ragent_forge/tui/shell_models.py`. It is intentionally pure and independent
@@ -183,6 +188,10 @@ failed assistant turn, and never display stack traces or API keys. Shell Search
 and Shell Ask are read-oriented TUI workflows over the current local workspace;
 CLI commands remain the trace-producing workflows.
 
+Current failure messages are actionable: they point users toward `/settings`,
+`/docs`, or a sparse fallback such as `/mode bm25` when that is the useful next
+step.
+
 ## Composer Polish
 
 The composer should keep focus on mount, after local commands, after read-only
@@ -190,11 +199,17 @@ command output, after modal pickers close, after switching sessions, and after
 Ask or Search workers finish or fail. Running workers should not prevent the
 composer from accepting the next command or question.
 
+Submitting a non-empty input while a worker is running queues exactly one draft.
+The status line shows `1 draft queued`, then `1 draft ready` after the running
+request finishes; the draft remains in the composer until the user presses
+Enter again.
+
 Transcript updates should scroll to the latest output after local command
-output, clear, worker start, worker completion, and worker failure. Source lists
-should use compact, aligned labels with bounded width so long filenames do not
-stretch the transcript. Inspector previews should stay compact and should show
-only allowlisted retrieval metadata.
+output, clear, worker start, worker completion, and worker failure. Source
+picker rows should use compact labels with location, retrieval method, score,
+and chunk id so long filenames do not stretch the transcript. Inspector
+previews should stay compact and should show only allowlisted retrieval
+metadata.
 
 ## Reusing Existing Services
 
@@ -225,8 +240,10 @@ The current TUI persists local conversation sessions under `.ragent/sessions/`:
 
 Session commands are command-first but may use focused modal pickers. The
 sessions picker supports keyboard selection with Enter and returns focus to the
-composer after switching or cancelling. Source selection can also use a picker,
-while `/source <rank|next|prev>` remains available for precise command input.
+composer after switching or cancelling. `/sessions` supports `recent`,
+`pinned`, `starred`, `failed`, and `has-sources` filters. Source selection can
+also use a picker, while `/source <rank|next|prev>` remains available for
+precise command input.
 
 ## Implementation Status
 
@@ -237,9 +254,11 @@ Current implementation status:
 - TUI is now a single command-first Shell.
 - Local Shell commands are wired.
 - Read-only Shell commands `/docs`, `/trace`, and `/settings` are wired.
-- Shell `/search <query>` is wired through a background worker.
-- Shell search sources are displayed in the transcript.
-- Shell Inspector shows selected-source details.
+- Shell `/search <query>` is wired through a background worker and opens the
+  source picker when results are available.
+- The main Shell transcript is a clean user/assistant chat surface with
+  lightweight answer badges.
+- Shell Inspector shows selected-answer and selected-source details.
 - Shell source navigation commands `/sources` and
   `/source <rank|next|prev>` are wired.
 - Shell ordinary questions and `/ask <question>` are wired through a background
@@ -248,10 +267,14 @@ Current implementation status:
 - Shell Ask persists successful and failed assistant turns with sources and run
   metadata.
 - Saved sessions, latest-session restore, session picker, search, pin/star,
-  rename/delete, export, branch, rerun, continue-from-sources, auto title, and
+  recent/pinned/starred/failed/has-sources filters, rename/delete with
+  confirmation, export, branch, rerun, continue-from-sources, auto title, and
   answer-turn selection are wired.
 - Lightweight inline command candidates are available while typing slash
   commands, with Up/Down selection and Tab/Enter completion into the composer.
+  Argument candidates show current values where useful.
+- Read-only command results use modals; Ask/Search failures use actionable
+  next-step messages.
 
 ## Migration Plan
 

@@ -53,13 +53,18 @@ The Textual Shell in `src/ragent_forge/tui/` is an inspectable command console,
 not a management dashboard. It provides a composer, transcript, status line,
 command suggestions, source/session pickers, selected-answer and
 selected-source Inspector views, read-only summaries, Shell Search, and
-streaming Shell Ask.
+streaming Shell Ask. The main transcript is intentionally chat-focused: it
+renders user questions and assistant replies with small status badges such as
+`[1 source]` or `[failed]`, while retrieval details stay in source pickers,
+command-result modals, and the Inspector.
 
 The Shell intentionally does not run ingest, build indexes, run eval, edit
 config, or open local files. It does write local TUI session artifacts under
 `.ragent/sessions/`, including saved turns, sources, run metadata, exports, and
 the latest-session pointer. Shell Ask does not write operation traces; `/trace`
-reads traces produced by CLI workflows.
+reads traces produced by CLI workflows. Running workers leave the composer
+editable and can queue one draft; worker failures surface actionable next steps
+such as `/settings`, `/docs`, or a sparse fallback like `/mode bm25`.
 
 ### Application Services
 
@@ -224,9 +229,10 @@ workflow explicit, script-like, and easy to document:
 
 ```text
 /search Agentic RAG
-/source 2
 /sources
+/source 2
 /source next
+/sessions failed
 /trace
 ```
 
