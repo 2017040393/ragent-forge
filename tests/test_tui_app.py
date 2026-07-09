@@ -470,6 +470,34 @@ async def test_tui_app_switch_and_session_search_open_session_modal(
 
 
 @pytest.mark.anyio
+async def test_tui_app_delete_requires_second_confirmation(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    service = SessionService(workspace.root_path)
+    session = service.create_session("Important chat")
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        shell_input = app.query_one("#shell-input", Input)
+        assert app.shell_state.current_session_id == session.id
+
+        shell_input.value = "/delete"
+        app._submit_shell_input()
+
+        assert service.load_session(session.id).id == session.id
+        assert "Type /delete again" in str(
+            app.query_one("#shell-status", Static).renderable
+        )
+
+        shell_input.value = "/delete"
+        app._submit_shell_input()
+
+        with pytest.raises(ValueError, match="Session not found"):
+            service.load_session(session.id)
+
+
+@pytest.mark.anyio
 async def test_tui_app_session_picker_enter_switches_and_refocuses_input(
     tmp_path: Path,
 ) -> None:

@@ -390,6 +390,7 @@ class RagentForgeApp(App[None]):
         self.shell_suggestion_index = 0
         self._pending_ask_question: str | None = None
         self._pending_ask_run: TuiSessionRun | None = None
+        self._pending_delete_session_id: str | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -415,6 +416,8 @@ class RagentForgeApp(App[None]):
         self._focus_shell_input()
 
     def _handle_session_dispatch(self, result: ShellDispatchResult) -> None:
+        if result.action != "delete":
+            self._pending_delete_session_id = None
         try:
             if result.action == "new":
                 self._create_new_session()
@@ -482,6 +485,16 @@ class RagentForgeApp(App[None]):
 
     def _delete_current_session(self) -> None:
         session_id = self._current_session_id()
+        if self._pending_delete_session_id != session_id:
+            session = self.session_service.load_session(session_id)
+            self._pending_delete_session_id = session_id
+            self.shell_state = set_notice(
+                self.shell_state,
+                f"Type /delete again to delete session: {session.title}",
+            )
+            return
+
+        self._pending_delete_session_id = None
         self.session_service.delete_session(session_id)
         session = self.session_service.load_latest_or_create()
         self._load_session_into_shell(session)
@@ -643,6 +656,7 @@ class RagentForgeApp(App[None]):
         self._load_session_into_shell(session)
 
     def _load_session_into_shell(self, session: TuiSession) -> None:
+        self._pending_delete_session_id = None
         self.shell_state = replace_state_from_session(
             self.shell_state,
             session,
