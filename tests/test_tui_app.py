@@ -253,9 +253,9 @@ async def test_tui_app_shell_running_submission_preserves_input_text(
         assert shell_input.value == "Do not lose this"
         assert app.shell_state.messages == ()
         assert app.shell_state.notice == (
-            "Draft queued. Press Enter after the current request finishes to send."
+            "1 draft queued. Press Enter after the current request finishes to send."
         )
-        assert "Draft queued" in str(
+        assert "1 draft queued" in str(
             app.query_one("#shell-status", Static).renderable
         )
 
@@ -277,8 +277,8 @@ async def test_tui_app_shell_running_draft_is_ready_after_completion(
         app._render_shell()
 
         assert shell_input.value == "Queued question"
-        assert app.shell_state.notice == "Draft ready. Press Enter to send."
-        assert "Draft ready" in str(
+        assert app.shell_state.notice == "1 draft ready. Press Enter to send."
+        assert "1 draft ready" in str(
             app.query_one("#shell-status", Static).renderable
         )
 

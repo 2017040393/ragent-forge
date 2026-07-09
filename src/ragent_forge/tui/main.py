@@ -86,9 +86,9 @@ from ragent_forge.tui.view_models import (
 SHELL_ASK_FAILED_STATUS = "Ask failed. Check configuration and workspace files."
 SHELL_SEARCH_FAILED_STATUS = "Search failed. Check configuration and workspace files."
 SHELL_RUNNING_DRAFT_QUEUED_STATUS = (
-    "Draft queued. Press Enter after the current request finishes to send."
+    "1 draft queued. Press Enter after the current request finishes to send."
 )
-SHELL_DRAFT_READY_STATUS = "Draft ready. Press Enter to send."
+SHELL_DRAFT_READY_STATUS = "1 draft ready. Press Enter to send."
 SHELL_RUNNING_EMPTY_SUBMIT_STATUS = "Request is still running."
 
 
