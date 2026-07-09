@@ -752,14 +752,39 @@ def format_conversation_transcript(
 def format_chat_transcript(
     messages: list[TranscriptMessage] | tuple[TranscriptMessage, ...],
 ) -> str:
-    visible_messages = [
-        replace(message, sources=())
+    return "\n\n".join(
+        _format_chat_transcript_message(message)
         for message in messages
         if message.role in {"user", "assistant"}
-    ]
-    return "\n\n".join(
-        format_transcript_message(message) for message in visible_messages
     )
+
+
+def _format_chat_transcript_message(message: TranscriptMessage) -> str:
+    rendered = format_transcript_message(replace(message, sources=()))
+    if message.role != "assistant":
+        return rendered
+    badge = _assistant_chat_badge(message)
+    if badge is None:
+        return rendered
+    return rendered.replace("Assistant:", f"Assistant: {badge}", 1)
+
+
+def _assistant_chat_badge(message: TranscriptMessage) -> str | None:
+    badges: list[str] = []
+    if message.metadata.get("generation_status") == "failed":
+        badges.append("[failed]")
+    source_count = _assistant_source_count(message)
+    if source_count:
+        noun = "source" if source_count == 1 else "sources"
+        badges.append(f"[{source_count} {noun}]")
+    return " ".join(badges) if badges else None
+
+
+def _assistant_source_count(message: TranscriptMessage) -> int:
+    metadata_count = message.metadata.get("source_count")
+    if isinstance(metadata_count, int) and metadata_count > 0:
+        return metadata_count
+    return len(message.sources)
 
 
 def format_transcript_sources(

@@ -848,7 +848,7 @@ def test_format_conversation_transcript_only_renders_user_and_assistant() -> Non
         )
     )
 
-    assert text == "User:\n  question\n\nAssistant:\n  answer"
+    assert text == "User:\n  question\n\nAssistant: [1 source]\n  answer"
     assert "System:" not in text
     assert "Tool:" not in text
     assert "Error:" not in text
@@ -876,13 +876,28 @@ def test_format_chat_transcript_hides_operational_command_output() -> None:
     assert text == (
         "User:\n"
         "  What is Agentic RAG?\n\n"
-        "Assistant:\n"
+        "Assistant: [1 source]\n"
         "  Agentic RAG plans retrieval steps."
     )
     assert "Search results loaded" not in text
     assert "Trace load failed" not in text
     assert "retrieval_mode" not in text
     assert "Sources:" not in text
+
+
+def test_format_chat_transcript_marks_failed_assistant_answer() -> None:
+    text = format_chat_transcript(
+        (
+            TranscriptMessage(role="user", text="Question?"),
+            TranscriptMessage(
+                role="assistant",
+                text="Ask failed.",
+                metadata={"generation_status": "failed"},
+            ),
+        )
+    )
+
+    assert text == "User:\n  Question?\n\nAssistant: [failed]\n  Ask failed."
 
 
 def test_format_transcript_message_normalizes_assistant_latex_math() -> None:
