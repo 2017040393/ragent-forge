@@ -498,9 +498,21 @@ async def test_tui_app_session_picker_enter_switches_and_refocuses_input(
 @pytest.mark.anyio
 async def test_tui_app_shell_docs_command_uses_inspector_for_details(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     workspace = make_tui_workspace(tmp_path)
     app = RagentForgeApp(workspace.root_path)
+    opened_modals: list[tuple[str, str]] = []
+
+    def fake_show_command_result_modal(title: str, text: str) -> None:
+        opened_modals.append((title, text))
+
+    monkeypatch.setattr(
+        app,
+        "_show_command_result_modal",
+        fake_show_command_result_modal,
+        raising=False,
+    )
 
     async with app.run_test():
         shell_input = app.query_one("#shell-input", Input)
@@ -515,6 +527,10 @@ async def test_tui_app_shell_docs_command_uses_inspector_for_details(
         assert "Workspace\n" not in transcript
         assert "Workspace" in inspector
         assert "Ingest" in inspector
+        assert opened_modals
+        assert opened_modals[-1][0] == "Documents"
+        assert "Workspace" in opened_modals[-1][1]
+        assert "Ingest" in opened_modals[-1][1]
 
 
 @pytest.mark.anyio

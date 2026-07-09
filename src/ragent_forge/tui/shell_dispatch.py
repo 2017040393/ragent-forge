@@ -40,6 +40,7 @@ ShellAction = Literal[
     "continue-sources",
     "title",
     "turn",
+    "command-result",
 ]
 ExportFormat = Literal["markdown", "json"]
 NO_SOURCES_MESSAGE = (
@@ -64,6 +65,12 @@ _READ_ONLY_SUCCESS_MESSAGES = {
     "settings": "Settings summary loaded in Inspector.",
 }
 
+_READ_ONLY_MODAL_TITLES = {
+    "docs": "Documents",
+    "trace": "Trace",
+    "settings": "Settings",
+}
+
 
 @dataclass(frozen=True)
 class ShellReadOnlyHandlers:
@@ -83,6 +90,8 @@ class ShellDispatchResult:
     session_search_query: str | None = None
     export_format: ExportFormat | None = None
     turn_selector: str | None = None
+    modal_title: str | None = None
+    modal_text: str | None = None
 
 
 def apply_shell_input(
@@ -160,12 +169,10 @@ def apply_shell_input(
     if parsed.name == "source":
         return ShellDispatchResult(_apply_source_command(state, parsed.args))
     if parsed.name in {"docs", "trace", "settings"}:
-        return ShellDispatchResult(
-            _apply_read_only_command(
-                state,
-                cast(Literal["docs", "trace", "settings"], parsed.name),
-                handlers,
-            )
+        return _apply_read_only_command(
+            state,
+            cast(Literal["docs", "trace", "settings"], parsed.name),
+            handlers,
         )
     if parsed.name in _PLANNED_NOT_WIRED_MESSAGES:
         return ShellDispatchResult(
@@ -291,24 +298,33 @@ def _apply_read_only_command(
     state: ShellState,
     command: Literal["docs", "trace", "settings"],
     handlers: ShellReadOnlyHandlers | None,
-) -> ShellState:
+) -> ShellDispatchResult:
     handler = _read_only_handler(command, handlers)
     if handler is None:
-        return set_notice(
-            state,
-            _PLANNED_NOT_WIRED_MESSAGES[command],
+        return ShellDispatchResult(
+            set_notice(
+                state,
+                _PLANNED_NOT_WIRED_MESSAGES[command],
+            )
         )
 
     try:
         text = handler()
     except Exception:
-        return set_notice(
-            state,
-            _READ_ONLY_ERROR_MESSAGES[command],
+        return ShellDispatchResult(
+            set_notice(
+                state,
+                _READ_ONLY_ERROR_MESSAGES[command],
+            )
         )
 
     updated = replace(state, inspector_text=text)
-    return set_notice(updated, _READ_ONLY_SUCCESS_MESSAGES[command])
+    return ShellDispatchResult(
+        set_notice(updated, _READ_ONLY_SUCCESS_MESSAGES[command]),
+        action="command-result",
+        modal_title=_READ_ONLY_MODAL_TITLES[command],
+        modal_text=text,
+    )
 
 
 def _read_only_handler(

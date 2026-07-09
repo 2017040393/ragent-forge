@@ -148,6 +148,24 @@ class HelpModal(ModalScreen[None]):
         self.dismiss(None)
 
 
+class CommandResultModal(ModalScreen[None]):
+    BINDINGS = [("escape", "close", "Close")]
+
+    def __init__(self, title: str, text: str) -> None:
+        super().__init__()
+        self.title = title
+        self.text = text
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="command-result-dialog"):
+            yield Label(self.title)
+            with ScrollableContainer(id="command-result-scroll"):
+                yield Static(self.text)
+
+    def action_close(self) -> None:
+        self.dismiss(None)
+
+
 class SessionPickerModal(ModalScreen[str | None]):
     BINDINGS = [("escape", "close", "Close"), ("enter", "select", "Open")]
 
@@ -333,7 +351,10 @@ class RagentForgeApp(App[None]):
         color: #9aa7bd;
     }
 
-    #source-picker-dialog, #help-dialog, #session-picker-dialog {
+    #source-picker-dialog,
+    #help-dialog,
+    #session-picker-dialog,
+    #command-result-dialog {
         width: 74;
         max-height: 80%;
         margin: 2 4;
@@ -346,6 +367,11 @@ class RagentForgeApp(App[None]):
     #source-picker-list, #session-picker-list {
         height: auto;
         max-height: 18;
+    }
+
+    #command-result-scroll {
+        height: auto;
+        max-height: 22;
     }
 
     Static {
@@ -719,6 +745,16 @@ class RagentForgeApp(App[None]):
             self._render_shell()
             self._render_inspector()
             self._show_help_modal()
+            self._focus_shell_input()
+            return
+        if result.action == "command-result":
+            self._render_shell()
+            self._render_inspector()
+            if result.modal_title is not None and result.modal_text is not None:
+                self._show_command_result_modal(
+                    result.modal_title,
+                    result.modal_text,
+                )
             self._focus_shell_input()
             return
         self._render_shell()
@@ -1162,6 +1198,9 @@ class RagentForgeApp(App[None]):
 
     def _show_help_modal(self) -> None:
         self.push_screen(HelpModal())
+
+    def _show_command_result_modal(self, title: str, text: str) -> None:
+        self.push_screen(CommandResultModal(title, text))
 
     def _show_sessions_modal(self) -> None:
         self.push_screen(
