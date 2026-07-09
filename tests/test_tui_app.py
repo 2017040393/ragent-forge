@@ -20,7 +20,7 @@ from ragent_forge.app.services.session_service import (
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 from ragent_forge.tui import main as tui_main
-from ragent_forge.tui.main import RagentForgeApp
+from ragent_forge.tui.main import RagentForgeApp, _source_picker_label
 from ragent_forge.tui.shell_models import TranscriptSource
 from ragent_forge.tui.view_models import AskPageState, SearchPageState
 
@@ -81,6 +81,26 @@ def make_session_source(rank: int = 1) -> TuiSessionSource:
         source_path=f"/knowledge/source_{rank}.md",
         score=0.1 * rank,
         preview=f"Preview {rank}",
+    )
+
+
+def test_source_picker_label_includes_location_method_score_and_chunk() -> None:
+    source = TranscriptSource(
+        rank=1,
+        chunk_id="/knowledge/paper.pdf::chunk-0001",
+        source_path="/knowledge/paper.pdf",
+        score=0.42,
+        preview="PDF evidence",
+        metadata={
+            "media_type": "application/pdf",
+            "page_start": 2,
+            "page_end": 2,
+            "retrieval_method": "hybrid_rrf",
+        },
+    )
+
+    assert _source_picker_label(source) == (
+        "1. paper.pdf p.2  method=hybrid_rrf  score=0.42  chunk=chunk-0001"
     )
 
 
@@ -160,7 +180,7 @@ async def test_tui_app_restores_latest_session_on_mount(tmp_path: Path) -> None:
         assert app.shell_state.current_session_id == session.id
         assert app.shell_state.current_session_title == "What is saved?"
         assert "User:\n  What is saved?" in transcript
-        assert "Assistant:\n  A persisted answer." in transcript
+        assert "Assistant: [1 source]\n  A persisted answer." in transcript
 
 
 def test_tui_app_has_no_global_key_bindings() -> None:
@@ -884,7 +904,7 @@ async def test_tui_app_shell_ask_worker_streams_answer_into_current_message(
 
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         assert transcript.count("Assistant:") == 1
-        assert "Assistant:\n  Agentic RAG" in transcript
+        assert "Assistant: [1 source]\n  Agentic RAG" in transcript
         assert "agentic_rag.md" not in transcript
         assert app.shell_state.selected_source is not None
         assert app.shell_state.selected_turn_id is not None
@@ -945,7 +965,7 @@ async def test_tui_app_shell_ask_worker_success_appends_messages_and_selects_sou
         assert app.query_one("#shell-input", Input).disabled is False
         assert app.focused == app.query_one("#shell-input", Input)
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
-        assert "Assistant:\n  Agentic RAG adds planning." in transcript
+        assert "Assistant: [1 source]\n  Agentic RAG adds planning." in transcript
         assert "Sources:" not in transcript
         assert "agentic_rag.md" not in transcript
         assert app.shell_state.selected_source is not None
@@ -1006,7 +1026,7 @@ async def test_tui_app_shell_ask_worker_shows_prompt_preview_in_inspector(
 
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         inspector = str(app.query_one("#inspector-content", Static).renderable)
-        assert "Assistant:\n  Agentic RAG adds planning." in transcript
+        assert "Assistant: [1 source]\n  Agentic RAG adds planning." in transcript
         assert "Retrieved context:" not in transcript
         assert "Prompt preview" in inspector
         assert "Retrieved context:" in inspector
@@ -1052,7 +1072,7 @@ async def test_tui_app_shell_ask_missing_vector_index_guidance_is_actionable(
         transcript = str(app.query_one("#shell-transcript", Static).renderable)
         status = str(app.query_one("#shell-status", Static).renderable)
         inspector = str(app.query_one("#inspector-content", Static).renderable)
-        assert "Assistant:\n  Vector index not found." in transcript
+        assert "Assistant: [failed]\n  Vector index not found." in transcript
         assert "Vector index not found." not in status
         assert "ragent index build" in inspector
         assert event.stopped is True

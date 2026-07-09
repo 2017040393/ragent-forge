@@ -71,6 +71,7 @@ from ragent_forge.tui.theme import (
 from ragent_forge.tui.view_models import (
     AskPageState,
     SearchPageState,
+    compact_chunk_label,
     compact_source_label,
     format_documents_page,
     format_settings_page,
@@ -225,7 +226,27 @@ class SessionPickerModal(ModalScreen[str | None]):
 
 def _source_picker_label(source: TranscriptSource) -> str:
     label = compact_source_label(source.source_path, source.metadata)
-    return f"{source.rank}. {label}  score={source.score:.4g}"
+    parts = [f"{source.rank}. {label}"]
+    retrieval = _source_picker_retrieval_label(source)
+    if retrieval:
+        parts.append(retrieval)
+    parts.extend(
+        [
+            f"score={source.score:.4g}",
+            f"chunk={compact_chunk_label(source.chunk_id)}",
+        ]
+    )
+    return "  ".join(parts)
+
+
+def _source_picker_retrieval_label(source: TranscriptSource) -> str:
+    method = source.metadata.get("retrieval_method")
+    if isinstance(method, str) and method:
+        return f"method={method}"
+    mode = source.metadata.get("retrieval_mode")
+    if isinstance(mode, str) and mode:
+        return f"mode={mode}"
+    return ""
 
 
 def _session_picker_label(summary: TuiSessionSummary) -> str:
