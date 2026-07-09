@@ -43,7 +43,8 @@ chunks、检索结果、context pack、answer、sources、traces 和 eval report
 - 持久化 retrieval eval run reports，包含紧凑 cases 和 failures JSONL。
 - 使用 `failure_type` 和 `failure_reason` 的确定性 failure analysis。
 - 对 lexical、BM25、semantic 和 hybrid retrieval modes 进行 compare。
-- 带 command suggestions、source navigation 和 Inspector panel 的 command-first Textual TUI Shell。
+- 带默认 hybrid Ask、流式回答显示、saved sessions、source navigation 和 Inspector
+  panel 的 command-first Textual TUI Shell。
 
 ## 快速开始
 
@@ -77,8 +78,9 @@ uv run ragent tui --workspace .ragent
 ```
 
 不加 `--workspace` 时，TUI 会读取当前工作目录下默认的 `.ragent` workspace。
-如果要检查其他本地 workspace，可以传 `--workspace`。导入、index build、eval
-和 config editing 仍通过 CLI 完成。
+如果要检查其他本地 workspace，可以传 `--workspace`。TUI sessions 和 exports
+会保存在该 workspace 的 `sessions/` 目录下；默认 workspace 时就是
+`.ragent/sessions/`。导入、index build、eval 和 config editing 仍通过 CLI 完成。
 
 ## 端到端 Demo
 
@@ -195,13 +197,20 @@ Retrieval evaluation 输出：
 
 ## Command-First TUI
 
-`uv run ragent tui --workspace .ragent` 会打开一个 Shell 界面，包含 transcript、
-composer、status line、inline command suggestions 和 selected-source Inspector。
+`uv run ragent tui --workspace .ragent` 会打开一个 Shell 界面，包含聚焦于
+user/assistant 的 transcript、composer、status line、inline command suggestions、
+source/session pickers，以及用于 selected answer 或 selected source 的 Inspector。
 
-普通文本和 `/ask <question>` 会在后台 worker 中运行 Shell Ask。
-`/search <query>` 会在后台 worker 中运行 Shell Search。Shell 读取已有的
-workspace chunks 和 indexes；它不会执行 ingest、构建 semantic index、运行
-retrieval eval 或编辑 config。
+普通文本默认就是 Ask，所以直接输入问题等价于 `/ask <question>`。默认 retrieval
+mode 是 `hybrid`；如果配置的 provider 支持 streaming，生成回答会流式写入
+transcript。`/search <query>` 会在后台 worker 中运行 Shell Search。Shell 读取
+已有的 workspace chunks 和 indexes；它不会执行 ingest、构建 semantic index、
+运行 retrieval eval 或编辑 config。
+
+TUI 启动时会恢复最近保存的 session。成功或失败的 Ask 都会作为 assistant turn
+保存，并绑定 sources 和 run metadata，位置在 `.ragent/sessions/`。Inspector 会
+跟随 selected answer，因此可以用 `/turn`、`/source` 和 source picker 查看某条
+回答对应的 evidence。
 
 常用 Shell commands：
 
@@ -217,6 +226,20 @@ retrieval eval 或编辑 config。
 /source <rank>
 /source next
 /source prev
+/sessions
+/new
+/switch <session-id>
+/rename <title>
+/delete
+/pin
+/star
+/session-search <query>
+/export markdown|json
+/branch
+/rerun
+/continue-sources
+/title [auto|text]
+/turn <id|number|next|prev|first|last>
 /docs
 /trace
 /settings
@@ -242,9 +265,9 @@ Tab 或 Enter 补全到 composer。命令执行仍通过 composer text 完成。
 TUI 有意避免 `q` 这种全局单键快捷键。请在 composer 中输入 `/exit`、
 `/quit` 或 `/q` 退出。
 
-Shell Ask 在 v0.1 不写入新的 traces。CLI `uv run ragent ask ...` 仍然是
-会产生 Ask trace 的 workflow。Shell `/trace` 读取 CLI workflow 已经写入的
-最新 trace。
+Shell Ask 会写入 TUI session artifacts，但不会写入 operation traces。CLI
+`uv run ragent ask ...` 仍然是会产生 Ask trace 的 workflow。Shell `/trace`
+读取 CLI workflow 已经写入的最新 trace。
 
 ## 架构
 
@@ -262,6 +285,7 @@ local documents
 -> traces
 -> retrieval eval
 -> command-first TUI inspection
+-> saved TUI sessions and exports
 ```
 
 完整架构说明见 [docs/ARCHITECTURE.zh-CN.md](docs/ARCHITECTURE.zh-CN.md)。
@@ -280,6 +304,10 @@ v0.2 增加 retrieval quality foundation：span-grounded eval generation、
 evidence-to-chunk mapping、更丰富的 retrieval metrics、持久化 eval run
 reports、failure analysis、retrieval comparison 和 BM25。
 
+当前 TUI 还包含本地 session workbench：saved conversations、pin/star/search、
+session export、branch/rerun helpers、selected-answer source inspection 和
+streaming Ask output。
+
 ## 发布与作品集材料
 
 - [v0.1 Demo Script](docs/DEMO_SCRIPT.zh-CN.md)
@@ -293,8 +321,8 @@ reports、failure analysis、retrieval comparison 和 BM25。
 RAGentForge v0.2 有意不包含 reranking、cross-encoder reranking、query
 rewriting、agentic multi-step retrieval、LLM-as-judge answer grading、RAGAS
 integration、OCR/scanned PDF support、PDF viewing/editing、web dashboard、
-vector databases、streaming、session persistence，也不包含 TUI
-ingest/index/eval/config editing 这类写操作。
+vector databases、agent tool loops，也不包含 TUI ingest/index/eval/config
+editing 这类写操作。
 
 Semantic 和 hybrid retrieval 需要 vector index。Generation 依赖配置好的
 OpenAI Responses-compatible provider；否则 Ask 会保持 retrieval-only 模式。

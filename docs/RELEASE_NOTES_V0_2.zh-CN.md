@@ -47,8 +47,12 @@ dataset 仍然有用。
   - `failures.jsonl`
 - 带 `failure_type` 和 `failure_reason` 的 deterministic failure analysis。
 - `ragent eval compare`：一个命令比较多个 retrieval modes 和 top-k limits。
-- Command-first TUI polish：source navigation、inspector context、visual theme、
-  BM25 mode selection 和 prompt preview。
+- Command-first TUI polish：default hybrid Ask、streaming answer display、
+  source navigation、inspector context、visual theme、BM25 mode selection 和
+  prompt preview。
+- 本地 TUI session workbench：latest-session restore、saved turns 和 sources、
+  session picker、pin/star/search、export、branch、rerun、continue-from-sources、
+  auto title 和 answer-turn selection。
 - 适合 review 和 automation 的本地 JSON/JSONL/Markdown eval artifacts。
 
 ## Changed
@@ -63,8 +67,8 @@ dataset 仍然有用。
   top-k limits。
 - `hybrid` retrieval 现在表示 BM25 plus semantic retrieval。Semantic 和 hybrid
   modes 需要 vector index；lexical 和 BM25 不需要。
-- TUI 对 ingest、index、eval 和 config mutation 仍保持 read-only，同时改进了
-  search/ask/source inspection ergonomics。
+- TUI 对 ingest、index、eval 和 config mutation 仍保持 read-only，同时会在
+  `.ragent/sessions/` 下写入本地 session artifacts。
 
 ## How To Try It
 
@@ -127,6 +131,9 @@ uv run ragent tui --workspace .ragent
 /sources
 /source next
 /prompt on
+/sessions
+/export markdown
+/turn last
 /exit
 ```
 
@@ -144,6 +151,7 @@ uv run ragent tui --workspace .ragent
 - Markdown parsing 有意保持轻量、line-based，不是完整 CommonMark。
 - Eval metrics 衡量 retrieval behavior，不衡量最终 answer quality。
 - TUI 对 ingest、index、eval 和 config mutation workflows 有意保持 read-only。
+  它会持久化本地 sessions 和 exports。
 
 ## Deferred Work
 

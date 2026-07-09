@@ -4,7 +4,7 @@
 
 ## One-Sentence Summary
 
-RAGentForge is a local-first, inspectable RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, span-grounded evaluation, deterministic failure analysis, retrieval comparison, and a command-first Textual TUI with source inspection.
+RAGentForge is a local-first, inspectable RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, span-grounded evaluation, deterministic failure analysis, retrieval comparison, and a command-first Textual TUI with streaming Ask, saved sessions, and answer-bound source inspection.
 
 ## Short Project Description
 
@@ -19,11 +19,12 @@ Markdown/TXT/PDF ingestion, deterministic chunking, lexical and BM25 retrieval,
 optional semantic and hybrid retrieval with embeddings, source-grounded Ask,
 CLI traces, span-grounded eval generation, evidence-to-current-chunk mapping,
 persisted eval reports, deterministic failure analysis, retrieval compare, and
-a command-first TUI for search, ask, and source inspection.
+a command-first TUI for search, streaming Ask, saved sessions, source
+inspection, session export, and selected-answer review.
 
 ## Chinese Description
 
-RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 Markdown/TXT/PDF 结构化导入、确定性切块、lexical/BM25/semantic/hybrid 检索、带来源问答、操作追踪、span-grounded eval generation、evidence-to-current-chunk mapping、deterministic failure analysis、retrieval compare，以及 command-first TUI 中的来源检查与切换。
+RAGentForge 是一个本地优先、可检查的 RAG 控制台，支持 Markdown/TXT/PDF 结构化导入、确定性切块、lexical/BM25/semantic/hybrid 检索、带来源问答、操作追踪、span-grounded eval generation、evidence-to-current-chunk mapping、deterministic failure analysis、retrieval compare，以及 command-first TUI 中的 streaming Ask、saved sessions、session export 和绑定到具体回答的来源检查。
 
 ## English Description
 
@@ -41,12 +42,14 @@ eval generation that is not tied to the current chunk ids,
 evidence-to-current-chunk mapping at evaluation time, persisted eval reports,
 deterministic failure analysis, retrieval compare across modes, and a
 command-first Textual TUI with background Ask/Search workers, inline command
-suggestions, compact source lists, source navigation, and an Inspector panel.
+suggestions, streaming answer display, compact source lists, saved-session
+management, export/branch/rerun helpers, source navigation, and an Inspector
+panel tied to the selected answer.
 
 ## Resume Bullets
 
 - Built a local-first RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
-- Implemented a command-first Textual TUI with background Ask/Search workers, inline command suggestions, source navigation, and an Inspector panel.
+- Implemented a command-first Textual TUI with background Ask/Search workers, streaming answer display, saved sessions, inline command suggestions, source navigation, and an Inspector panel tied to the selected answer.
 - Designed local JSONL workspace storage for chunks, vector index, traces, and persisted retrieval evaluation reports to make RAG workflows inspectable and reproducible.
 - Added retrieval evaluation with Hit@k, Recall@k, MRR, latency, and context-size metrics over JSONL cases.
 - Added span-based synthetic eval generation, evidence-to-current-chunk mapping, deterministic failure analysis, and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.

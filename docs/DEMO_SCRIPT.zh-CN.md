@@ -2,6 +2,11 @@
 
 > 语言: [English](DEMO_SCRIPT.md) | 中文
 
+> 历史说明：这个脚本保留 v0.1 demo flow。当前 `main` 已增加 BM25、默认
+> hybrid TUI Ask、TUI answer streaming、`.ragent/sessions/` 下的 saved TUI
+> sessions、session export，以及绑定到 selected answer 的 source inspection。
+> 当前端到端流程请看 [PROJECT_WALKTHROUGH.zh-CN.md](PROJECT_WALKTHROUGH.zh-CN.md)。
+
 ## Demo 目标
 
 把 RAGentForge 展示为一个本地优先、可检查的 RAG 控制台。在 3-5 分钟内，demo

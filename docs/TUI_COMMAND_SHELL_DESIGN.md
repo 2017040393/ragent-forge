@@ -15,8 +15,9 @@ or global single-key shortcuts.
 
 ## Target Interaction Model
 
-Normal input means Ask. If the composer contains ordinary text, the shell should
-run the existing Ask flow with the current retrieval settings.
+Normal input means Ask. If the composer contains ordinary text, the shell runs
+the existing Ask flow with the current retrieval settings. The default retrieval
+mode is `hybrid`.
 
 Slash commands control explicit workflows:
 
@@ -31,6 +32,13 @@ Slash commands control explicit workflows:
 - `/limit <n>` changes the retrieval result limit.
 - `/context <n>` changes max context chars for Ask.
 - `/prompt on|off` toggles prompt preview.
+- `/sessions` opens the saved-session picker.
+- `/new`, `/switch <session-id>`, `/rename <title>`, and `/delete` manage local
+  TUI sessions.
+- `/pin`, `/star`, and `/session-search <query>` organize saved sessions.
+- `/export markdown|json` writes the current session to `.ragent/sessions/exports/`.
+- `/branch`, `/rerun`, `/continue-sources`, `/title [auto|text]`, and
+  `/turn <id|number|next|prev|first|last>` operate on the selected answer.
 - `/help` shows available commands.
 - `/clear` clears the transcript.
 - `/exit` and `/quit` exit the TUI.
@@ -69,7 +77,7 @@ actions in the composer.
 
 ## Slash Commands
 
-The MVP command registry should stay conservative:
+The current command registry stays explicit and predictable:
 
 | Command | Aliases | Behavior |
 | --- | --- | --- |
@@ -85,11 +93,25 @@ The MVP command registry should stay conservative:
 | `/limit <n>` | | Set retrieval result limit. |
 | `/context <n>` | | Set max context chars. |
 | `/prompt on|off` | | Toggle prompt preview. |
+| `/sessions` | | Open the saved-session picker. |
+| `/new` | | Start a new session. |
+| `/switch <session-id>` | | Switch to a saved session. |
+| `/rename <title>` | | Rename the current session. |
+| `/delete` | | Delete the current session. |
+| `/pin` | | Toggle the current session pin. |
+| `/star` | | Toggle the current session star. |
+| `/session-search <query>` | | Search saved sessions. |
+| `/export markdown|json` | | Export the current session. |
+| `/branch` | | Branch from the selected answer. |
+| `/rerun` | | Rerun the selected question. |
+| `/continue-sources` | | Draft a follow-up using selected sources. |
+| `/title [auto|text]` | | Show, set, or auto-generate the session title. |
+| `/turn <id|number|next|prev|first|last>` | | Select an answer turn. |
 | `/clear` | | Clear transcript. |
 | `/exit` | `/quit`, `/q` | Exit the TUI. |
 
 Aliases should remain sparse and predictable. The parser should not add fuzzy
-matching in the first shell MVP.
+matching.
 
 ## Shell State
 
@@ -104,6 +126,10 @@ running: bool
 messages: list[TranscriptMessage]
 selected_source: SearchResult | None
 available_sources: list[TranscriptSource]
+current_session_id: str | None
+session_title: str
+session_summaries: list[TuiSessionSummary]
+selected_turn_id: str | None
 ```
 
 This state should be updated by command dispatch and worker completion, not by
@@ -121,8 +147,8 @@ metadata: dict[str, Any]
 
 User questions, command acknowledgements, generated answers, search summaries,
 and friendly errors can all become transcript messages. Metadata can carry
-selected source ids, retrieval mode, limits, or trace ids without forcing those
-details into visible text.
+selected source ids, selected turn ids, retrieval mode, limits, run status, or
+trace ids without forcing those details into visible text.
 
 The transcript model foundation lives in
 `src/ragent_forge/tui/shell_models.py`. It is intentionally pure and independent
@@ -148,20 +174,21 @@ services.
 
 Ask and Search run in workers to keep the current TUI responsive. Semantic and
 hybrid Search can involve query embedding network latency, so worker execution
-keeps the composer and transcript responsive.
+keeps the composer and transcript responsive. Ask streams assistant deltas into
+the transcript when the configured generation provider supports streaming.
 
 Worker completion should append transcript messages and update shell state on
-the UI thread. Worker failures should produce friendly error messages and never
-display stack traces or API keys. Shell Search and Shell Ask are read-oriented
-TUI workflows over the current local workspace; CLI commands remain the
-trace-producing workflows.
+the UI thread. Worker failures should produce friendly error messages, save a
+failed assistant turn, and never display stack traces or API keys. Shell Search
+and Shell Ask are read-oriented TUI workflows over the current local workspace;
+CLI commands remain the trace-producing workflows.
 
 ## Composer Polish
 
-The composer should keep focus whenever input is enabled: on mount, after local
-commands, after read-only command output, and after Ask or Search workers finish
-or fail. While a worker is running, the input is disabled and should not be
-force-focused.
+The composer should keep focus on mount, after local commands, after read-only
+command output, after modal pickers close, after switching sessions, and after
+Ask or Search workers finish or fail. Running workers should not prevent the
+composer from accepting the next command or question.
 
 Transcript updates should scroll to the latest output after local command
 output, clear, worker start, worker completion, and worker failure. Source lists
@@ -175,14 +202,31 @@ The shell should reuse existing TUI view-model functions and application
 services:
 
 - `run_tui_ask`
+- `stream_tui_ask`
 - `run_tui_search`
 - `load_documents_page_model`
 - `load_trace_page_model`
 - `load_settings_page_model`
+- `SessionService`
 - existing formatters where useful
 
 The shell should not duplicate ingestion, indexing, retrieval, generation, trace,
 or config logic.
+
+## Session Workbench
+
+The current TUI persists local conversation sessions under `.ragent/sessions/`:
+
+- `latest.json` points to the session restored on the next TUI launch.
+- `index.json` stores compact session summaries for the picker.
+- `session-<id>.json` stores turns, assistant sources, run metadata, title,
+  pin/star state, and optional branch metadata.
+- `exports/` stores Markdown or JSON exports created by `/export`.
+
+Session commands are command-first but may use focused modal pickers. The
+sessions picker supports keyboard selection with Enter and returns focus to the
+composer after switching or cancelling. Source selection can also use a picker,
+while `/source <rank|next|prev>` remains available for precise command input.
 
 ## Implementation Status
 
@@ -200,14 +244,21 @@ Current implementation status:
   `/source <rank|next|prev>` are wired.
 - Shell ordinary questions and `/ask <question>` are wired through a background
   worker.
+- Shell Ask streams answer deltas into the transcript when available.
+- Shell Ask persists successful and failed assistant turns with sources and run
+  metadata.
+- Saved sessions, latest-session restore, session picker, search, pin/star,
+  rename/delete, export, branch, rerun, continue-from-sources, auto title, and
+  answer-turn selection are wired.
 - Lightweight inline command candidates are available while typing slash
   commands, with Up/Down selection and Tab/Enter completion into the composer.
 
 ## Migration Plan
 
 The single Shell interface is the primary TUI surface. Future work should
-improve the Shell itself: richer source inspection, transcript polish, and
-optional richer status panels.
+improve the Shell itself: richer source inspection, transcript polish, search
+inside saved sessions, optional richer status panels, and better review/export
+workflows.
 
 ## Non-goals
 
@@ -216,12 +267,10 @@ optional richer status panels.
   candidates in the composer area.
 - No command execution directly from the candidate list.
 - No local file opening.
-- No source table UI.
-- No session persistence.
+- No full source-management table UI.
 - No agent tool loop.
 - No TUI ingest execution.
 - No TUI index build execution.
 - No TUI eval execution.
-- No streaming.
 - No config editing.
 - No new backend features.

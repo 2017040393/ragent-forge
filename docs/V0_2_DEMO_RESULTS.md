@@ -39,7 +39,7 @@ this particular local corpus did not contain a `.txt` file.
 | ![v0.2 retrieval eval](assets/v0_2/v0_2_retrieval_eval_bm25.png) | BM25@5 retrieval evaluation with persisted report paths. |
 | ![v0.2 retrieval compare](assets/v0_2/v0_2_retrieval_compare.png) | Retrieval compare across modes and top-k limits. |
 | ![v0.2 failure analysis](assets/v0_2/v0_2_failure_analysis.png) | Deterministic failure types from compare runs. |
-| ![v0.2 TUI shell](assets/v0_2/v0_2_tui_shell.svg) | Command-first TUI with BM25 search, source inspection, and prompt preview enabled. |
+| ![v0.2 TUI shell](assets/v0_2/v0_2_tui_shell.svg) | Command-first TUI with BM25 search, source inspection, and prompt preview enabled. Current main also includes streaming Ask and saved sessions. |
 
 ## 1. Prepare Workspace
 
@@ -261,6 +261,28 @@ Observed checks:
 | Sources are navigable | pass | `/source 1` selected the first source. |
 | Inspector shows selected source | pass | Inspector showed selected source details. |
 | Prompt preview toggles | pass | `/prompt on` enabled prompt preview in the shell state. |
+
+For current `main`, extend the TUI smoke pass with session-workbench commands:
+
+```text
+What is Agentic RAG?
+/turn last
+/sessions
+/rename v0.2 demo session
+/pin
+/star
+/export markdown
+```
+
+Expected current-main checks:
+
+| Check | Expected result |
+|---|---|
+| Ordinary text asks by default | The user question is saved as a session turn. |
+| Answer streams when provider supports it | Assistant text appears incrementally in the transcript. |
+| Session picker is keyboard usable | Enter switches to the highlighted session and focus returns to the composer. |
+| Session metadata persists | The session JSON under `.ragent/sessions/` records title, pin/star state, turns, sources, and run metadata. |
+| Session export writes a file | `/export markdown` writes under `.ragent/sessions/exports/`. |
 
 ## Final Notes
 

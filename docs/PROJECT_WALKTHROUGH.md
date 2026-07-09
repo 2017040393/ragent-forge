@@ -144,8 +144,8 @@ To inspect the prompt without hiding the retrieval context:
 uv run ragent ask "What is Agentic RAG?" --retrieval lexical --show-prompt --workspace .ragent
 ```
 
-CLI `ragent ask` writes an Ask trace. Shell Ask in the TUI does not write new
-traces in v0.1.
+CLI `ragent ask` writes an Ask trace. Shell Ask in the TUI writes local session
+turns under `.ragent/sessions/`; it does not replace the CLI operation trace.
 
 ## Step 9: Inspect Sources in the TUI
 
@@ -164,19 +164,29 @@ Try this Shell sequence:
 
 ```text
 /help
+/mode hybrid
 /search Agentic RAG
 /source 2
 /sources
 /source next
 /source prev
 What is Agentic RAG?
+/turn last
+/sessions
+/rename Agentic RAG demo
+/pin
+/star
+/export markdown
 /trace
 /settings
 /exit
 ```
 
 `/sources` shows the current source list. `/source <rank>`, `/source next`,
-and `/source prev` change the source shown in the Inspector.
+and `/source prev` change the source shown in the Inspector. `/turn` changes
+which assistant answer is selected, and the Inspector follows that selected
+answer's sources. `/sessions` opens the saved-session picker; Enter switches to
+the highlighted session and focus returns to the composer.
 
 The TUI intentionally avoids global single-key shortcuts such as `q`; use
 `/exit`, `/quit`, or `/q` from the composer.
@@ -293,7 +303,8 @@ For the full v0.2 retrieval quality workflow, see
 - Chunks are readable JSONL records.
 - Search and Ask output include source paths and chunk ids.
 - Semantic and hybrid modes fail clearly until a vector index exists.
-- CLI Ask writes traces; Shell Ask does not.
+- CLI Ask writes operation traces; Shell Ask writes TUI session turns, sources,
+  and run metadata under `.ragent/sessions/`.
 - `/trace` in the TUI reads the latest existing CLI trace.
 - Retrieval eval uses small JSONL cases under `examples/eval`.
 

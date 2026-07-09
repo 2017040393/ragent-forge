@@ -2,6 +2,12 @@
 
 > Language: English | [中文](DEMO_SCRIPT.zh-CN.md)
 
+> Historical note: this script preserves the v0.1 demo flow. Current `main`
+> adds BM25, default hybrid TUI Ask, streaming TUI answer display, saved TUI
+> sessions under `.ragent/sessions/`, session export, and selected-answer source
+> inspection. Use [PROJECT_WALKTHROUGH.md](PROJECT_WALKTHROUGH.md) for the
+> current end-to-end flow.
+
 ## Demo Goal
 
 Show RAGentForge as a local-first, inspectable RAG console. In 3-5 minutes, the

@@ -36,7 +36,7 @@ TXT ingestion 是当前实现的一部分，但这次本地 corpus 没有 `.txt`
 | ![v0.2 retrieval eval](assets/v0_2/v0_2_retrieval_eval_bm25.png) | BM25@5 retrieval evaluation 和持久化 report paths。 |
 | ![v0.2 retrieval compare](assets/v0_2/v0_2_retrieval_compare.png) | 跨 modes 和 top-k limits 的 retrieval compare。 |
 | ![v0.2 failure analysis](assets/v0_2/v0_2_failure_analysis.png) | Compare runs 产生的 deterministic failure types。 |
-| ![v0.2 TUI shell](assets/v0_2/v0_2_tui_shell.svg) | Command-first TUI，BM25 search、source inspection 和 prompt preview 已启用。 |
+| ![v0.2 TUI shell](assets/v0_2/v0_2_tui_shell.svg) | Command-first TUI，BM25 search、source inspection 和 prompt preview 已启用。当前 main 还包含 streaming Ask 和 saved sessions。 |
 
 ## 1. Prepare Workspace
 
@@ -258,6 +258,28 @@ Observed checks：
 | Sources are navigable | pass | `/source 1` 选中了第一个 source。 |
 | Inspector shows selected source | pass | Inspector 显示 selected source details。 |
 | Prompt preview toggles | pass | `/prompt on` 启用了 shell state 中的 prompt preview。 |
+
+当前 `main` 的 TUI smoke pass 建议额外补充 session-workbench commands：
+
+```text
+What is Agentic RAG?
+/turn last
+/sessions
+/rename v0.2 demo session
+/pin
+/star
+/export markdown
+```
+
+当前 main 的预期检查点：
+
+| Check | Expected result |
+|---|---|
+| Ordinary text asks by default | 用户问题会保存为 session turn。 |
+| Answer streams when provider supports it | Assistant text 会增量出现在 transcript 中。 |
+| Session picker is keyboard usable | Enter 会切换到高亮 session，并把 focus 还给 composer。 |
+| Session metadata persists | `.ragent/sessions/` 下的 session JSON 会记录 title、pin/star state、turns、sources 和 run metadata。 |
+| Session export writes a file | `/export markdown` 会写入 `.ragent/sessions/exports/`。 |
 
 ## Final Notes
 

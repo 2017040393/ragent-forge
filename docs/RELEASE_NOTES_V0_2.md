@@ -50,8 +50,12 @@ when chunk size, chunk overlap, ingestion, or retrieval strategy changes.
 - Deterministic failure analysis with `failure_type` and `failure_reason`.
 - Retrieval compare for evaluating multiple retrieval modes and top-k limits in
   one command.
-- Command-first TUI polish for source navigation, inspector context, visual
-  theme, BM25 mode selection, and prompt preview.
+- Command-first TUI polish for default hybrid Ask, streaming answer display,
+  source navigation, inspector context, visual theme, BM25 mode selection, and
+  prompt preview.
+- Local TUI session workbench with latest-session restore, saved turns and
+  sources, session picker, pin/star/search, export, branch, rerun,
+  continue-from-sources, auto title, and answer-turn selection.
 - Local JSON/JSONL/Markdown eval artifacts suitable for review and automation.
 
 ## Changed
@@ -67,7 +71,7 @@ when chunk size, chunk overlap, ingestion, or retrieval strategy changes.
 - `hybrid` retrieval now means BM25 plus semantic retrieval. Semantic and
   hybrid modes require a vector index; lexical and BM25 do not.
 - The TUI remains read-only for ingest, index, eval, and config mutation, while
-  improving search/ask/source inspection ergonomics.
+  writing local session artifacts under `.ragent/sessions/`.
 
 ## How To Try It
 
@@ -130,6 +134,9 @@ Inside the TUI, try:
 /sources
 /source next
 /prompt on
+/sessions
+/export markdown
+/turn last
 /exit
 ```
 
@@ -148,7 +155,7 @@ A measured local demo run with screenshots is recorded in
   CommonMark.
 - Eval metrics measure retrieval behavior, not final answer quality.
 - The TUI is intentionally read-only for ingest, index, eval, and config
-  mutation workflows.
+  mutation workflows. It does persist local sessions and exports.
 
 ## Deferred Work
 

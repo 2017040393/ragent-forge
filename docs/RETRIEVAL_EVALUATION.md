@@ -94,8 +94,9 @@ used.
 - `hybrid`: Reciprocal-rank-fusion style combination of BM25 and semantic
   retrieval. It requires the same vector index as semantic retrieval.
 
-The Textual Shell TUI remains command-first and read-oriented; its `/mode`
-command currently supports `lexical`, `bm25`, `semantic`, and `hybrid`.
+The Textual Shell TUI remains command-first and read-oriented for retrieval
+workflows. It defaults to `hybrid`, and its `/mode` command supports
+`lexical`, `bm25`, `semantic`, and `hybrid`.
 
 ## Evaluation Artifacts
 

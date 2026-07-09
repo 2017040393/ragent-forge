@@ -247,12 +247,17 @@ uv run ragent tui --workspace "$DEMO_WORKSPACE"
 /search Hybrid Retrieval
 /sources
 /source next
+What does hybrid retrieval combine?
+/turn last
+/export markdown
 /trace
 /exit
 ```
 
 Selected-source Inspector 应该保留 PDF metadata 可见，并显示 concise Markdown/TXT
 metadata，例如 type、section、heading path 和 block type。
+这个 demo workspace 的 TUI session 会保存在 `$DEMO_WORKSPACE/sessions/` 下，
+`/export markdown` 会写入 `$DEMO_WORKSPACE/sessions/exports/`。
 
 ## 6. Cleanup
 

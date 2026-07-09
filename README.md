@@ -54,8 +54,8 @@ reports.
 - Persisted retrieval eval run reports with compact case and failure JSONL.
 - Deterministic failure analysis with `failure_type` and `failure_reason`.
 - Retrieval comparison across lexical, BM25, semantic, and hybrid modes.
-- Command-first Textual TUI Shell with command suggestions, source navigation,
-  and an Inspector panel.
+- Command-first Textual TUI Shell with default hybrid Ask, streaming answer
+  display, saved sessions, source navigation, and an Inspector panel.
 
 ## Quickstart
 
@@ -96,7 +96,9 @@ uv run ragent tui --workspace .ragent
 
 Without `--workspace`, the TUI reads the default `.ragent` workspace in the
 current working directory. Use `--workspace` to inspect a different local
-workspace. Use the CLI for ingest, index build, eval, and config editing.
+workspace. TUI sessions and exports are saved inside that workspace's
+`sessions/` directory, which is `.ragent/sessions/` for the default workspace.
+Use the CLI for ingest, index build, eval, and config editing.
 
 ## End-to-End Demo
 
@@ -235,13 +237,21 @@ Retrieval evaluation output:
 ## Command-First TUI
 
 `uv run ragent tui --workspace .ragent` opens a single Shell interface with a
-transcript, composer, status line, inline command suggestions, and
-selected-source Inspector.
+focused user/assistant transcript, composer, status line, inline command
+suggestions, source/session pickers, and an Inspector for the selected answer
+or source.
 
-Ordinary text and `/ask <question>` run Shell Ask in a background worker.
-`/search <query>` runs Shell Search in a background worker. The Shell reads
-existing workspace chunks and indexes; it does not run ingest, build the
-semantic index, run retrieval eval, or edit config.
+Ordinary text is Ask by default, so typing a question is equivalent to
+`/ask <question>`. The default retrieval mode is `hybrid`, and generated answer
+text streams into the transcript when the configured provider supports
+streaming. `/search <query>` runs Shell Search in a background worker. The
+Shell reads existing workspace chunks and indexes; it does not run ingest,
+build the semantic index, run retrieval eval, or edit config.
+
+The TUI restores the latest saved session on launch. Successful and failed Ask
+runs are saved as assistant turns with their sources and run metadata under
+`.ragent/sessions/`. The Inspector follows the selected answer, so `/turn`,
+`/source`, and the source picker can review evidence for a specific response.
 
 Useful Shell commands:
 
@@ -257,6 +267,20 @@ Useful Shell commands:
 /source <rank>
 /source next
 /source prev
+/sessions
+/new
+/switch <session-id>
+/rename <title>
+/delete
+/pin
+/star
+/session-search <query>
+/export markdown|json
+/branch
+/rerun
+/continue-sources
+/title [auto|text]
+/turn <id|number|next|prev|first|last>
 /docs
 /trace
 /settings
@@ -283,9 +307,9 @@ happens through composer text.
 The TUI intentionally avoids global single-key shortcuts such as `q` to quit.
 Use `/exit`, `/quit`, or `/q` from the composer.
 
-Shell Ask does not write new traces in v0.1. CLI `uv run ragent ask ...`
-remains the trace-producing Ask workflow. Shell `/trace` reads the latest trace
-already written by CLI workflows.
+Shell Ask writes TUI session artifacts, not operation traces. CLI
+`uv run ragent ask ...` remains the trace-producing Ask workflow. Shell
+`/trace` reads the latest trace already written by CLI workflows.
 
 ## Architecture
 
@@ -306,6 +330,7 @@ local documents
 -> traces
 -> retrieval eval
 -> command-first TUI inspection
+-> saved TUI sessions and exports
 ```
 
 Read the full architecture note:
@@ -330,6 +355,10 @@ v0.2 adds the retrieval quality foundation: span-grounded eval generation,
 evidence-to-chunk mapping, richer retrieval metrics, persisted eval run
 reports, failure analysis, retrieval comparison, and BM25.
 
+The current TUI also includes a local session workbench with saved conversations,
+pin/star/search, session export, branch/rerun helpers, selected-answer source
+inspection, and streaming Ask output.
+
 ## Release and Portfolio Materials
 
 - [v0.1 Demo Script](docs/DEMO_SCRIPT.md)
@@ -347,8 +376,8 @@ reports, failure analysis, retrieval comparison, and BM25.
 RAGentForge v0.2 intentionally does not include reranking, cross-encoder
 reranking, query rewriting, agentic multi-step retrieval, LLM-as-judge answer
 grading, RAGAS integration, OCR/scanned PDF support, PDF viewing/editing, web
-dashboard, vector databases, streaming, session persistence, or TUI write
-operations such as ingest/index/eval/config editing.
+dashboard, vector databases, agent tool loops, or TUI write operations such as
+ingest/index/eval/config editing.
 
 Semantic and hybrid retrieval require a vector index. Generation depends on a
 configured OpenAI Responses-compatible provider; otherwise Ask stays in

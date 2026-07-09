@@ -141,8 +141,8 @@ uv run ragent ask "What is Agentic RAG?" --retrieval hybrid --workspace .ragent
 uv run ragent ask "What is Agentic RAG?" --retrieval lexical --show-prompt --workspace .ragent
 ```
 
-CLI `ragent ask` 会写入 Ask trace。TUI 中的 Shell Ask 在 v0.1 不写入新的
-traces。
+CLI `ragent ask` 会写入 Ask trace。TUI 中的 Shell Ask 会在 `.ragent/sessions/`
+下写入本地 session turns；它不会替代 CLI operation trace。
 
 ## Step 9: 在 TUI 中检查 Sources
 
@@ -160,19 +160,28 @@ uv run ragent tui --workspace .ragent
 
 ```text
 /help
+/mode hybrid
 /search Agentic RAG
 /source 2
 /sources
 /source next
 /source prev
 What is Agentic RAG?
+/turn last
+/sessions
+/rename Agentic RAG demo
+/pin
+/star
+/export markdown
 /trace
 /settings
 /exit
 ```
 
 `/sources` 显示当前 source list。`/source <rank>`、`/source next` 和
-`/source prev` 会切换 Inspector 中显示的 source。
+`/source prev` 会切换 Inspector 中显示的 source。`/turn` 会切换 selected
+assistant answer，Inspector 会跟随这条回答的 sources。`/sessions` 会打开
+saved-session picker；Enter 会切换到高亮 session，并把 focus 还给 composer。
 
 TUI 有意避免 `q` 这种全局单键快捷键；请在 composer 中使用 `/exit`、`/quit`
 或 `/q`。
@@ -269,7 +278,8 @@ cases。它不评估 answer quality，也不运行 LLM-as-judge。
 - Chunks 是可读的 JSONL records。
 - Search 和 Ask 输出包含 source paths 和 chunk ids。
 - Semantic 和 hybrid modes 在 vector index 存在前会清晰失败；lexical 和 BM25 不需要 vector index。
-- CLI Ask 写入 traces；Shell Ask 不写入。
+- CLI Ask 写入 operation traces；Shell Ask 在 `.ragent/sessions/` 下写入 TUI
+  session turns、sources 和 run metadata。
 - TUI 中的 `/trace` 读取 latest existing CLI trace。
 - Retrieval eval 使用 `examples/eval` 下的小型 JSONL cases。
 

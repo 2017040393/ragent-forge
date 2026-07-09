@@ -45,19 +45,21 @@ inspection/init, semantic index build/status, search, ask, trace inspection,
 and retrieval evaluation.
 
 CLI workflows write local artifacts such as chunks, summaries, vector indexes,
-traces, and eval reports. CLI `ragent ask` is the trace-producing Ask workflow
-in v0.1.
+traces, and eval reports. CLI `ragent ask` is the trace-producing Ask workflow.
 
 ### TUI Shell Layer
 
 The Textual Shell in `src/ragent_forge/tui/` is an inspectable command console,
 not a management dashboard. It provides a composer, transcript, status line,
-command suggestions, selected-source Inspector, read-only summaries, Shell
-Search, and Shell Ask.
+command suggestions, source/session pickers, selected-answer and
+selected-source Inspector views, read-only summaries, Shell Search, and
+streaming Shell Ask.
 
 The Shell intentionally does not run ingest, build indexes, run eval, edit
-config, open local files, or add session persistence. Shell Ask does not write
-new traces; `/trace` reads traces produced by CLI workflows.
+config, or open local files. It does write local TUI session artifacts under
+`.ragent/sessions/`, including saved turns, sources, run metadata, exports, and
+the latest-session pointer. Shell Ask does not write operation traces; `/trace`
+reads traces produced by CLI workflows.
 
 ### Application Services
 
@@ -88,8 +90,9 @@ retrieval-only mode and prints retrieved context. When configured with
 `openai_responses`, Ask sends a source-grounded prompt to
 `{base_url}/responses`.
 
-Chat Completions, streaming, answer evaluation, and LLM-as-judge are not part
-of v0.1.
+Chat Completions, answer evaluation, and LLM-as-judge are not part of the
+current implementation. The CLI Ask path is still trace-oriented; the TUI Ask
+path can stream provider deltas into its local transcript/session state.
 
 ### Workspace Storage
 
@@ -109,6 +112,11 @@ Important workspace files include:
 .ragent/traces/<trace_id>.json
 .ragent/eval/latest_retrieval_eval.json
 .ragent/eval/retrieval_eval_<timestamp>.json
+.ragent/eval/runs/<run-id>/
+.ragent/sessions/latest.json
+.ragent/sessions/index.json
+.ragent/sessions/session-<id>.json
+.ragent/sessions/exports/
 ```
 
 ### Trace and Evaluation
@@ -230,9 +238,9 @@ It intentionally avoids global single-key shortcuts such as `q`; use `/exit`,
 v0.2 includes lexical, BM25, semantic, and hybrid retrieval plus span-grounded
 retrieval evaluation. It does not include reranking, cross-encoder reranking,
 LLM-as-judge, answer evaluation, query rewriting, agentic multi-step retrieval,
-multi-turn memory, agent tool loops, planning loops, OCR/scanned PDF support,
-web UI, vector databases, streaming, session persistence, or TUI write
-operations.
+multi-turn memory as retrieval context, agent tool loops, planning loops,
+OCR/scanned PDF support, web UI, vector databases, or TUI write operations such
+as ingest/index/eval/config mutation.
 
 The TUI is not a dashboard and does not mutate backend state beyond its local
 transcript/session state.

@@ -248,12 +248,18 @@ Then use:
 /search Hybrid Retrieval
 /sources
 /source next
+What does hybrid retrieval combine?
+/turn last
+/export markdown
 /trace
 /exit
 ```
 
 The selected-source Inspector should keep PDF metadata visible and show concise
 Markdown/TXT metadata such as type, section, heading path, and block type.
+The TUI session for this demo workspace is saved under
+`$DEMO_WORKSPACE/sessions/`, and `/export markdown` writes to
+`$DEMO_WORKSPACE/sessions/exports/`.
 
 ## 6. Cleanup
 

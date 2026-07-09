@@ -90,8 +90,9 @@ uv run ragent eval compare \
 - `hybrid`：BM25 和 semantic retrieval 的 Reciprocal-rank-fusion style 组合，
   需要和 semantic retrieval 相同的 vector index。
 
-Textual Shell TUI 仍然是 command-first 和 read-oriented；它的 `/mode` 命令当前支持
-`lexical`、`bm25`、`semantic` 和 `hybrid`。
+Textual Shell TUI 在 retrieval workflows 上仍然是 command-first 和
+read-oriented。它默认使用 `hybrid`，并且 `/mode` 命令支持 `lexical`、`bm25`、
+`semantic` 和 `hybrid`。
 
 ## Evaluation Artifacts
 

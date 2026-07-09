@@ -43,19 +43,19 @@ status inspection、chunk inspection、config inspection/init、semantic index
 build/status、search、ask、trace inspection 和 retrieval evaluation。
 
 CLI workflows 会写入 chunks、summaries、vector indexes、traces 和 eval
-reports 等本地 artifacts。v0.1 中，CLI `ragent ask` 是会产生 Ask trace 的
-workflow。
+reports 等本地 artifacts。CLI `ragent ask` 是会产生 Ask trace 的 workflow。
 
 ### TUI Shell Layer
 
 `src/ragent_forge/tui/` 中的 Textual Shell 是一个可检查的命令控制台，而不是
 管理 dashboard。它提供 composer、transcript、status line、command
-suggestions、selected-source Inspector、read-only summaries、Shell Search 和
-Shell Ask。
+suggestions、source/session pickers、selected-answer 和 selected-source
+Inspector views、read-only summaries、Shell Search 和 streaming Shell Ask。
 
-Shell 有意不运行 ingest、不构建 indexes、不运行 eval、不编辑 config、不打
-开本地文件，也不增加 session persistence。Shell Ask 不写入新的 traces；
-`/trace` 读取 CLI workflows 产生的 traces。
+Shell 有意不运行 ingest、不构建 indexes、不运行 eval、不编辑 config，也不打
+开本地文件。它会在 `.ragent/sessions/` 下写入本地 TUI session artifacts，
+包括 saved turns、sources、run metadata、exports 和 latest-session pointer。
+Shell Ask 不写入 operation traces；`/trace` 读取 CLI workflows 产生的 traces。
 
 ### Application Services
 
@@ -82,7 +82,9 @@ Generation 是可选的。默认 `null` provider 下，Ask 保持 retrieval-only
 打印检索到的 context。配置为 `openai_responses` 后，Ask 会向
 `{base_url}/responses` 发送带来源约束的 prompt。
 
-Chat Completions、streaming、answer evaluation 和 LLM-as-judge 不属于 v0.1。
+Chat Completions、answer evaluation 和 LLM-as-judge 不属于当前实现。CLI Ask
+path 仍以 trace 为中心；TUI Ask path 可以把 provider deltas 流式写入本地
+transcript/session state。
 
 ### Workspace Storage
 
@@ -101,6 +103,11 @@ Chat Completions、streaming、answer evaluation 和 LLM-as-judge 不属于 v0.1
 .ragent/traces/<trace_id>.json
 .ragent/eval/latest_retrieval_eval.json
 .ragent/eval/retrieval_eval_<timestamp>.json
+.ragent/eval/runs/<run-id>/
+.ragent/sessions/latest.json
+.ragent/sessions/index.json
+.ragent/sessions/session-<id>.json
+.ragent/sessions/exports/
 ```
 
 ### Trace and Evaluation
@@ -212,9 +219,9 @@ TUI 是用于重复检查和查询的 Shell。命令让 workflow 显式、接近
 v0.2 包含 lexical、BM25、semantic 和 hybrid retrieval，以及 span-grounded
 retrieval evaluation。它不包含 reranking、cross-encoder reranking、
 LLM-as-judge、answer evaluation、query rewriting、agentic multi-step
-retrieval、multi-turn memory、agent tool loops、planning loops、OCR/scanned
-PDF support、web UI、vector databases、streaming、session persistence 或 TUI
-write operations。
+retrieval、作为 retrieval context 的 multi-turn memory、agent tool loops、
+planning loops、OCR/scanned PDF support、web UI、vector databases，也不包含
+TUI ingest/index/eval/config mutation 这类写操作。
 
 TUI 不是 dashboard，也不会修改后端状态，除了自身本地 transcript/session
 state。
