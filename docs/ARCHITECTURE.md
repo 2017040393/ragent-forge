@@ -253,6 +253,9 @@ transcript/session state.
 
 ## Future Extension Points
 
-Possible future work includes reranking, richer source inspection, answer
-quality evaluation, controlled agent workflows, and more demo polish. These
-are extension points, not current v0.2 capabilities.
+v0.3 is expected to add typed document and project-memory sources and mature
+retrieval into inspectable query-processing, candidate retrieval,
+deduplication, optional reranking, and context-selection stages. v0.4 can then
+build controlled query refinement and iterative retrieval on those explicit
+stages. v0.5 is expected to add local comparison views for retrieval and answer
+quality. These are extension points, not current v0.2 capabilities.

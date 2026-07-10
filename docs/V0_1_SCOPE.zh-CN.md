@@ -98,27 +98,12 @@ v0.1 有意不包含：
 - [x] Command-first TUI。
 - [x] Source navigation。
 
-## 建议未来 Roadmap
+## Roadmap 状态
 
-下面的 roadmap 是未来工作，不是当前能力。
+本文档保留 v0.1 的 scope boundary。原先建议的未来 roadmap 已由现行
+[Roadmap](roadmap.zh-CN.md) 取代。
 
-### v0.2 Retrieval Quality
-
-- 改进 lexical retrieval quality。
-- 增加 retrieval comparison workflows。
-- 改进 source ranking inspection。
-- 只有在当前 baseline 被测量后，才考虑 BM25 或 reranking。
-
-### v0.3 Answer Quality and Evaluation
-
-- 增加 answer-quality evaluation。
-- 增加 prompt comparison workflows。
-- 跟踪 groundedness 和 citation quality。
-- 保持 answer eval 与 retrieval eval 分离。
-
-### v0.4 Agent Layer
-
-- 增加小型、显式、用户可控的 agent layer。
-- 要求可见的 plans、tool steps 和 traces。
-- 保持 side effects opt-in 且可检查。
-- 避免隐藏的 autonomous loops。
+当前顺序是：v0.2 建立可测量的 retrieval baselines；v0.3 增加 project memory
+并提升 inspectable single-pass retrieval quality；v0.4 增加受控的 multi-step
+retrieval 和 agent workflows；v0.5 增加本地 retrieval 与 answer-quality
+comparison views。

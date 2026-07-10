@@ -81,8 +81,9 @@ the selected answer.
   让生成数据集可以跨 chunking changes 复用。
 - Deterministic failure analysis 让 miss 可以被稳定复查，而不引入 LLM-as-judge
   或不可复现 scoring。
-- 未来版本可增加更丰富的 source inspection、更好的 retrieval quality、
-  answer-quality evaluation，以及小型、显式受控的 agent layer。
+- v0.3 预计把 project memory 与 inspectable retrieval quality improvements
+  结合；v0.4 增加受控的 multi-step retrieval 和 agent workflows；v0.5 增加本地
+  retrieval 与 answer-quality comparison views。
 
 ## Technical Highlights
 
@@ -130,7 +131,10 @@ the selected answer.
 ## What I Would Improve Next
 
 - 增加更丰富的 source inspection，例如更清晰的 previews 和 source metadata，同时保持 command-first model。
-- 在保留当前简单 baseline 的前提下，通过更好的 lexical ranking、optional reranking 或 query expansion 改进 retrieval quality。
+- 把 document evidence 和 project memory 作为 typed retrieval sources，然后通过
+  inspectable query processing、optional reranking、query expansion 和
+  source-aware evaluation 提升 single-pass retrieval quality。
 - 增加与 retrieval evaluation 分离的 answer-quality evaluation。
 - 增加 short demo recordings 和更大一些的 benchmark-style corpora。
-- 只有在 RAG pipeline 仍保持可检查、可测量后，再探索小型、显式受控的 agent layer。
+- 只有在 v0.3 retrieval pipeline 保持可检查、可测量后，再探索受控的
+  multi-step retrieval 和小型 agent layer。

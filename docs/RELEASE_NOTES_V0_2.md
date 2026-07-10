@@ -173,3 +173,8 @@ A measured local demo run with screenshots is recorded in
 - PDF viewing/editing or source full-text viewing.
 - Web dashboard.
 - Short demo recordings and broader benchmark-style corpora.
+
+These items remain outside v0.2. The current roadmap places project memory and
+inspectable single-pass retrieval quality improvements in v0.3, controlled
+multi-step retrieval and agent workflows in v0.4, and local comparison views in
+v0.5. See [Roadmap](roadmap.md).

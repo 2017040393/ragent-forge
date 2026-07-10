@@ -79,8 +79,9 @@ the selected answer.
   by mapping evidence spans to the current chunk store at evaluation time.
 - Deterministic failure analysis makes misses reviewable without introducing
   LLM-as-judge behavior or non-reproducible scoring.
-- Future versions could add richer source inspection, better retrieval quality,
-  answer-quality evaluation, and a small explicitly controlled agent layer.
+- v0.3 is expected to combine project memory with inspectable retrieval quality
+  improvements; v0.4 can add controlled multi-step retrieval and agent
+  workflows; v0.5 can add local retrieval and answer-quality comparison views.
 
 ## Technical Highlights
 
@@ -136,9 +137,10 @@ the selected answer.
 
 - Add richer source inspection, such as clearer previews and source metadata,
   while keeping the command-first model.
-- Improve retrieval quality with better lexical ranking, optional reranking, or
-  query expansion after preserving the current simple baseline.
+- Treat document evidence and project memory as typed retrieval sources, then
+  improve single-pass retrieval with inspectable query processing, optional
+  reranking, query expansion, and source-aware evaluation.
 - Add answer-quality evaluation separately from retrieval evaluation.
 - Add short demo recordings and broader benchmark-style corpora.
-- Explore a small explicitly controlled agent layer only after the RAG pipeline
-  remains inspectable and measurable.
+- Explore controlled multi-step retrieval and a small agent layer only after the
+  v0.3 retrieval pipeline remains inspectable and measurable.

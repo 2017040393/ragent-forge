@@ -404,12 +404,16 @@ retrieval-only mode.
 
 ## Roadmap
 
-Future versions may add reranking, answer evaluation, explicitly controlled
-agent layers, richer source inspection, web review surfaces, and more polished
-developer ergonomics. These are future directions, not current v0.2 features.
+v0.3 is planned to combine workspace-local project memory with retrieval quality
+maturation: typed document and memory sources, inspectable retrieval stages,
+optional query rewriting or expansion and reranking, and source-aware traces and
+evaluation. v0.4 builds controlled multi-step retrieval and agent workflows on
+that pipeline. v0.5 adds local comparison views for retrieval and answer
+quality. These are future directions, not current v0.2 features.
 
 More context:
 
+- [docs/roadmap.md](docs/roadmap.md)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md)
 - [docs/PROJECT_WALKTHROUGH.md](docs/PROJECT_WALKTHROUGH.md)

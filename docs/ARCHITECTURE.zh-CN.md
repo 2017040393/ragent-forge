@@ -234,6 +234,8 @@ state。
 
 ## 未来扩展点
 
-未来可能包括 reranking、更丰富的 source inspection、answer quality
-evaluation、controlled agent workflows，以及更多 demo polish。这些是扩展点，
-不是当前 v0.2 功能。
+v0.3 预计增加 typed document/project-memory sources，并把 retrieval 推进为
+inspectable query processing、candidate retrieval、deduplication、optional
+reranking 和 context selection stages。v0.4 再在这些显式 stages 上构建受控的
+query refinement 和 iterative retrieval；v0.5 增加 retrieval quality 与 answer
+quality 的本地 comparison views。这些是扩展点，不是当前 v0.2 功能。

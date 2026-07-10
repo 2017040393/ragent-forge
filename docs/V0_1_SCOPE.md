@@ -104,27 +104,12 @@ v0.1 intentionally does not include:
 - [x] Command-first TUI.
 - [x] Source navigation.
 
-## Suggested Future Roadmap
+## Roadmap Status
 
-The roadmap below is future work, not current capability.
+This document preserves the v0.1 scope boundary. Its original suggested future
+roadmap has been superseded by the canonical [Roadmap](roadmap.md).
 
-### v0.2 Retrieval Quality
-
-- Improve lexical retrieval quality.
-- Add retrieval comparison workflows.
-- Improve source ranking inspection.
-- Consider BM25 or reranking only after the current baseline is measured.
-
-### v0.3 Answer Quality and Evaluation
-
-- Add answer-quality evaluation.
-- Add prompt comparison workflows.
-- Track groundedness and citation quality.
-- Keep answer eval separate from retrieval eval.
-
-### v0.4 Agent Layer
-
-- Add a small, explicit, user-controlled agent layer.
-- Require visible plans, tool steps, and traces.
-- Keep side effects opt-in and inspectable.
-- Avoid hidden autonomous loops.
+The current sequence uses v0.2 to establish measurable retrieval baselines,
+v0.3 for project memory plus inspectable single-pass retrieval quality
+improvements, v0.4 for controlled multi-step retrieval and agent workflows, and
+v0.5 for local retrieval and answer-quality comparison views.

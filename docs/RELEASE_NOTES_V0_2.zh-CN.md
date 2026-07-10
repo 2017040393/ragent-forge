@@ -169,3 +169,8 @@ uv run ragent tui --workspace .ragent
 - PDF viewing/editing 或 source full-text viewing。
 - Web dashboard。
 - Short demo recordings 和更广泛的 benchmark-style corpora。
+
+这些项目仍在 v0.2 范围之外。现行 roadmap 把 project memory 和 inspectable
+single-pass retrieval quality improvements 放在 v0.3，把受控的 multi-step
+retrieval 和 agent workflows 放在 v0.4，并在 v0.5 增加本地 comparison views。
+参见 [Roadmap](roadmap.zh-CN.md)。
