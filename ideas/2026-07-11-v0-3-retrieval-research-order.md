@@ -181,7 +181,7 @@ Vector database 选型应由数据规模、filtering、更新、并发和 latenc
 
 ## 下一步
 
-先运行并保存当前 v0.2 baseline，确认 eval cases、corpus 和环境能够稳定复现；然后
+当前 v0.2 baseline 已记录在
+[v0.2 retrieval baseline for v0.3](2026-07-11-v0-2-retrieval-baseline.md)。下一步
 补齐 v0.3 必需的 precision、ranking 与 latency percentile metrics，再开始第一轮
 retrieval-unit experiments。
-
