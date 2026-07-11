@@ -418,6 +418,7 @@ development stage; v0.4 and v0.5 remain future directions.
 More context:
 
 - [Project ideas and learning notes](ideas/README.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
 - [docs/roadmap.md](docs/roadmap.md)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md)

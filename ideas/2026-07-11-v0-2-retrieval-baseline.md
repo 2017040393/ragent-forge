@@ -42,6 +42,15 @@ API key 保存在 ignored `.ragent/config.toml` 中，没有写入本笔记或 e
 - `examples/knowledge/rag_basics.md`
 - `examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf`
 
+Snapshot boundary：`examples/knowledge/linear_algebra_done_right_4e.pdf` 是在本次
+baseline 完成后加入仓库的，没有参与下面的 3-document / 796-chunk metrics。加入
+该 PDF 后必须重新 ingest、构建 index 并生成新的 baseline，不能把本页数字视为
+当前四文档 corpus 的结果。
+
+加入前的 loader compatibility check 已通过：该 PDF 共 410 页，406 页有文本，
+产生 410 个 structured blocks（406 paragraph、4 table），reading-order fallback
+pages 为 0。此结果只验证 ingestion compatibility，不是 retrieval baseline。
+
 Ingestion 结果：
 
 | 项目 | 数值 |
@@ -196,4 +205,3 @@ uv run ragent eval compare --workspace .ragent --cases examples/eval/synthetic_s
 3. 将 query embedding、index loading、vector scan 与 result materialization 分段
    计时。
 4. 固定 retrieval 配置后，开始第一轮 retrieval-unit construction experiments。
-

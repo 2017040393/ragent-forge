@@ -358,6 +358,7 @@ stage-aware traces 和 evaluation 进行测量。v0.4
 更多上下文：
 
 - [项目想法与学习笔记](ideas/README.md)
+- [第三方材料声明](THIRD_PARTY_NOTICES.md)
 - [docs/roadmap.zh-CN.md](docs/roadmap.zh-CN.md)
 - [docs/ARCHITECTURE.zh-CN.md](docs/ARCHITECTURE.zh-CN.md)
 - [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md)
