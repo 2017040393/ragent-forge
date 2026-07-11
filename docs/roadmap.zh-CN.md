@@ -35,20 +35,60 @@
 - Multi-user collaboration。
 - Provider-specific lock-in。
 
-## v0.3: Project Memory + Retrieval Quality Maturation
+## v0.3: Retrieval Quality and Efficiency Engineering
 
-目标：
+核心成果：
 
-- 增加 workspace-local memory，用于 project facts 和 user-curated notes。
-- 保持 memory 可编辑、可审计。
-- 把 document evidence、project facts 和 user notes 作为不同的 typed retrieval
-  sources。
-- 把 retrieval 推进为显式、可检查的 query processing、candidate retrieval、
-  deduplication、optional reranking 和 context selection stages。
-- 在保留当前简单 baselines 的前提下，通过 optional query rewriting、query
-  expansion 和 reranking 提升 single-pass retrieval quality。
-- 扩展 traces 和 evaluation，分别测量和诊断 document evidence 与 remembered
-  project context。
+- 基于冻结且可复现的 baseline，同时提升 retrieval efficiency、candidate recall
+  和 final-result precision。
+- 把 query processing、candidate retrieval、deduplication、ranking 和 context
+  selection 变成显式、可检查的 stages，但在量化标准确定之前不预设实现方案。
+- 为 typed items 提供同一个 retrieval 入口。即使共用 retrieval pipeline，
+  document evidence、workspace-local project facts、user notes 和 session memory
+  仍保留不同的 provenance 与 lifecycle semantics。
+- 保持 workspace-local project memory 可编辑、可审计；它可以成为主要的用户侧
+  knowledge surface，但不能抹去 document evidence。
+- 扩展 traces 和 evaluation，使每个 retrieval stage 的质量、延迟、context 成本
+  和 source behavior 都可以分别诊断。
+
+评测协议：
+
+- 在比较实现方案之前冻结 benchmark manifest，记录 corpus 和 eval set 版本、
+  workspace 配置、runtime 与硬件环境、retrieval limits、context budget，以及
+  cold/warm run 规则。
+- 复用版本化的 v0.2 retrieval eval 作为初始 benchmark，不在对应产品行为出现之前
+  预先建立并行的 document-only、memory-only 和 mixed-source suites。保留
+  exact-term 与 paraphrase 覆盖，其他 query categories 只在它们成为明确的 v0.3
+  行为后加入。
+- 使用 v0.2 hybrid retriever 及其当前 document evidence corpus，作为统一 retrieval
+  入口的初始 baseline。
+- project memory 引入后增加针对性的 memory correctness cases；只有当产品明确支持
+  cross-source retrieval、conflict resolution 或 combined context behavior 时，才
+  增加 mixed-source cases。
+- 每个待测 configuration 至少运行三次，cold 和 warm 结果分开报告，并为每次运行
+  持久化 machine-readable artifacts。
+- 测量 candidate `hit@k`、`recall@k`；final `precision@k`、`MRR`、`nDCG@k`；
+  retrieval latency `p50`、`p95`；candidate 数量；selected context 字符数或 token
+  数；以及按 source type 和 pipeline stage 分类的 failures。
+
+初始发布门槛：
+
+- 在 benchmark manifest 和 v0.2 baseline report 提交到仓库之前，不为 v0.3
+  选择 retrieval 改进技术。
+- quality-oriented configuration 相比 v0.2 hybrid baseline，document
+  `recall@20` 和 final `precision@5` 均至少提升 5 个百分点；`MRR` 和 `nDCG@10`
+  的回退不得超过 1 个百分点，warm `p95` retrieval latency 不得超过 baseline 的
+  1.5 倍，并且平均 selected context tokens 不得增加。
+- efficiency-oriented configuration 的 `recall@20`、`precision@5` 和 `nDCG@10`
+  与冻结 baseline 的差距不得超过 1 个百分点，同时 warm `p95` retrieval latency
+  至少降低 20%，平均 selected context tokens 至少降低 15%。
+- 对于 case 数量足以形成稳定比较的已声明 query-category 或 source-kind slice，
+  `recall@20` 或 `precision@5` 的回退不得超过 3 个百分点；超出时必须记录明确的
+  release exception。
+- 推荐的默认配置不能同时在 retrieval quality 和 latency 上严格差于 baseline；
+  所有 release-gate 结果都必须能通过提交到仓库的配置和 eval artifacts 复现。
+- 首次 baseline run 后可以修订这些目标，但必须在使用 implementation results
+  选择技术路线之前冻结，避免根据实验结果移动验收标准。
 
 非目标：
 
