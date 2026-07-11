@@ -33,4 +33,4 @@
 ## 当前条目
 
 - [统一检索入口与 typed sources](2026-07-11-unified-retrieval-typed-sources.md)
-
+- [v0.3 retrieval 研究顺序](2026-07-11-v0-3-retrieval-research-order.md)

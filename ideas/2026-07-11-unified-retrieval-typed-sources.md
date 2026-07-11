@@ -53,3 +53,4 @@ evidence 的文件、页码、span 和其他可审计来源信息。
 先冻结 v0.2 baseline 和 v0.3 量化标准，再根据瓶颈选择检索技术，不在本条笔记中
 提前确定 query rewriting、reranking、索引或存储方案。
 
+具体研究顺序见 [v0.3 retrieval 研究顺序](2026-07-11-v0-3-retrieval-research-order.md)。
