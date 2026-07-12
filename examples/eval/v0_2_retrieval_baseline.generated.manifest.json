@@ -1,0 +1,156 @@
+{
+  "base_case_count": 20,
+  "base_dataset_sha256": "e2119581a20c45bd5ffe29c9252da1dee688585e1ceac4539b79a01f46f9b42a",
+  "case_counts_by_source": {
+    "agentic-rag": 2,
+    "high-dimensional-probability": 22,
+    "linear-algebra-done-right": 24,
+    "rag-basics": 2
+  },
+  "created_at": "2026-07-12T00:58:49.291037+00:00",
+  "dataset_path": "examples/eval/v0_2_retrieval_baseline.generated.jsonl",
+  "dataset_revision": "50-case",
+  "dataset_sha256": "4ae0d8e3c7be3686811cf481ff98b206179796ed3e38eeada3b5023e17631972",
+  "error_count": 0,
+  "errors": [],
+  "generated_case_count": 50,
+  "generation_base_url": "https://api.aijws.com",
+  "generation_model": "gpt-5.6-luna",
+  "generation_provider": "openai_responses",
+  "generation_reasoning_effort": "medium",
+  "generation_temperature": 0.2,
+  "new_case_count": 30,
+  "path_format": "repository_relative",
+  "questions_per_span": 2,
+  "selected_span_count": 25,
+  "selection_bounds": {
+    "lower_quantile": 0.05,
+    "upper_quantile": 0.95
+  },
+  "selection_strategy": "source_balanced_farthest_fill_v2",
+  "sources": [
+    {
+      "available_span_count": 1,
+      "selected_pages": [
+        null
+      ],
+      "selected_span_ids": [
+        "examples/knowledge/agentic_rag.md::span-0000"
+      ],
+      "selected_span_indexes": [
+        0
+      ],
+      "source_group": "agentic-rag",
+      "source_path": "examples/knowledge/agentic_rag.md",
+      "source_sha256": "f005c66151c5aeaab0460024c2db81809f6e1bb2e813b3e9ea9177b5a4b34b43"
+    },
+    {
+      "available_span_count": 298,
+      "selected_pages": [
+        35,
+        53,
+        72,
+        90,
+        109,
+        131,
+        153,
+        175,
+        198,
+        233,
+        269
+      ],
+      "selected_span_ids": [
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0030",
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0048",
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0067",
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0085",
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0104",
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0126",
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0148",
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0170",
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0193",
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0230",
+        "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0267"
+      ],
+      "selected_span_indexes": [
+        30,
+        48,
+        67,
+        85,
+        104,
+        126,
+        148,
+        170,
+        193,
+        230,
+        267
+      ],
+      "source_group": "high-dimensional-probability",
+      "source_path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+      "source_sha256": "76cd30d85f11abae269ec4865ea1802f68366085763f1bc37786f11f4efc6ae1"
+    },
+    {
+      "available_span_count": 409,
+      "selected_pages": [
+        46,
+        70,
+        96,
+        121,
+        147,
+        177,
+        208,
+        238,
+        269,
+        293,
+        318,
+        369
+      ],
+      "selected_span_ids": [
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0041",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0066",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0092",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0117",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0143",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0173",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0204",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0234",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0265",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0290",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0316",
+        "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0367"
+      ],
+      "selected_span_indexes": [
+        41,
+        66,
+        92,
+        117,
+        143,
+        173,
+        204,
+        234,
+        265,
+        290,
+        316,
+        367
+      ],
+      "source_group": "linear-algebra-done-right",
+      "source_path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+      "source_sha256": "0cbc06df32a0d54964a53e6c6c8640f47b41cf6ce9834fdb6c81d538f9de6e9b"
+    },
+    {
+      "available_span_count": 1,
+      "selected_pages": [
+        null
+      ],
+      "selected_span_ids": [
+        "examples/knowledge/rag_basics.md::span-0000"
+      ],
+      "selected_span_indexes": [
+        0
+      ],
+      "source_group": "rag-basics",
+      "source_path": "examples/knowledge/rag_basics.md",
+      "source_sha256": "0959b471eba8b4171ac6a8199225e8388369ab9c45c0ad11bca78c4218684470"
+    }
+  ]
+}

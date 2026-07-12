@@ -17,4 +17,4 @@ worktrees/
 .env
 .env.*
 !.env.example
-eval/
+/eval/
