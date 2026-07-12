@@ -42,7 +42,8 @@ run source-grounded Ask with either retrieval-only output or optional OpenAI
 Responses-compatible generation.
 
 The project also includes CLI operation traces, retrieval evaluation with
-Hit@k、Recall@k、MRR、latency 和 context-size metrics, 不绑定当前 chunk ids 的
+recall、precision、nDCG、evidence coverage、latency percentiles 和 context
+quality metrics, 不绑定当前 chunk ids 的
 span-based synthetic eval generation, evaluation-time
 evidence-to-current-chunk mapping, persisted eval reports, deterministic
 failure analysis, retrieval compare across modes，以及 command-first Textual
@@ -57,7 +58,7 @@ the selected answer.
 - Built a local-first RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
 - Implemented a command-first Textual TUI with background Ask/Search workers, streaming answer display, saved sessions, inline command suggestions, filtered session pickers, source navigation, queued drafts, actionable failures, and an Inspector panel tied to the selected answer.
 - Designed local JSONL workspace storage for chunks, vector index, traces, and persisted retrieval evaluation reports to make RAG workflows inspectable and reproducible.
-- Added retrieval evaluation with Hit@k, Recall@k, MRR, latency, and context-size metrics over JSONL cases.
+- Added retrieval evaluation with recall, precision, nDCG, evidence coverage, latency percentiles, and context-quality metrics over JSONL cases.
 - Added span-based synthetic eval generation, evidence-to-current-chunk mapping, deterministic failure analysis, and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.
 
 ## Interview Talking Points
@@ -97,8 +98,8 @@ the selected answer.
 - 带 source display 和可选 OpenAI Responses-compatible generation 的 Ask pipeline。
 - 默认 `null` generation provider 下的 retrieval-only Ask behavior。
 - 用于 operation inspection 的 CLI traces。
-- 基于 JSONL cases 的 Hit@k、Recall@k、MRR、latency 和 context-size metrics
-  retrieval evaluation。
+- 基于 JSONL cases 的 recall、precision、nDCG、evidence coverage、latency
+  percentiles 和 context-quality metrics retrieval evaluation。
 - Span-based generated eval cases 将测试数据集和当前 chunk store 解耦，便于比较
   chunking 与 retrieval strategies。
 - Span-grounded eval cases 的 evidence-to-current-chunk mapping。

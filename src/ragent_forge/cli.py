@@ -1531,8 +1531,8 @@ def _print_retrieval_compare_summary(
     console.print(f"Limits: {', '.join(str(limit) for limit in report.limits)}")
     console.print()
     console.print(
-        "mode      k   status   hit@k   recall@k   mrr     "
-        "avg_latency_ms   failures"
+        "mode      k   status   hit@k  rec@k  pre@k  nDCG   MRR    "
+        "p95ms      fail"
     )
     for run in report.runs:
         failures = (
@@ -1544,10 +1544,12 @@ def _print_retrieval_compare_summary(
             f"{run.retrieval_mode:<9} "
             f"{run.limit:<3} "
             f"{run.status:<8} "
-            f"{_compare_metric_text(run, 'hit@k'):<7} "
-            f"{_compare_metric_text(run, 'recall@k'):<10} "
-            f"{_compare_metric_text(run, 'mrr'):<7} "
-            f"{_compare_metric_text(run, 'avg_retrieval_latency_ms'):<16} "
+            f"{_compare_metric_text(run, 'hit@k'):<6} "
+            f"{_compare_metric_text(run, 'recall@k'):<6} "
+            f"{_compare_metric_text(run, 'precision@k'):<6} "
+            f"{_compare_metric_text(run, 'ndcg@k'):<6} "
+            f"{_compare_metric_text(run, 'mrr'):<6} "
+            f"{_compare_metric_text(run, 'retrieval_latency_p95_ms'):<10} "
             f"{failures}",
             soft_wrap=True,
         )
@@ -1595,7 +1597,35 @@ def _print_retrieval_eval_summary(
     console.print(f"MRR: {report.metrics['mrr']:.4f}")
     console.print(f"recall@{report.limit} requested: {report.metrics['recall@k']:.4f}")
     console.print(
+        f"precision@{report.limit} requested: "
+        f"{report.metrics['precision@k']:.4f}"
+    )
+    console.print(f"nDCG@{report.limit}: {report.metrics['ndcg@k']:.4f}")
+    console.print(
+        f"Evidence coverage@{report.limit}: "
+        f"{report.metrics['evidence_coverage@k']:.4f}"
+    )
+    console.print(
+        f"Mapping coverage: {report.metrics['mapping_coverage']:.4f}"
+    )
+    console.print(
+        "Context evidence density: "
+        f"{report.metrics['context_evidence_density']:.4f}"
+    )
+    console.print(
+        "Duplicate context ratio: "
+        f"{report.metrics['duplicate_context_ratio']:.4f}"
+    )
+    console.print(
         f"Avg retrieval latency: {report.metrics['avg_retrieval_latency_ms']:.4f} ms"
+    )
+    console.print(
+        f"Retrieval latency p50: "
+        f"{report.metrics['retrieval_latency_p50_ms']:.4f} ms"
+    )
+    console.print(
+        f"Retrieval latency p95: "
+        f"{report.metrics['retrieval_latency_p95_ms']:.4f} ms"
     )
     console.print(f"Avg retrieved count: {report.metrics['avg_retrieved_count']:.4f}")
     console.print(

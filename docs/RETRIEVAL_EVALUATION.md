@@ -133,8 +133,33 @@ top-k run, including metrics, status, run paths, and failures.
   within the top-k retrieved results.
 - `recall@k`: fraction of expected chunks retrieved within top-k. If a case has
   no expected chunks, recall is `0.0`.
+- `precision@1/3/5/k`: mean fraction of the top-k slots occupied by relevant
+  results. Chunk-grounded cases use unique expected chunk IDs. Source-only
+  cases count the first match for each expected source, so repeated chunks from
+  one source do not inflate precision.
+- `ndcg@k`: binary normalized discounted cumulative gain. It rewards relevant
+  results more when they appear near the top and supports multiple expected
+  chunks.
 - `mrr`: mean reciprocal rank of the first matching result.
+- `evidence_coverage@k`: mean fraction of each evidence span covered by the
+  retrieved results. Character offsets are used when available; PDF page
+  overlap is the fallback. It is averaged only across cases with computable
+  span geometry.
+- `evidence_coverage_case_rate`: fraction of eval cases included in the
+  evidence-coverage average.
+- `mapping_coverage`: fraction of evidence spans successfully mapped to the
+  current chunks, averaged across span-grounded cases.
+- `mapping_coverage_case_rate`: fraction of eval cases that contain evidence
+  spans and therefore participate in mapping coverage.
+- `context_evidence_density`: fraction of retrieved context characters that
+  come from relevant results.
+- `duplicate_context_ratio`: repeated normalized 20-character text shingles
+  across retrieved chunks divided by all per-chunk shingles. This detects
+  duplicated or strongly overlapping context without treating all chunks on
+  one PDF page as duplicates.
 - `avg_retrieval_latency_ms`: average time spent inside retrieval search.
+- `retrieval_latency_p50_ms` and `retrieval_latency_p95_ms`: median and
+  long-tail retrieval latency, using linear percentile interpolation.
 - `avg_retrieved_context_chars`: average retrieved context size in characters.
 - `avg_estimated_context_tokens`: simple context cost estimate based on
   characters divided by 4.
@@ -165,11 +190,11 @@ want to spot recurring failure modes.
 This table is illustrative, not a checked-in benchmark result.
 
 ```text
-mode      k   status   hit@k   recall@k   mrr     avg_latency_ms   failures
-lexical   5   success  0.5000  0.4200     0.3900  3.2000           4
-bm25      5   success  0.6500  0.5700     0.5100  4.1000           3
-semantic  5   success  0.7000  0.6200     0.5600  18.3000          2
-hybrid    5   success  0.7800  0.6900     0.6300  22.5000          1
+mode      k   status   hit@k  rec@k  pre@k  nDCG   MRR    p95ms      fail
+lexical   5   success  0.5000 0.4200 0.1800 0.4400 0.3900 4.8000     4
+bm25      5   success  0.6500 0.5700 0.2600 0.5900 0.5100 6.2000     3
+semantic  5   success  0.7000 0.6200 0.2800 0.6400 0.5600 24.1000    2
+hybrid    5   success  0.7800 0.6900 0.3200 0.7100 0.6300 29.4000    1
 ```
 
 ## Demo Script

@@ -129,8 +129,28 @@ Retrieval compare 会写：
   或 expected source。
 - `recall@k`：top-k 内命中的 expected chunks 比例。如果 case 没有 expected chunks，
   recall 为 `0.0`。
+- `precision@1/3/5/k`：top-k slots 中 relevant results 的平均比例。chunk-grounded
+  cases 使用 unique expected chunk IDs；source-only cases 对每个 expected source
+  只计第一次命中，避免同一来源的重复 chunks 抬高 precision。
+- `ndcg@k`：binary normalized discounted cumulative gain。相关结果越靠前得分越高，
+  并支持一个 case 对应多个 expected chunks。
 - `mrr`：第一个 matching result 的 mean reciprocal rank。
+- `evidence_coverage@k`：retrieved results 覆盖 evidence span 的平均比例。优先使用
+  character offsets，PDF 使用 page overlap 兜底；只对 span geometry 可计算的 cases
+  求平均。
+- `evidence_coverage_case_rate`：参与 evidence coverage 计算的 cases 比例。
+- `mapping_coverage`：成功映射到当前 chunks 的 evidence spans 比例，只在
+  span-grounded cases 上求平均。
+- `mapping_coverage_case_rate`：包含 evidence spans、参与 mapping coverage 的 cases
+  比例。
+- `context_evidence_density`：retrieved context characters 中来自 relevant results
+  的比例。
+- `duplicate_context_ratio`：retrieved chunks 之间重复的 normalized 20-character
+  text shingles 占比。它可以检测重复或强 overlap context，同时不会把同一 PDF
+  页面上的所有 chunks 直接判成重复。
 - `avg_retrieval_latency_ms`：retrieval search 内部耗时的平均值。
+- `retrieval_latency_p50_ms` 和 `retrieval_latency_p95_ms`：使用 linear percentile
+  interpolation 计算的中位数和长尾 retrieval latency。
 - `avg_retrieved_context_chars`：平均 retrieved context size，单位为字符。
 - `avg_estimated_context_tokens`：基于字符数除以 4 的简单 context cost estimate。
 
@@ -155,11 +175,11 @@ modes，使用 `summary.md` 或 `latest_retrieval_compare.json` 中的 failure b
 这个表格是说明性示例，不是 checked-in benchmark result。
 
 ```text
-mode      k   status   hit@k   recall@k   mrr     avg_latency_ms   failures
-lexical   5   success  0.5000  0.4200     0.3900  3.2000           4
-bm25      5   success  0.6500  0.5700     0.5100  4.1000           3
-semantic  5   success  0.7000  0.6200     0.5600  18.3000          2
-hybrid    5   success  0.7800  0.6900     0.6300  22.5000          1
+mode      k   status   hit@k  rec@k  pre@k  nDCG   MRR    p95ms      fail
+lexical   5   success  0.5000 0.4200 0.1800 0.4400 0.3900 4.8000     4
+bm25      5   success  0.6500 0.5700 0.2600 0.5900 0.5100 6.2000     3
+semantic  5   success  0.7000 0.6200 0.2800 0.6400 0.5600 24.1000    2
+hybrid    5   success  0.7800 0.6900 0.3200 0.7100 0.6300 29.4000    1
 ```
 
 ## Demo Script

@@ -250,7 +250,20 @@ def build_retrieval_eval_trace(
     }
     for metric_key in (
         "recall@k",
+        "precision@1",
+        "precision@3",
+        "precision@5",
+        "precision@k",
+        "ndcg@k",
+        "evidence_coverage@k",
+        "evidence_coverage_case_rate",
+        "mapping_coverage",
+        "mapping_coverage_case_rate",
+        "context_evidence_density",
+        "duplicate_context_ratio",
         "avg_retrieval_latency_ms",
+        "retrieval_latency_p50_ms",
+        "retrieval_latency_p95_ms",
         "avg_retrieved_count",
         "avg_retrieved_context_chars",
         "avg_estimated_context_tokens",
@@ -304,7 +317,10 @@ def build_retrieval_eval_trace(
             ),
             TraceStep(
                 name="compute_metrics",
-                description="Compute hit-rate, recall, latency, and context metrics.",
+                description=(
+                    "Compute retrieval quality, evidence coverage, latency, and "
+                    "context metrics."
+                ),
                 inputs={"case_count": case_count},
                 outputs=metrics,
             ),

@@ -167,12 +167,12 @@ class CommandResultModal(ModalScreen[None]):
 
     def __init__(self, title: str, text: str) -> None:
         super().__init__()
-        self.title = title
+        self.modal_title = title
         self.text = text
 
     def compose(self) -> ComposeResult:
         with Vertical(id="command-result-dialog"):
-            yield Label(self.title)
+            yield Label(self.modal_title)
             with ScrollableContainer(id="command-result-scroll"):
                 yield Static(self.text)
 

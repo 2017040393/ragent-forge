@@ -49,8 +49,8 @@ reports.
   retrieval eval workflows.
 - Span-based synthetic eval generation from stable source evidence instead of
   fixed chunk ids.
-- Retrieval evaluation with Hit@k, Recall@k, MRR, latency, and context-size
-  metrics.
+- Retrieval evaluation with Hit@k, Recall@k, Precision@k, nDCG@k, evidence
+  coverage, latency percentiles, and context-quality metrics.
 - Persisted retrieval eval run reports with compact case and failure JSONL.
 - Deterministic failure analysis with `failure_type` and `failure_reason`.
 - Retrieval comparison across lexical, BM25, semantic, and hybrid modes.
@@ -135,8 +135,8 @@ v0.2 adds:
 
 - Span-based synthetic eval generation.
 - Evidence-to-current-chunk mapping.
-- Retrieval eval runner with Hit@k, Recall@k, MRR, latency, and context-cost
-  metrics.
+- Retrieval eval runner with ranking, evidence coverage, latency percentile,
+  and context-quality metrics.
 - Persisted eval run reports under `.ragent/eval/runs/`.
 - Deterministic failure analysis.
 - Lexical, BM25, semantic, and hybrid retrieval comparison.
@@ -207,11 +207,11 @@ With the default config, generation uses the `null` provider. In that mode
 Illustrative compare output:
 
 ```text
-mode      k   status   hit@k   recall@k   mrr     avg_latency_ms   failures
-lexical   5   success  0.5000  0.4200     0.3900  3.2000           4
-bm25      5   success  0.6500  0.5700     0.5100  4.1000           3
-semantic  5   success  0.7000  0.6200     0.5600  18.3000          2
-hybrid    5   success  0.7800  0.6900     0.6300  22.5000          1
+mode      k   status   hit@k  rec@k  pre@k  nDCG   MRR    p95ms      fail
+lexical   5   success  0.5000 0.4200 0.1800 0.4400 0.3900 4.8000     4
+bm25      5   success  0.6500 0.5700 0.2600 0.5900 0.5100 6.2000     3
+semantic  5   success  0.7000 0.6200 0.2800 0.6400 0.5600 24.1000    2
+hybrid    5   success  0.7800 0.6900 0.3200 0.7100 0.6300 29.4000    1
 ```
 
 The numbers above are illustrative, not checked-in benchmark results.

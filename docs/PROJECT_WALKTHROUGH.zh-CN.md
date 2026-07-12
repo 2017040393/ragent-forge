@@ -218,7 +218,8 @@ search、ask 和 retrieval eval workflows 会写入 traces。
 
 1. 抽取 evidence spans，并生成 synthetic eval cases。
 2. 针对当前 chunks 运行 retrieval eval。
-3. 跨 retrieval 或 chunking 策略比较 hit@k 和 MRR。
+3. 跨 retrieval 或 chunking 策略比较 recall、precision、ranking、evidence
+   coverage、latency percentiles 和 context-quality metrics。
 
 ### 使用仓库内置 Cases
 
@@ -276,8 +277,9 @@ uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retri
 uv run ragent eval retrieval --cases examples/eval/retrieval_cases.jsonl --retrieval hybrid --workspace .ragent
 ```
 
-Retrieval eval 会报告 hit@1、hit@3、hit@5、requested hit@k、MRR 和 failed
-cases。它不评估 answer quality，也不运行 LLM-as-judge。
+Retrieval eval 会报告 Hit@k、Recall@k、Precision@k、nDCG@k、evidence 与
+mapping coverage、latency percentiles、context-quality metrics 和 failed cases。
+它不评估 answer quality，也不运行 LLM-as-judge。
 
 ## 观察重点
 

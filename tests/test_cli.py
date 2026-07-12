@@ -2071,7 +2071,15 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
     assert "hit@5 requested: 0.5000" in captured.out
     assert "MRR: 0.5000" in captured.out
     assert "recall@5 requested:" in captured.out
+    assert "precision@5 requested:" in captured.out
+    assert "nDCG@5:" in captured.out
+    assert "Evidence coverage@5:" in captured.out
+    assert "Mapping coverage:" in captured.out
+    assert "Context evidence density:" in captured.out
+    assert "Duplicate context ratio:" in captured.out
     assert "Avg retrieval latency:" in captured.out
+    assert "Retrieval latency p50:" in captured.out
+    assert "Retrieval latency p95:" in captured.out
     assert "Failed cases:" in captured.out
     assert "- case-002 | rank: none | query: missing" in captured.out
     assert "Failure breakdown:" in captured.out
@@ -2110,7 +2118,15 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
     assert report["failed_count"] == 1
     assert report["metrics"]["hit@k"] == 0.5
     assert "recall@k" in report["metrics"]
+    assert "precision@k" in report["metrics"]
+    assert "ndcg@k" in report["metrics"]
+    assert "evidence_coverage@k" in report["metrics"]
+    assert "mapping_coverage" in report["metrics"]
+    assert "context_evidence_density" in report["metrics"]
+    assert "duplicate_context_ratio" in report["metrics"]
     assert "avg_retrieval_latency_ms" in report["metrics"]
+    assert "retrieval_latency_p50_ms" in report["metrics"]
+    assert "retrieval_latency_p95_ms" in report["metrics"]
     assert report["results"][0]["failure_type"] is None
     assert report["results"][0]["failure_reason"] is None
     assert report["results"][1]["failure_type"] == "no_result"
@@ -2135,6 +2151,10 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
         "actual_source_paths",
         "metadata",
     }
+    assert run_cases[0]["metadata"]["precision"] == 0.2
+    assert run_cases[0]["metadata"]["ndcg"] == 1.0
+    assert run_cases[0]["metadata"]["relevant_result_ranks"] == [1]
+    assert "duplicate_context_ratio" in run_cases[0]["metadata"]
     assert latest_trace["operation"] == "retrieval_eval"
     assert latest_trace["metadata"]["retrieval_mode"] == "lexical"
     assert latest_trace["metadata"]["case_count"] == 2

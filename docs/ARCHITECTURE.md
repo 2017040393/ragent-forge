@@ -127,8 +127,9 @@ Important workspace files include:
 ### Trace and Evaluation
 
 Traces are local JSON files that record compact metadata and workflow steps for
-CLI operations. Retrieval evaluation reads JSONL cases and reports hit@1,
-hit@3, hit@5, requested hit@k, MRR, and failed cases.
+CLI operations. Retrieval evaluation reads JSONL cases and reports hit rate,
+recall, precision, nDCG, evidence and mapping coverage, latency percentiles,
+context quality, and failed cases.
 
 Retrieval eval is retrieval-only. It does not judge generated answer quality.
 

@@ -77,21 +77,24 @@ Markdown / TXT / PDF
 - `hit@k`
 - `recall@k`
 - `MRR`
-- average retrieval latency
+- `precision@1/3/5/k`
+- `nDCG@k`
+- evidence coverage 与 mapping coverage
+- average、p50 与 p95 retrieval latency
 - retrieved context characters
 - estimated context tokens
+- context evidence density
+- duplicate context ratio
 
-v0.3 在比较方案前还需要补充：
+这些指标已经使用 50-case baseline 完成一次四模式验证。下一步效率测量还需要补充：
 
-- `precision@k`
-- `nDCG@k`
-- retrieval latency `p50` 与 `p95`
-- evidence-span-to-chunk mapping coverage
-- retrieved context evidence density
-- duplicate 或 overlapping context ratio
+- query embedding、index loading、vector scan、fusion、reranking 和 result
+  materialization 的分段 latency
+- cold-start 与 warm-start latency
+- index build/update time、index size 和 peak memory
 
-这表示 v0.2 eval dataset 可以继续使用，但 evaluator 和报告需要支持 v0.3 的
-precision 与 efficiency 目标。
+这表示当前 evaluator 已能支持第一轮 retrieval-unit quality 对比；更细的效率
+指标可以在 indexing experiments 前继续补齐。
 
 ## 1. Retrieval Unit Construction
 
@@ -183,5 +186,5 @@ Vector database 选型应由数据规模、filtering、更新、并发和 latenc
 
 当前 v0.2 baseline 已记录在
 [v0.2 retrieval baseline for v0.3](2026-07-11-v0-2-retrieval-baseline.md)。下一步
-补齐 v0.3 必需的 precision、ranking 与 latency percentile metrics，再开始第一轮
-retrieval-unit experiments。
+开始第一轮 retrieval-unit experiments，并保持 retrieval 配置和 50-case dataset
+不变。

@@ -118,8 +118,9 @@ transcript/session state。
 ### Trace and Evaluation
 
 Traces 是本地 JSON 文件，记录 CLI operations 的精简 metadata 和 workflow
-steps。Retrieval evaluation 读取 JSONL cases，并报告 hit@1、hit@3、hit@5、
-requested hit@k、MRR 和 failed cases。
+steps。Retrieval evaluation 读取 JSONL cases，并报告 hit rate、recall、precision、
+nDCG、evidence 与 mapping coverage、latency percentiles、context quality 和
+failed cases。
 
 Retrieval eval 只评估检索，不评判生成答案质量。
 

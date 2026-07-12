@@ -225,8 +225,8 @@ The loop is:
 
 1. Extract evidence spans and generate synthetic eval cases.
 2. Run retrieval eval against current chunks.
-3. Compare Hit@k, Recall@k, MRR, latency, and context-size metrics across
-   retrieval or chunking strategies.
+3. Compare recall, precision, ranking, evidence coverage, latency percentiles,
+   and context-quality metrics across retrieval or chunking strategies.
 
 ### Use Checked-In Cases
 
@@ -298,9 +298,10 @@ uv run ragent eval compare --cases examples/eval/retrieval_cases.jsonl --retriev
 
 Semantic and hybrid runs require the vector index. Lexical and BM25 do not.
 
-Retrieval eval reports Hit@k, Recall@k, MRR, latency, context-size metrics,
-failure types, and failed cases. It does not evaluate answer quality and does
-not run LLM-as-judge.
+Retrieval eval reports Hit@k, Recall@k, Precision@k, nDCG@k, evidence and
+mapping coverage, latency percentiles, context-quality metrics, failure types,
+and failed cases. It does not evaluate answer quality and does not run
+LLM-as-judge.
 
 For the full v0.2 retrieval quality workflow, see
 [RETRIEVAL_EVALUATION.md](RETRIEVAL_EVALUATION.md).

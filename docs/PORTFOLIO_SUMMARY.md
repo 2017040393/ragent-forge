@@ -38,7 +38,8 @@ run source-grounded Ask with either retrieval-only output or optional OpenAI
 Responses-compatible generation.
 
 The project also includes CLI operation traces, retrieval evaluation with
-Hit@k, Recall@k, MRR, latency, and context-size metrics, span-based synthetic
+recall, precision, ranking, evidence coverage, latency percentile, and context
+quality metrics, span-based synthetic
 eval generation that is not tied to the current chunk ids,
 evidence-to-current-chunk mapping at evaluation time, persisted eval reports,
 deterministic failure analysis, retrieval compare across modes, and a
@@ -54,7 +55,7 @@ the selected answer.
 - Built a local-first RAG console with structured Markdown/TXT/PDF ingestion, lexical/BM25/semantic/hybrid retrieval, source-grounded asking, operation tracing, and retrieval evaluation.
 - Implemented a command-first Textual TUI with background Ask/Search workers, streaming answer display, saved sessions, inline command suggestions, filtered session pickers, source navigation, queued drafts, actionable failures, and an Inspector panel tied to the selected answer.
 - Designed local JSONL workspace storage for chunks, vector index, traces, and persisted retrieval evaluation reports to make RAG workflows inspectable and reproducible.
-- Added retrieval evaluation with Hit@k, Recall@k, MRR, latency, and context-size metrics over JSONL cases.
+- Added retrieval evaluation with recall, precision, nDCG, evidence coverage, latency percentiles, and context-quality metrics over JSONL cases.
 - Added span-based synthetic eval generation, evidence-to-current-chunk mapping, deterministic failure analysis, and retrieval comparison so datasets can be reused across chunking, retrieval, and ranking experiments.
 
 ## Interview Talking Points
@@ -99,8 +100,8 @@ the selected answer.
   generation.
 - Retrieval-only Ask behavior with the default `null` generation provider.
 - CLI traces for operation inspection.
-- Retrieval evaluation over JSONL cases with Hit@k, Recall@k, MRR, latency,
-  and context-size metrics.
+- Retrieval evaluation over JSONL cases with recall, precision, nDCG, evidence
+  coverage, latency percentiles, and context-quality metrics.
 - Span-based generated eval cases decouple the test dataset from the current
   chunk store, which makes chunking and retrieval strategy comparisons easier.
 - Evidence-to-current-chunk mapping for span-grounded eval cases.

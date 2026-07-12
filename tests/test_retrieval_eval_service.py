@@ -37,19 +37,26 @@ def make_result(
     source_path: str,
     score: float = 1.0,
     text: str = "full chunk text must stay out",
+    *,
+    start_char: int | None = 0,
+    end_char: int | None = None,
+    metadata: dict[str, object] | None = None,
 ) -> SearchResult:
+    result_metadata: dict[str, object] = {
+        "api_key": "embedding-secret-key",
+        "embedding": [0.1, 0.2],
+    }
+    if metadata is not None:
+        result_metadata.update(metadata)
     return SearchResult(
         chunk_id=chunk_id,
         document_id=source_path,
         source_path=source_path,
-        start_char=0,
-        end_char=len(text),
+        start_char=start_char,
+        end_char=len(text) if end_char is None else end_char,
         score=score,
         text=text,
-        metadata={
-            "api_key": "embedding-secret-key",
-            "embedding": [0.1, 0.2],
-        },
+        metadata=result_metadata,
     )
 
 
@@ -299,7 +306,13 @@ def test_evaluate_maps_evidence_spans_to_current_chunks_and_passes_retrieval() -
     search = FakeSearchService(
         {
             "hybrid retrieval": [
-                make_result("docs/rag.md::chunk-0000", "docs/rag.md")
+                make_result(
+                    "docs/rag.md::chunk-0000",
+                    "docs/rag.md",
+                    text="x" * 30,
+                    start_char=20,
+                    end_char=50,
+                )
             ]
         }
     )
@@ -324,6 +337,14 @@ def test_evaluate_maps_evidence_spans_to_current_chunks_and_passes_retrieval() -
         "docs/rag.md::chunk-0000"
     ]
     assert result.metadata["unmatched_span_ids"] == []
+    assert result.mapping_coverage == pytest.approx(1.0)
+    assert result.evidence_coverage == pytest.approx(0.5)
+    assert result.precision == pytest.approx(0.2)
+    assert result.ndcg == pytest.approx(1.0)
+    assert result.context_evidence_density == pytest.approx(1.0)
+    assert result.duplicate_context_ratio == pytest.approx(0.0)
+    assert report.metrics["mapping_coverage"] == pytest.approx(1.0)
+    assert report.metrics["evidence_coverage@k"] == pytest.approx(0.5)
     assert workspace.calls == 1
 
 
@@ -365,6 +386,8 @@ def test_evaluate_fails_when_evidence_spans_cannot_be_mapped() -> None:
     assert result.expected_chunk_ids == []
     assert result.metadata["mapped_expected_chunk_ids"] == []
     assert result.metadata["unmatched_span_ids"] == ["docs/missing.md::span-0001"]
+    assert result.mapping_coverage == pytest.approx(0.0)
+    assert result.evidence_coverage == pytest.approx(0.0)
     assert result.failure_type == "unmapped_evidence"
     assert result.failure_reason == (
         "Evidence spans could not be mapped to current chunks."
@@ -399,6 +422,9 @@ def test_evaluate_matches_source_path_when_no_chunk_match_exists() -> None:
     assert result.matched_by == "source_path"
     assert result.actual_chunk_ids == ["other::chunk-0000"]
     assert result.actual_source_paths == ["rag.md"]
+    assert result.relevant_result_ranks == [1]
+    assert result.precision == pytest.approx(0.3333)
+    assert result.ndcg == pytest.approx(1.0)
 
 
 def test_evaluate_combines_manual_expected_chunk_ids_and_mapped_spans() -> None:
@@ -472,7 +498,13 @@ def test_evaluate_maps_pdf_evidence_span_by_page_overlap() -> None:
     search = FakeSearchService(
         {
             "table evidence": [
-                make_result("docs/paper.pdf::chunk-0000", "docs/paper.pdf")
+                make_result(
+                    "docs/paper.pdf::chunk-0000",
+                    "docs/paper.pdf",
+                    start_char=None,
+                    end_char=None,
+                    metadata={"page_number": 4},
+                )
             ]
         }
     )
@@ -495,6 +527,8 @@ def test_evaluate_maps_pdf_evidence_span_by_page_overlap() -> None:
     assert result.metadata["mapped_expected_chunk_ids"] == [
         "docs/paper.pdf::chunk-0000"
     ]
+    assert result.mapping_coverage == pytest.approx(1.0)
+    assert result.evidence_coverage == pytest.approx(0.5)
 
 
 def test_evaluate_matches_repo_relative_source_path_against_absolute_result() -> None:
@@ -810,6 +844,132 @@ def test_evaluate_computes_recall_latency_and_context_metrics() -> None:
     assert report.metrics["avg_retrieved_count"] == pytest.approx(1.5)
     assert report.metrics["avg_retrieved_context_chars"] == pytest.approx(9.0)
     assert report.metrics["avg_estimated_context_tokens"] == pytest.approx(3.0)
+
+
+def test_evaluate_computes_precision_ndcg_density_and_duplicate_metrics() -> None:
+    shared_text = "shared context text repeated alpha"
+    unique_text = "unique relevant beta"
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="ranked evidence",
+            expected_chunk_ids=["a::chunk-0000", "c::chunk-0002"],
+        )
+    ]
+    search = FakeSearchService(
+        {
+            "ranked evidence": [
+                make_result("a::chunk-0000", "a.md", text=shared_text),
+                make_result("x::chunk-0001", "x.md", text=shared_text),
+                make_result("c::chunk-0002", "c.md", text=unique_text),
+            ]
+        }
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+    )
+
+    result = report.results[0]
+    assert result.relevant_retrieved_count == 2
+    assert result.relevant_result_ranks == [1, 3]
+    assert result.precision == pytest.approx(0.4)
+    assert result.ndcg == pytest.approx(0.9197)
+    assert result.context_evidence_density == pytest.approx(
+        (len(shared_text) + len(unique_text))
+        / (2 * len(shared_text) + len(unique_text)),
+        abs=1e-4,
+    )
+    assert result.duplicate_context_ratio > 0.0
+    assert report.metrics["precision@1"] == pytest.approx(1.0)
+    assert report.metrics["precision@3"] == pytest.approx(0.6667)
+    assert report.metrics["precision@5"] == pytest.approx(0.4)
+    assert report.metrics["precision@k"] == pytest.approx(0.4)
+    assert report.metrics["ndcg@k"] == pytest.approx(0.9197)
+    assert report.metrics["mapping_coverage"] == pytest.approx(0.0)
+    assert report.metrics["mapping_coverage_case_rate"] == pytest.approx(0.0)
+    assert report.metrics["evidence_coverage@k"] == pytest.approx(0.0)
+    assert report.metrics["evidence_coverage_case_rate"] == pytest.approx(0.0)
+    assert report.metrics["retrieval_latency_p50_ms"] >= 0.0
+    assert report.metrics["retrieval_latency_p95_ms"] >= 0.0
+
+
+def test_evaluate_computes_partial_mapping_and_evidence_coverage() -> None:
+    cases = [
+        RetrievalEvalCase(
+            id="case-001",
+            query="partial span coverage",
+            evidence_spans=[
+                make_evidence_span(
+                    span_id="docs/rag.md::span-0001",
+                    source_path="docs/rag.md",
+                    start_char=0,
+                    end_char=20,
+                ),
+                make_evidence_span(
+                    span_id="docs/missing.md::span-0001",
+                    source_path="docs/missing.md",
+                    start_char=0,
+                    end_char=20,
+                ),
+            ],
+        )
+    ]
+    workspace = FakeWorkspace(
+        [
+            make_chunk_record(
+                "docs/rag.md::chunk-0000",
+                source_path="docs/rag.md",
+                start_char=0,
+                end_char=20,
+            )
+        ]
+    )
+    search = FakeSearchService(
+        {
+            "partial span coverage": [
+                make_result(
+                    "docs/rag.md::chunk-0000",
+                    "docs/rag.md",
+                    text="x" * 20,
+                    start_char=0,
+                    end_char=20,
+                )
+            ]
+        }
+    )
+
+    report = RetrievalEvalService().evaluate(
+        cases=cases,
+        search_service=search,
+        limit=5,
+        retrieval_mode="lexical",
+        retrieval_method="lexical_token_overlap",
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        workspace_path=Path(".ragent"),
+        workspace=workspace,
+    )
+
+    result = report.results[0]
+    assert result.mapping_coverage == pytest.approx(0.5)
+    assert result.evidence_coverage == pytest.approx(0.5)
+    assert report.metrics["mapping_coverage"] == pytest.approx(0.5)
+    assert report.metrics["mapping_coverage_case_rate"] == pytest.approx(1.0)
+    assert report.metrics["evidence_coverage@k"] == pytest.approx(0.5)
+    assert report.metrics["evidence_coverage_case_rate"] == pytest.approx(1.0)
+
+
+def test_percentile_uses_linear_interpolation() -> None:
+    values = [1.0, 2.0, 3.0, 4.0]
+
+    assert retrieval_eval_service._percentile(values, 0.5) == pytest.approx(2.5)
+    assert retrieval_eval_service._percentile(values, 0.95) == pytest.approx(3.85)
 
 
 def test_evaluate_rejects_non_positive_limit() -> None:

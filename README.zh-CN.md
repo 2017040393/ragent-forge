@@ -39,7 +39,8 @@ chunks、检索结果、context pack、answer、sources、traces 和 eval report
 - 带来源的回答和紧凑 source display。
 - CLI ingest、index build、search、ask、retrieval eval 的本地 operation traces。
 - 从稳定 source evidence 生成 span-based synthetic eval cases。
-- 使用 Hit@k、Recall@k、MRR、latency 和 context-size metrics 的 retrieval evaluation。
+- 使用 Hit@k、Recall@k、Precision@k、nDCG@k、evidence coverage、latency
+  percentiles 和 context-quality metrics 的 retrieval evaluation。
 - 持久化 retrieval eval run reports，包含紧凑 cases 和 failures JSONL。
 - 使用 `failure_type` 和 `failure_reason` 的确定性 failure analysis。
 - 对 lexical、BM25、semantic 和 hybrid retrieval modes 进行 compare。
@@ -112,7 +113,8 @@ v0.2 包括：
 
 - Span-based synthetic eval generation。
 - Evidence-to-current-chunk mapping。
-- 带 Hit@k、Recall@k、MRR、latency 和 context-cost metrics 的 retrieval eval runner。
+- 带 ranking、evidence coverage、latency percentile 和 context-quality metrics
+  的 retrieval eval runner。
 - `.ragent/eval/runs/` 下的持久化 eval run reports。
 - 确定性 failure analysis。
 - Lexical、BM25、semantic 和 hybrid retrieval comparison。
@@ -170,11 +172,11 @@ uv run ragent search "What is Agentic RAG?" --retrieval hybrid --workspace .rage
 示例 compare 输出如下；数字只是说明格式，不是 checked-in benchmark results：
 
 ```text
-mode      k   status   hit@k   recall@k   mrr     avg_latency_ms   failures
-lexical   5   success  0.5000  0.4200     0.3900  3.2000           4
-bm25      5   success  0.6500  0.5700     0.5100  4.1000           3
-semantic  5   success  0.7000  0.6200     0.5600  18.3000          2
-hybrid    5   success  0.7800  0.6900     0.6300  22.5000          1
+mode      k   status   hit@k  rec@k  pre@k  nDCG   MRR    p95ms      fail
+lexical   5   success  0.5000 0.4200 0.1800 0.4400 0.3900 4.8000     4
+bm25      5   success  0.6500 0.5700 0.2600 0.5900 0.5100 6.2000     3
+semantic  5   success  0.7000 0.6200 0.2800 0.6400 0.5600 24.1000    2
+hybrid    5   success  0.7800 0.6900 0.3200 0.7100 0.6300 29.4000    1
 ```
 
 ## 截图

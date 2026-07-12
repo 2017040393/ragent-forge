@@ -243,6 +243,9 @@ def test_build_retrieval_eval_trace_records_lexical_metrics_safely() -> None:
             "hit@5": 0.5,
             "hit@k": 0.5,
             "mrr": 0.5,
+            "precision@k": 0.2,
+            "ndcg@k": 0.4,
+            "retrieval_latency_p95_ms": 12.5,
         },
         report_path=Path(".ragent/eval/retrieval_eval_20260630T000001Z.json"),
         started_at=started_at,
@@ -273,6 +276,9 @@ def test_build_retrieval_eval_trace_records_lexical_metrics_safely() -> None:
         "hit@5": 0.5,
         "hit@k": 0.5,
         "mrr": 0.5,
+        "precision@k": 0.2,
+        "ndcg@k": 0.4,
+        "retrieval_latency_p95_ms": 12.5,
         "report_path": str(Path(".ragent/eval/retrieval_eval_20260630T000001Z.json")),
     }
     assert "embedding_provider" not in trace.metadata
