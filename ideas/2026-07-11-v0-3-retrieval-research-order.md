@@ -96,6 +96,76 @@ Markdown / TXT / PDF
 这表示当前 evaluator 已能支持第一轮 retrieval-unit quality 对比；更细的效率
 指标可以在 indexing experiments 前继续补齐。
 
+## Semantic Quality Diagnosis
+
+50-case baseline 已经显示 semantic retrieval 当前明显落后于 BM25：
+
+| Mode | Hit@5 | Precision@5 | nDCG@5 | p95 latency |
+|---|---:|---:|---:|---:|
+| BM25 | 0.7200 | 0.1840 | 0.4121 | 492.58 ms |
+| semantic | 0.3000 | 0.0600 | 0.1713 | 13392.55 ms |
+| hybrid | 0.6400 | 0.1520 | 0.3265 | 11774.64 ms |
+
+Semantic 的 35 个失败中有 34 个是 `wrong_section`，只有 1 个是
+`missed_source`。因此当前主要问题不是完全找错 document，而是无法在长 PDF
+中定位正确的 section。Hybrid 消除了 `missed_source`，但仍有 18 个
+`wrong_section`，低质量 semantic candidates 反而拖低了 BM25 的结果。
+
+当前实现的几个重要事实：
+
+- `IndexBuildService` 直接把 `chunk["text"]` 发送给 embedding API，没有使用
+  `heading_path`、`section_title`、`block_type`、文档标题或 formula metadata。
+- 当前 semantic query 也只发送原始 query，没有 query/document role 或 retrieval
+  instruction 的区分。
+- 两个 PDF 的 chunks 含有大量 formula 标记：probability PDF 为 619/794，linear
+  algebra PDF 为 708/948；PDF chunks 基本没有有效 `heading_path`。
+- 当前向量检索使用 query 与 index 的同一 embedding model，并在本地做精确 cosine
+  scan，因此当前质量问题不是 ANN index 或 vector database 引入的近似误差。
+- 50 条 query 与 evidence 的词面重合率平均约为 `0.5659`，约 68% 的 cases 重合率
+  不低于 0.5，当前 dataset 对 BM25 有明显优势，不能只用整体分数判断 semantic
+  是否有价值。
+
+### 第一轮 Semantic Experiment
+
+先固定 embedding model、retrieval method、chunk boundaries 和 50-case dataset，
+只比较 embedding representation：
+
+```text
+E0  raw chunk text -> raw query
+E1  structured document text -> raw query
+E2  structured document text -> instructed query
+E3  cleaned PDF/formula representation -> instructed query
+```
+
+其中 `structured document text` 可以包含：
+
+```text
+Document title
+Section / heading path
+Block type
+Formula or table marker
+Chunk text
+```
+
+需要新增独立的 `embedding_text`，而不是修改最终提供给 LLM 的 `chunk.text`：
+
+```text
+chunk.text           -> final answer context
+chunk.embedding_text -> vector index and query matching
+```
+
+每个 variant 都必须单独重建 index，并在相同 cases 上比较：
+
+- exact-term slice
+- paraphrase slice
+- formula / definition slice
+- cross-section distractor slice
+- overall Hit@5、Precision@5、nDCG@5、Evidence Coverage@5
+
+验收标准：semantic 至少要在 paraphrase slice 上证明相对于 BM25 的独立价值；
+hybrid 的整体质量不应低于 BM25。达到这两个条件前，不优先调整 RRF 权重、引入
+ANN index 或选择 vector database。
+
 ## 1. Retrieval Unit Construction
 
 ### Document evidence
@@ -186,5 +256,6 @@ Vector database 选型应由数据规模、filtering、更新、并发和 latenc
 
 当前 v0.2 baseline 已记录在
 [v0.2 retrieval baseline for v0.3](2026-07-11-v0-2-retrieval-baseline.md)。下一步
-开始第一轮 retrieval-unit experiments，并保持 retrieval 配置和 50-case dataset
-不变。
+先执行上面的 E0/E1 representation ablation，并保持 retrieval 配置和 50-case
+dataset 不变；随后再决定是否需要改 PDF section extraction、embedding model 或
+hybrid fusion。
