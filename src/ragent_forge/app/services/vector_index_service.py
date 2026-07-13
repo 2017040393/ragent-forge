@@ -11,10 +11,12 @@ from pydantic import BaseModel, Field
 from ragent_forge.app.ports import VectorIndexWorkspace
 from ragent_forge.app.schema import add_schema_version, validate_schema_version
 from ragent_forge.app.storage import atomic_write_text, workspace_write_lock
+from ragent_forge.core.retrieval.contracts import ChunkRecord
 
 
 class VectorIndexRecord(BaseModel):
     schema_version: int = 1
+    snapshot_id: str | None = None
     chunk_id: str
     document_id: str
     source_path: str
@@ -30,13 +32,14 @@ class VectorIndexRecord(BaseModel):
     @classmethod
     def from_chunk(
         cls,
-        chunk: dict[str, Any],
+        chunk: ChunkRecord,
         embedding_provider: str,
         embedding_model: str,
         embedding: list[float],
     ) -> VectorIndexRecord:
         text = str(chunk.get("text", ""))
         return cls(
+            snapshot_id=_optional_string(chunk.get("snapshot_id")),
             chunk_id=str(chunk.get("chunk_id", "")),
             document_id=str(chunk.get("document_id", "")),
             source_path=str(chunk.get("source_path", "")),
@@ -68,6 +71,7 @@ class VectorIndexService:
         embedding_provider: str,
         embedding_model: str,
         chunks_path: Path,
+        snapshot_id: str | None = None,
     ) -> VectorIndexWriteResult:
         self.workspace.index_dir.mkdir(parents=True, exist_ok=True)
         lines = [
@@ -88,6 +92,7 @@ class VectorIndexService:
                 "built_at": _format_timestamp(datetime.now(UTC)),
                 "chunks_path": str(chunks_path),
                 "index_path": str(self.workspace.vector_index_path),
+                "snapshot_id": snapshot_id,
             }
         )
         with workspace_write_lock():
@@ -134,10 +139,26 @@ class VectorIndexService:
                 )
             validate_schema_version(payload, "vector index")
             records.append(VectorIndexRecord.model_validate(payload))
+        self.read_manifest()
+        active_snapshot_id = self.workspace.current_snapshot_id()
+        if active_snapshot_id is not None and records:
+            record_snapshot_ids = {
+                record.snapshot_id for record in records if record.snapshot_id
+            }
+            if record_snapshot_ids != {active_snapshot_id}:
+                raise ValueError(
+                    "Vector index snapshot mismatch: expected "
+                    f"{active_snapshot_id}, found {sorted(record_snapshot_ids)}"
+                )
         return records
 
     def read_manifest(self) -> dict[str, Any]:
         if not self.workspace.vector_index_manifest_path.is_file():
+            if self.workspace.current_snapshot_id() is not None:
+                raise ValueError(
+                    "Vector index manifest is missing for the active workspace "
+                    "snapshot"
+                )
             return {}
         try:
             manifest = json.loads(
@@ -154,6 +175,16 @@ class VectorIndexService:
                 f"{self.workspace.vector_index_manifest_path}: expected object"
             )
         validate_schema_version(manifest, "vector index manifest")
+        active_snapshot_id = self.workspace.current_snapshot_id()
+        manifest_snapshot_id = manifest.get("snapshot_id")
+        if (
+            active_snapshot_id is not None
+            and manifest_snapshot_id != active_snapshot_id
+        ):
+            raise ValueError(
+                "Vector index manifest snapshot mismatch: expected "
+                f"{active_snapshot_id}, found {manifest_snapshot_id}"
+            )
         return manifest
 
 
@@ -171,6 +202,12 @@ def _metadata(value: object) -> dict[str, Any]:
     if isinstance(value, dict):
         return value
     return {}
+
+
+def _optional_string(value: object) -> str | None:
+    if isinstance(value, str) and value:
+        return value
+    return None
 
 
 def _format_timestamp(value: datetime) -> str:

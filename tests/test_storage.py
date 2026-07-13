@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ragent_forge.app.storage import atomic_write_text
+from ragent_forge.infrastructure.storage import atomic_write_text
 
 
 def test_atomic_write_keeps_existing_file_when_replace_fails(
@@ -17,7 +17,10 @@ def test_atomic_write_keeps_existing_file_when_replace_fails(
     def fail_replace(_source: Path, _destination: Path) -> None:
         raise OSError("replace failed")
 
-    monkeypatch.setattr("ragent_forge.app.storage.os.replace", fail_replace)
+    monkeypatch.setattr(
+        "ragent_forge.infrastructure.storage.os.replace",
+        fail_replace,
+    )
 
     with pytest.raises(OSError, match="replace failed"):
         atomic_write_text(destination, '{"state": "new"}\n')

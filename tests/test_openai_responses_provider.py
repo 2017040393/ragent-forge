@@ -134,6 +134,9 @@ class SequencedFakeHttpClient:
             raise outcome
         return outcome
 
+    def is_transport_error(self, exc: Exception) -> bool:
+        return isinstance(exc, httpx.TransportError)
+
 
 def make_request() -> GenerationRequest:
     context_pack = build_context_pack(

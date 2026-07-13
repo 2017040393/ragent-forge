@@ -97,6 +97,77 @@ def test_read_vector_index_jsonl(tmp_path: Path) -> None:
     assert records == [record]
 
 
+def test_read_vector_index_rejects_workspace_snapshot_mismatch(
+    tmp_path: Path,
+) -> None:
+    workspace = make_index_workspace(tmp_path)
+    chunk = workspace.read_chunks()[0]
+    workspace.commit_snapshot("snapshot-current", "/knowledge", 1)
+    service = VectorIndexService(workspace)
+    service.write_index(
+        [
+            VectorIndexRecord.from_chunk(
+                chunk={**chunk, "snapshot_id": "snapshot-old"},
+                embedding_provider="openai_embeddings",
+                embedding_model="text-embedding-3-small",
+                embedding=[0.1, 0.2],
+            )
+        ],
+        embedding_provider="openai_embeddings",
+        embedding_model="text-embedding-3-small",
+        chunks_path=workspace.chunks_path,
+        snapshot_id="snapshot-current",
+    )
+
+    with pytest.raises(ValueError, match="Vector index snapshot mismatch"):
+        service.read_index()
+
+
+def test_read_empty_vector_index_accepts_matching_snapshot_manifest(
+    tmp_path: Path,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.commit_snapshot("snapshot-current", "/knowledge", 0)
+    service = VectorIndexService(workspace)
+    service.write_index(
+        [],
+        embedding_provider="openai_embeddings",
+        embedding_model="text-embedding-3-small",
+        chunks_path=workspace.chunks_path,
+        snapshot_id="snapshot-current",
+    )
+
+    assert service.read_index() == []
+
+
+def test_read_vector_index_also_validates_manifest_snapshot(
+    tmp_path: Path,
+) -> None:
+    workspace = make_index_workspace(tmp_path)
+    chunk = workspace.read_chunks()[0]
+    workspace.commit_snapshot("snapshot-current", "/knowledge", 1)
+    record = VectorIndexRecord.from_chunk(
+        chunk={**chunk, "snapshot_id": "snapshot-current"},
+        embedding_provider="openai_embeddings",
+        embedding_model="text-embedding-3-small",
+        embedding=[0.1, 0.2],
+    )
+    service = VectorIndexService(workspace)
+    service.write_index(
+        [record],
+        embedding_provider="openai_embeddings",
+        embedding_model="text-embedding-3-small",
+        chunks_path=workspace.chunks_path,
+        snapshot_id="snapshot-old",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Vector index manifest snapshot mismatch",
+    ):
+        service.read_index()
+
+
 def test_read_vector_index_raises_clear_error_for_corrupt_jsonl(
     tmp_path: Path,
 ) -> None:

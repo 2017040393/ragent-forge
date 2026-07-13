@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Protocol
-
-import httpx
+from typing import Protocol, cast
 
 from ragent_forge.app.models import AppConfig, EmbeddingResult
+from ragent_forge.app.ports import HttpPostClient, HttpResponse
 
 
 class EmbeddingProvider(Protocol):
@@ -33,17 +32,21 @@ class OpenAIEmbeddingsProvider:
         model: str,
         api_key: str,
         timeout_seconds: int = 60,
-        http_client: Any | None = None,
+        http_client: HttpPostClient | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.api_key = api_key
         self.timeout_seconds = timeout_seconds
-        self.http_client = http_client or httpx
+        self.http_client = http_client
 
     def embed_texts(self, texts: list[str]) -> EmbeddingResult:
         try:
-            response = self.http_client.post(
+            if self.http_client is None:
+                raise RuntimeError("HTTP client is not configured")
+            response = cast(
+                HttpResponse,
+                self.http_client.post(
                 f"{self.base_url}/embeddings",
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
@@ -54,6 +57,7 @@ class OpenAIEmbeddingsProvider:
                     "input": texts,
                 },
                 timeout=self.timeout_seconds,
+                ),
             )
             raise_for_status = getattr(response, "raise_for_status", None)
             if callable(raise_for_status):
@@ -132,7 +136,11 @@ class EmbeddingService:
         self.provider = provider or NoEmbeddingProvider()
 
     @classmethod
-    def from_config(cls, config: AppConfig) -> EmbeddingService:
+    def from_config(
+        cls,
+        config: AppConfig,
+        http_client: HttpPostClient | None = None,
+    ) -> EmbeddingService:
         embedding = config.embedding
         if embedding.provider == "none":
             return cls(NoEmbeddingProvider())
@@ -158,6 +166,7 @@ class EmbeddingService:
                     model=embedding.model,
                     api_key=embedding.api_key,
                     timeout_seconds=embedding.timeout_seconds,
+                    http_client=http_client,
                 )
             )
         raise ValueError(f"Unsupported embedding provider: {embedding.provider}")

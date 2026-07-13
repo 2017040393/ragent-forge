@@ -6,15 +6,18 @@ from collections.abc import Iterable, Iterator, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
 from types import TracebackType
-from typing import Any, Literal, Protocol, cast
-
-import httpx
+from typing import Literal, Protocol, cast
 
 from ragent_forge.app.models import (
     AppConfig,
     ContextPack,
     GenerationRequest,
     GenerationResult,
+)
+from ragent_forge.app.ports import (
+    HttpPostClient,
+    HttpStreamClient,
+    HttpTransportErrorClassifier,
 )
 
 GenerationStreamEventType = Literal["delta", "done"]
@@ -88,7 +91,7 @@ class OpenAIResponsesGenerationProvider:
         timeout_seconds: int = 60,
         temperature: float = 0.2,
         reasoning_effort: str | None = None,
-        http_client: Any | None = None,
+        http_client: HttpPostClient | HttpStreamClient | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -96,7 +99,7 @@ class OpenAIResponsesGenerationProvider:
         self.timeout_seconds = timeout_seconds
         self.temperature = temperature
         self.reasoning_effort = reasoning_effort
-        self.http_client = http_client or httpx
+        self.http_client = http_client
 
     def generate(self, request: GenerationRequest) -> GenerationResult:
         response = self._post(request)
@@ -217,7 +220,10 @@ class OpenAIResponsesGenerationProvider:
         last_error: Exception | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
-                response = self.http_client.post(
+                post_method = getattr(self.http_client, "post", None)
+                if not callable(post_method):
+                    raise RuntimeError("HTTP client does not support POST")
+                response = post_method(
                     f"{self.base_url}/responses",
                     headers=self._headers(),
                     json=body,
@@ -384,7 +390,9 @@ class OpenAIResponsesGenerationProvider:
         return event_type
 
     def _should_retry(self, exc: Exception) -> bool:
-        if isinstance(exc, httpx.TransportError):
+        if isinstance(
+            self.http_client, HttpTransportErrorClassifier
+        ) and self.http_client.is_transport_error(exc):
             return True
 
         message = str(exc)
@@ -441,7 +449,11 @@ class GenerationService:
         self.provider = provider or NullGenerationProvider()
 
     @classmethod
-    def from_config(cls, config: AppConfig) -> GenerationService:
+    def from_config(
+        cls,
+        config: AppConfig,
+        http_client: HttpPostClient | HttpStreamClient | None = None,
+    ) -> GenerationService:
         generation = config.generation
         provider_name = generation.provider
         if provider_name == "null":
@@ -473,6 +485,7 @@ class GenerationService:
                     timeout_seconds=generation.timeout_seconds,
                     temperature=generation.temperature,
                     reasoning_effort=generation.reasoning_effort,
+                    http_client=http_client,
                 )
             )
         raise ValueError(f"Unsupported generation provider: {provider_name}")

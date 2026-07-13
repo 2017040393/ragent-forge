@@ -11,6 +11,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Header, Input, Label, ListItem, ListView, Static
 from textual.worker import Worker, WorkerState
 
+from ragent_forge.app.composition import build_text_generation_client
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.session_service import (
     SessionService,
@@ -20,9 +21,6 @@ from ragent_forge.app.services.session_service import (
     TuiSessionRun,
     TuiSessionSource,
     TuiSessionSummary,
-)
-from ragent_forge.app.services.text_generation_client import (
-    OpenAIResponsesTextGenerationClient,
 )
 from ragent_forge.tui.commands import (
     TuiCommandSuggestionContext,
@@ -1312,7 +1310,7 @@ class RagentForgeApp(App[None]):
             config = ConfigService(self.session_service.workspace).load()
             if config.generation.provider != "openai_responses":
                 return _fallback_title_from_question(question)
-            client = OpenAIResponsesTextGenerationClient.from_config(config)
+            client = build_text_generation_client(config)
             raw_title = client.generate_text(
                 (
                     "Create a concise chat title under 8 words. "

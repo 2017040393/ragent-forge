@@ -14,6 +14,7 @@ from ragent_forge.app.services.generation_service import (
     GenerationStreamEvent,
 )
 from ragent_forge.app.services.search_service import LexicalSearchService, SearchResult
+from ragent_forge.core.retrieval.contracts import RetrievalRun
 
 
 class ProviderNameProtocol(Protocol):
@@ -48,11 +49,20 @@ class SearchServiceProtocol(Protocol):
         ...
 
 
+class RetrievalPipelineProtocol(Protocol):
+    def run(self, query: str, limit: int = 10) -> RetrievalRun:
+        ...
+
+    def count_chunks(self) -> int:
+        ...
+
+
 class AskRetrievalResult(BaseModel):
     question: str
     results: list[SearchResult]
     context_pack: ContextPack
     generation_result: GenerationResult
+    retrieval_run: RetrievalRun | None = None
     generation_status: Literal["not_implemented"] = "not_implemented"
 
 
@@ -63,6 +73,7 @@ class AskAnswerResult(BaseModel):
     generation_result: GenerationResult
     answer: str | None = None
     sources: list[SourceRef] = Field(default_factory=list)
+    retrieval_run: RetrievalRun | None = None
 
 
 AskStreamEventType = Literal["delta", "done"]
@@ -81,6 +92,7 @@ class AskService:
         workspace: ChunkReader,
         generation_service: GenerationServiceProtocol | None = None,
         search_service: SearchServiceProtocol | None = None,
+        retrieval_pipeline: RetrievalPipelineProtocol | None = None,
         retrieval_method: str = "lexical_token_overlap",
     ) -> None:
         self.workspace = workspace
@@ -88,6 +100,7 @@ class AskService:
             search_service or LexicalSearchService(workspace)
         )
         self.retrieval_method = retrieval_method
+        self.retrieval_pipeline = retrieval_pipeline
         self.generation_service: GenerationServiceProtocol = (
             generation_service or GenerationService()
         )
@@ -98,7 +111,7 @@ class AskService:
         limit: int = 5,
         max_context_chars: int = 4000,
     ) -> AskRetrievalResult:
-        results = self.search_service.search(question, limit)
+        results, retrieval_run = self._retrieve(question, limit)
         context_pack = build_context_pack(
             question,
             results,
@@ -115,6 +128,7 @@ class AskService:
             results=results,
             context_pack=context_pack,
             generation_result=generation_result,
+            retrieval_run=retrieval_run,
         )
 
     def ask(
@@ -129,6 +143,7 @@ class AskService:
             results=retrieval.results,
             context_pack=retrieval.context_pack,
             generation_result=retrieval.generation_result,
+            retrieval_run=retrieval.retrieval_run,
         )
 
     def stream_answer(
@@ -137,7 +152,7 @@ class AskService:
         limit: int = 5,
         max_context_chars: int = 4000,
     ) -> Iterator[AskStreamEvent]:
-        results = self.search_service.search(question, limit)
+        results, retrieval_run = self._retrieve(question, limit)
         context_pack = build_context_pack(
             question,
             results,
@@ -152,6 +167,7 @@ class AskService:
                     results=results,
                     context_pack=context_pack,
                     generation_result=self._skip_generation(),
+                    retrieval_run=retrieval_run,
                 ),
             )
             return
@@ -177,6 +193,7 @@ class AskService:
                 results=results,
                 context_pack=context_pack,
                 generation_result=generation_result,
+                retrieval_run=retrieval_run,
             ),
         )
 
@@ -186,17 +203,31 @@ class AskService:
         workspace: ChunkReader,
         generation_service: GenerationServiceProtocol | None = None,
         search_service: SearchServiceProtocol | None = None,
+        retrieval_pipeline: RetrievalPipelineProtocol | None = None,
         retrieval_method: str = "lexical_token_overlap",
     ) -> AskService:
         return cls(
             workspace=workspace,
             generation_service=generation_service or GenerationService(),
             search_service=search_service,
+            retrieval_pipeline=retrieval_pipeline,
             retrieval_method=retrieval_method,
         )
 
     def count_chunks(self) -> int:
+        if self.retrieval_pipeline is not None:
+            return self.retrieval_pipeline.count_chunks()
         return self.search_service.count_chunks()
+
+    def _retrieve(
+        self,
+        question: str,
+        limit: int,
+    ) -> tuple[list[SearchResult], RetrievalRun | None]:
+        if self.retrieval_pipeline is None:
+            return self.search_service.search(question, limit), None
+        retrieval_run = self.retrieval_pipeline.run(question, limit)
+        return retrieval_run.results, retrieval_run
 
     def _skip_generation(self) -> GenerationResult:
         return GenerationResult(
@@ -225,6 +256,7 @@ class AskService:
         results: list[SearchResult],
         context_pack: ContextPack,
         generation_result: GenerationResult,
+        retrieval_run: RetrievalRun | None = None,
     ) -> AskAnswerResult:
         return AskAnswerResult(
             question=question,
@@ -240,4 +272,5 @@ class AskService:
                 )
                 for result in results
             ],
+            retrieval_run=retrieval_run,
         )

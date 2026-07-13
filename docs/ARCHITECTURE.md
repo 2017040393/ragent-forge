@@ -26,7 +26,11 @@ CLI commands, and a command-first TUI Shell.
 local documents
 -> ingest
 -> deterministic chunks
--> lexical / BM25 / semantic / hybrid retrieval
+-> normalize query
+-> candidate retrieval
+-> deduplicate
+-> optional rerank
+-> context selection
 -> context pack
 -> optional generation
 -> answer + sources
@@ -76,6 +80,23 @@ retrieval cases.
 These services keep CLI and TUI code thin and reduce duplication between
 presentation surfaces.
 
+Application services depend on ports rather than on a concrete filesystem or
+HTTP library. The composition module wires those ports to the adapters in
+`src/ragent_forge/infrastructure/`. `app/workspace.py` and `app/storage.py`
+remain compatibility import facades for older callers; new presentation code
+uses the infrastructure adapters through composition.
+
+The dependency direction is one-way:
+
+```text
+CLI / TUI -> application -> core
+                    \-> ports <- infrastructure adapters
+```
+
+The infrastructure layer contains the local filesystem workspace, atomic
+storage helpers, and the HTTPX client. This keeps provider and workspace
+implementations replaceable in tests and in future hosted deployments.
+
 ### Composition and Dependency Rules
 
 Retrieval service construction lives in `app/composition.py`. CLI and TUI use
@@ -96,7 +117,23 @@ The architecture tests enforce these import boundaries.
 
 ### Retrieval Services
 
-Retrieval is explicit and mode-based:
+Retrieval is explicit, mode-based, and represented by typed contracts in
+`core/retrieval/contracts.py`. A search run is observable as these stages:
+
+1. query normalization;
+2. candidate retrieval through the selected lexical, BM25, semantic, or hybrid
+   service;
+3. candidate deduplication by chunk id;
+4. an explicit rerank stage, currently recorded as skipped when no reranker is
+   configured;
+5. context selection to the requested limit;
+6. trace finalization.
+
+Each run carries typed chunk candidates, source coordinates, stage status,
+inputs, outputs, and latency. Search, Ask, TUI search, and retrieval eval share
+the same pipeline, so their traces describe the same retrieval semantics.
+
+The retrieval modes themselves are:
 
 - `lexical` uses deterministic token overlap over local chunks.
 - `semantic` uses cosine similarity over the local JSONL vector index.
@@ -128,11 +165,20 @@ in-process write lock for related updates. Versioned workspace state artifacts
 carry `schema_version = 1`; readers continue to accept legacy files without a
 version and reject versions newer than the supported format.
 
+In addition, ingest creates a workspace snapshot. The manifest at
+`.ragent/snapshot.json` records the active snapshot id, source path, creation
+time, and chunk count. Chunks, ingest summaries, traces, and vector-index
+records/manifests reference that same id. Readers reject mixed generations and
+reject snapshot-tagged artifacts when the manifest has not been committed.
+This gives the workspace a coherent generation boundary even though its
+individual files remain plain JSON/JSONL files.
+
 Important workspace files include:
 
 ```text
 .ragent/chunks/chunks.jsonl
 .ragent/ingest/latest_summary.json
+.ragent/snapshot.json
 .ragent/config.toml
 .ragent/index/vector_index.jsonl
 .ragent/index/vector_index_manifest.json
@@ -275,11 +321,12 @@ as ingest/index/eval/config mutation.
 The TUI is not a dashboard and does not mutate backend state beyond its local
 transcript/session state.
 
-## Future Extension Points
+## Current v0.3 Foundation and Future Extension Points
 
-v0.3 is expected to add typed document and project-memory sources and mature
-retrieval into inspectable query-processing, candidate retrieval,
-deduplication, optional reranking, and context-selection stages. v0.4 can then
-build controlled query refinement and iterative retrieval on those explicit
-stages. v0.5 is expected to add local comparison views for retrieval and answer
-quality. These are extension points, not current v0.2 capabilities.
+The current architecture provides the typed retrieval contracts, explicit
+single-pass stages, snapshot consistency boundary, and adapter seams needed by
+v0.3. The reranker is deliberately a skipped stage until an implementation is
+configured. v0.3 can add typed document and project-memory sources on the same
+pipeline. v0.4 can build controlled query refinement and iterative retrieval on
+these explicit stages. v0.5 is expected to add local comparison views for
+retrieval and answer quality.

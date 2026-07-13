@@ -68,7 +68,7 @@ def install_fake_embedding_post(monkeypatch):
         )
 
     monkeypatch.setattr(
-        "ragent_forge.app.services.embedding_service.httpx.post",
+        "ragent_forge.infrastructure.http_client.default_http_client.post",
         fake_post,
     )
     return calls
@@ -3718,7 +3718,7 @@ def test_ask_command_with_openai_responses_prints_answer_sources_and_trace_metad
         return FakeResponse()
 
     monkeypatch.setattr(
-        "ragent_forge.app.services.generation_service.httpx.post",
+        "ragent_forge.infrastructure.http_client.default_http_client.post",
         fake_post,
     )
 
@@ -3777,7 +3777,7 @@ def test_ask_command_openai_no_match_skips_provider_and_keeps_trace_safe(
         raise AssertionError("provider should not be called")
 
     monkeypatch.setattr(
-        "ragent_forge.app.services.generation_service.httpx.post",
+        "ragent_forge.infrastructure.http_client.default_http_client.post",
         fake_post,
     )
 
@@ -3859,7 +3859,7 @@ def test_ask_command_openai_provider_failure_keeps_old_trace(
         raise RuntimeError("boom super-secret-key")
 
     monkeypatch.setattr(
-        "ragent_forge.app.services.generation_service.httpx.post",
+        "ragent_forge.infrastructure.http_client.default_http_client.post",
         fake_post,
     )
 

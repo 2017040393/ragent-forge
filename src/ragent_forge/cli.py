@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
@@ -11,7 +11,10 @@ from rich.console import Console
 
 from ragent_forge.app.composition import (
     RetrievalRuntime,
+    build_embedding_service,
+    build_generation_service,
     build_retrieval_runtime,
+    build_text_generation_client,
 )
 from ragent_forge.app.models import (
     AppConfig,
@@ -24,7 +27,6 @@ from ragent_forge.app.services.ask_service import (
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.context_service import build_generation_prompt
-from ragent_forge.app.services.embedding_service import EmbeddingService
 from ragent_forge.app.services.eval_dataset_generation_service import (
     EvalDatasetGenerationReport,
     EvalDatasetGenerationService,
@@ -32,7 +34,6 @@ from ragent_forge.app.services.eval_dataset_generation_service import (
     write_jsonl,
 )
 from ragent_forge.app.services.evidence_span_service import EvidenceSpanService
-from ragent_forge.app.services.generation_service import GenerationService
 from ragent_forge.app.services.index_service import IndexBuildService
 from ragent_forge.app.services.ingest_service import IngestService
 from ragent_forge.app.services.retrieval_compare_service import (
@@ -46,9 +47,6 @@ from ragent_forge.app.services.retrieval_eval_service import (
 from ragent_forge.app.services.search_service import (
     SearchResult,
 )
-from ragent_forge.app.services.text_generation_client import (
-    OpenAIResponsesTextGenerationClient,
-)
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
 from ragent_forge.app.services.trace_service import (
     build_ask_retrieval_trace,
@@ -59,11 +57,12 @@ from ragent_forge.app.services.trace_service import (
 )
 from ragent_forge.app.services.vector_index_service import VectorIndexService
 from ragent_forge.app.source_labels import format_source_label, format_source_range
-from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.core.retrieval.contracts import RetrievalRun
 from ragent_forge.core.retrieval.types import (
     RETRIEVAL_MODES,
     RetrievalMode,
 )
+from ragent_forge.infrastructure.local_workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
 
 RETRIEVAL_CHOICES = list(RETRIEVAL_MODES)
@@ -470,8 +469,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 1
 
         workspace = LocalWorkspace(args.workspace)
-        chunks_path = workspace.write_chunks(result.chunks)
-        summary_path = workspace.write_ingest_summary(result)
+        snapshot_id = workspace.new_snapshot_id()
+        chunks_path = workspace.write_chunks(result.chunks, snapshot_id)
+        summary_path = workspace.write_ingest_summary(result, snapshot_id)
         finished_at = datetime.now(UTC)
         trace = build_ingest_trace(
             result=result,
@@ -479,8 +479,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             summary_path=summary_path,
             started_at=started_at,
             finished_at=finished_at,
+            snapshot_id=snapshot_id,
         )
-        trace_path = workspace.write_trace(trace)
+        trace_path = workspace.write_trace(trace, snapshot_id)
+        workspace.commit_snapshot(
+            snapshot_id,
+            result.source_path,
+            result.chunk_count,
+        )
 
         console.print("[bold green]Ingest complete[/bold green]")
         console.print(f"Source: [cyan]{result.source_path}[/cyan]")
@@ -492,6 +498,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         console.print(f"Saved chunks to: {chunks_path}")
         console.print(f"Saved summary to: {summary_path}")
         console.print(f"Saved trace to: {trace_path}")
+        console.print(f"Workspace snapshot: {snapshot_id}")
         return 0
 
     if args.command == "status":
@@ -720,7 +727,7 @@ def _handle_chunks_show(
     return 0
 
 
-def _format_char_range(chunk: dict[str, object]) -> str:
+def _format_char_range(chunk: Mapping[str, object]) -> str:
     start_char = chunk.get("start_char")
     end_char = chunk.get("end_char")
     metadata = chunk.get("metadata")
@@ -862,7 +869,7 @@ def _handle_index_build(console: Console, workspace_path: str) -> int:
     started_at = datetime.now(UTC)
     try:
         config = ConfigService(workspace).load()
-        embedding_service = EmbeddingService.from_config(config)
+        embedding_service = build_embedding_service(config)
         result = IndexBuildService(
             workspace,
             embedding_service=embedding_service,
@@ -885,6 +892,7 @@ def _handle_index_build(console: Console, workspace_path: str) -> int:
         batch_size=result.batch_size,
         started_at=started_at,
         finished_at=finished_at,
+        snapshot_id=result.snapshot_id,
     )
     trace_path = workspace.write_trace(trace)
 
@@ -985,7 +993,7 @@ def _parse_positive_int_list(value: str, *, option_name: str) -> list[int]:
 
 def _build_text_generation_client(config: AppConfig) -> TextGenerationClient:
     if config.generation.provider == "openai_responses":
-        return OpenAIResponsesTextGenerationClient.from_config(config)
+        return build_text_generation_client(config)
     raise ValueError(f"Unsupported generation provider: {config.generation.provider}")
 
 
@@ -1229,7 +1237,7 @@ def _handle_eval_compare(
                 )
                 report = eval_service.evaluate(
                     cases=cases,
-                    search_service=built_search.search_service,
+                    search_service=built_search.retrieval_pipeline,
                     limit=top_k,
                     retrieval_mode=retrieval_mode,
                     retrieval_method=built_search.retrieval_method,
@@ -1679,7 +1687,8 @@ def _handle_search(
             limit,
         )
 
-        results = built_search.search_service.search(query, limit)
+        retrieval_run = built_search.retrieval_pipeline.run(query, limit)
+        results = retrieval_run.results
         total_chunks = built_search.search_service.count_chunks()
     except (OSError, RuntimeError, ValueError) as exc:
         failure_label = (
@@ -1714,6 +1723,7 @@ def _handle_search(
         embedding_provider=built_search.embedding_provider,
         embedding_model=built_search.embedding_model,
         index_path=built_search.index_path,
+        retrieval_stages=_retrieval_stage_payloads(retrieval_run),
     )
     trace_path = workspace.write_trace(trace)
 
@@ -1755,6 +1765,17 @@ def _format_search_range(
     return format_source_range(start_char, end_char, metadata)
 
 
+def _retrieval_stage_payloads(
+    retrieval_run: RetrievalRun | None,
+) -> list[dict[str, object]] | None:
+    if retrieval_run is None:
+        return None
+    return [
+        {str(key): value for key, value in stage.model_dump(mode="json").items()}
+        for stage in retrieval_run.stages
+    ]
+
+
 def _handle_ask(
     console: Console,
     workspace_path: str,
@@ -1772,7 +1793,7 @@ def _handle_ask(
     started_at = datetime.now(UTC)
     try:
         config = ConfigService(workspace).load()
-        generation_service = GenerationService.from_config(config)
+        generation_service = build_generation_service(config)
         if retrieval in {"semantic", "hybrid"} and not workspace.has_vector_index():
             console.print(
                 "Ask failed: vector index not found. "
@@ -1790,7 +1811,8 @@ def _handle_ask(
         ask_service = AskService(
             workspace,
             generation_service=generation_service,
-            search_service=built_search.search_service,
+            search_service=built_search.retrieval_pipeline,
+            retrieval_pipeline=built_search.retrieval_pipeline,
             retrieval_method=built_search.retrieval_method,
         )
         result = ask_service.ask(question, limit, max_context_chars)
@@ -1827,6 +1849,11 @@ def _handle_ask(
         embedding_provider=built_search.embedding_provider,
         embedding_model=built_search.embedding_model,
         index_path=built_search.index_path,
+        retrieval_stages=(
+            _retrieval_stage_payloads(result.retrieval_run)
+            if result.retrieval_run is not None
+            else None
+        ),
     )
     trace_path = workspace.write_trace(trace)
 

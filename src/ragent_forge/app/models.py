@@ -172,3 +172,4 @@ class WorkspaceStatus(BaseModel):
     summary: dict[str, Any] = Field(default_factory=dict)
     chunk_count_from_file: int | None = None
     missing_files: list[str] = Field(default_factory=list)
+    snapshot_id: str | None = None

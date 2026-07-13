@@ -11,6 +11,7 @@ from ragent_forge.app.services.vector_index_service import (
     VectorIndexRecord,
     VectorIndexService,
 )
+from ragent_forge.core.retrieval.contracts import ChunkRecord
 
 
 class IndexBuildResult(BaseModel):
@@ -22,6 +23,7 @@ class IndexBuildResult(BaseModel):
     manifest_path: Path
     chunks_path: Path
     batch_size: int
+    snapshot_id: str | None = None
 
 
 class IndexBuildService:
@@ -54,6 +56,7 @@ class IndexBuildService:
             raise ValueError("embedding.batch_size must be greater than 0")
 
         chunks = self.workspace.read_chunks()
+        snapshot_id = self.workspace.current_snapshot_id()
         records: list[VectorIndexRecord] = []
         for batch in _batched(chunks, batch_size):
             texts = [str(chunk.get("text", "")) for chunk in batch]
@@ -82,6 +85,7 @@ class IndexBuildService:
             embedding_provider=embedding_provider,
             embedding_model=embedding_model,
             chunks_path=self.workspace.chunks_path,
+            snapshot_id=snapshot_id,
         )
         return IndexBuildResult(
             embedding_provider=embedding_provider,
@@ -92,13 +96,14 @@ class IndexBuildService:
             manifest_path=write_result.manifest_path,
             chunks_path=self.workspace.chunks_path,
             batch_size=batch_size,
+            snapshot_id=snapshot_id,
         )
 
 
 def _batched(
-    chunks: list[dict[str, Any]],
+    chunks: list[ChunkRecord],
     batch_size: int,
-) -> list[list[dict[str, Any]]]:
+) -> list[list[ChunkRecord]]:
     return [
         chunks[start : start + batch_size]
         for start in range(0, len(chunks), batch_size)

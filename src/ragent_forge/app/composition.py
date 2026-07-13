@@ -8,11 +8,15 @@ from ragent_forge.app.models import AppConfig
 from ragent_forge.app.ports import ApplicationWorkspace
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.embedding_service import EmbeddingService
+from ragent_forge.app.services.generation_service import GenerationService
 from ragent_forge.app.services.hybrid_search_service import (
     HybridDenseMethod,
     HybridSearchConfig,
     HybridSearchService,
     HybridSparseMethod,
+)
+from ragent_forge.app.services.retrieval_pipeline_service import (
+    RetrievalPipelineService,
 )
 from ragent_forge.app.services.search_service import (
     BM25SearchService,
@@ -20,7 +24,11 @@ from ragent_forge.app.services.search_service import (
     SearchResult,
 )
 from ragent_forge.app.services.semantic_search_service import SemanticSearchService
+from ragent_forge.app.services.text_generation_client import (
+    OpenAIResponsesTextGenerationClient,
+)
 from ragent_forge.core.retrieval.types import RetrievalMethod, RetrievalMode
+from ragent_forge.infrastructure.http_client import default_http_client
 
 
 class SearchService(Protocol):
@@ -34,6 +42,7 @@ class SearchService(Protocol):
 @dataclass(frozen=True)
 class RetrievalRuntime:
     search_service: SearchService
+    retrieval_pipeline: RetrievalPipelineService
     retrieval_mode: RetrievalMode
     retrieval_method: RetrievalMethod
     embedding_provider: str | None = None
@@ -58,14 +67,28 @@ def build_retrieval_runtime(
     config: AppConfig | None = None,
 ) -> RetrievalRuntime:
     if mode == "lexical":
+        search_service = LexicalSearchService(workspace)
         return RetrievalRuntime(
-            search_service=LexicalSearchService(workspace),
+            search_service=search_service,
+            retrieval_pipeline=RetrievalPipelineService(
+                search_service,
+                mode,
+                "lexical_token_overlap",
+                _snapshot_id(workspace),
+            ),
             retrieval_mode=mode,
             retrieval_method="lexical_token_overlap",
         )
     if mode == "bm25":
+        search_service = BM25SearchService(workspace)
         return RetrievalRuntime(
-            search_service=BM25SearchService(workspace),
+            search_service=search_service,
+            retrieval_pipeline=RetrievalPipelineService(
+                search_service,
+                mode,
+                "bm25",
+                _snapshot_id(workspace),
+            ),
             retrieval_mode=mode,
             retrieval_method="bm25",
         )
@@ -73,11 +96,17 @@ def build_retrieval_runtime(
     resolved_config = config or ConfigService(workspace).load()
     semantic_search_service = SemanticSearchService(
         workspace,
-        EmbeddingService.from_config(resolved_config),
+        build_embedding_service(resolved_config),
     )
     if mode == "semantic":
         return RetrievalRuntime(
             search_service=semantic_search_service,
+            retrieval_pipeline=RetrievalPipelineService(
+                semantic_search_service,
+                mode,
+                "semantic_cosine_similarity",
+                _snapshot_id(workspace),
+            ),
             retrieval_mode=mode,
             retrieval_method="semantic_cosine_similarity",
             embedding_provider=resolved_config.embedding.provider,
@@ -93,6 +122,12 @@ def build_retrieval_runtime(
     )
     return RetrievalRuntime(
         search_service=hybrid_search_service,
+        retrieval_pipeline=RetrievalPipelineService(
+            hybrid_search_service,
+            mode,
+            "hybrid_rrf",
+            _snapshot_id(workspace),
+        ),
         retrieval_mode=mode,
         retrieval_method="hybrid_rrf",
         embedding_provider=resolved_config.embedding.provider,
@@ -107,4 +142,35 @@ def build_retrieval_runtime(
         lexical_weight=hybrid_config.lexical_weight,
         semantic_weight=hybrid_config.semantic_weight,
         candidate_limit=hybrid_search_service.candidate_limit_for(limit),
+    )
+
+
+def _snapshot_id(workspace: ApplicationWorkspace) -> str | None:
+    current_snapshot = getattr(workspace, "current_snapshot_id", None)
+    if not callable(current_snapshot):
+        return None
+    value = current_snapshot()
+    return value if isinstance(value, str) else None
+
+
+def build_embedding_service(config: AppConfig) -> EmbeddingService:
+    return EmbeddingService.from_config(
+        config,
+        http_client=default_http_client,
+    )
+
+
+def build_generation_service(config: AppConfig) -> GenerationService:
+    return GenerationService.from_config(
+        config,
+        http_client=default_http_client,
+    )
+
+
+def build_text_generation_client(
+    config: AppConfig,
+) -> OpenAIResponsesTextGenerationClient:
+    return OpenAIResponsesTextGenerationClient.from_config(
+        config,
+        http_client=default_http_client,
     )

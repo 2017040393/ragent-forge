@@ -4,7 +4,7 @@ from textual.widgets import Static
 
 from ragent_forge.app.models import WorkspaceStatus
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
-from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.infrastructure.local_workspace import LocalWorkspace
 
 
 def load_workspace_status_text(workspace_path: str | Path = ".ragent") -> str:

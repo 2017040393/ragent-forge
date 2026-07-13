@@ -44,3 +44,31 @@ def test_application_does_not_depend_on_presentation_layers() -> None:
             "ragent_forge.tui",
         ),
     )
+
+
+def test_httpx_dependency_is_confined_to_infrastructure_adapter() -> None:
+    violations: list[str] = []
+    for layer in ("app", "core", "tui"):
+        for path in sorted((PACKAGE_ROOT / layer).rglob("*.py")):
+            if "httpx" in _imported_modules(path):
+                violations.append(str(path.relative_to(PACKAGE_ROOT)))
+    assert violations == []
+
+
+def test_infrastructure_does_not_depend_on_presentation_layers() -> None:
+    _assert_layer_avoids(
+        "infrastructure",
+        (
+            "ragent_forge.cli",
+            "ragent_forge.tui",
+        ),
+    )
+
+
+def test_application_services_do_not_import_infrastructure_adapters() -> None:
+    violations: list[str] = []
+    for path in sorted((PACKAGE_ROOT / "app" / "services").rglob("*.py")):
+        for module in _imported_modules(path):
+            if module.startswith("ragent_forge.infrastructure"):
+                violations.append(f"{path.relative_to(PACKAGE_ROOT)} -> {module}")
+    assert violations == []

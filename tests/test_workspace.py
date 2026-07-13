@@ -89,6 +89,54 @@ def test_write_ingest_summary_writes_valid_json(tmp_path: Path) -> None:
     }
 
 
+def test_commit_snapshot_writes_active_manifest(tmp_path: Path) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+
+    manifest_path = workspace.commit_snapshot(
+        "snapshot-20260713T000000Z-test",
+        "/knowledge",
+        2,
+    )
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["schema_version"] == 1
+    assert manifest["snapshot_id"] == "snapshot-20260713T000000Z-test"
+    assert manifest["source_path"] == "/knowledge"
+    assert manifest["chunk_count"] == 2
+    assert workspace.current_snapshot_id() == manifest["snapshot_id"]
+
+
+def test_read_chunks_rejects_snapshot_mismatch(tmp_path: Path) -> None:
+    result = make_ingest_result()
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.write_chunks(result.chunks, "snapshot-old")
+    workspace.commit_snapshot("snapshot-current", result.source_path, 2)
+
+    with pytest.raises(ValueError, match="Workspace snapshot mismatch"):
+        workspace.read_chunks()
+
+
+def test_read_ingest_summary_rejects_snapshot_mismatch(tmp_path: Path) -> None:
+    result = make_ingest_result()
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.write_ingest_summary(result, "snapshot-old")
+    workspace.commit_snapshot("snapshot-current", result.source_path, 2)
+
+    with pytest.raises(ValueError, match="Workspace snapshot mismatch"):
+        workspace.read_ingest_summary()
+
+
+def test_snapshot_tagged_artifact_requires_committed_manifest(
+    tmp_path: Path,
+) -> None:
+    result = make_ingest_result()
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.write_chunks(result.chunks, "snapshot-uncommitted")
+
+    with pytest.raises(ValueError, match="snapshot manifest is missing"):
+        workspace.read_chunks()
+
+
 def test_read_chunks_reads_valid_jsonl(tmp_path: Path) -> None:
     result = make_ingest_result()
     workspace = LocalWorkspace(tmp_path / ".ragent")

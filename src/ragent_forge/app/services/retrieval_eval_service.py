@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import math
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Literal, Protocol, Self
 
@@ -44,7 +44,7 @@ class SearchServiceProtocol(Protocol):
 
 
 class WorkspaceChunksProtocol(Protocol):
-    def read_chunks(self) -> list[dict[str, Any]]:
+    def read_chunks(self) -> Sequence[Mapping[str, object]]:
         ...
 
 
@@ -448,8 +448,14 @@ def _read_chunks_for_evidence_spans(
     if not any(case.evidence_spans for case in cases):
         return None
     if workspace is not None:
-        return workspace.read_chunks()
-    return LocalWorkspace(workspace_path).read_chunks()
+        return [
+            {str(key): value for key, value in record.items()}
+            for record in workspace.read_chunks()
+        ]
+    return [
+        {str(key): value for key, value in record.items()}
+        for record in LocalWorkspace(workspace_path).read_chunks()
+    ]
 
 
 def _evidence_span_mapping_metadata(

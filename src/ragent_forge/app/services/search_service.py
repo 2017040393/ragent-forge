@@ -6,20 +6,13 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
-from pydantic import BaseModel, Field
-
 from ragent_forge.app.ports import ChunkReader
+from ragent_forge.core.retrieval.contracts import (
+    ChunkRecord,
+    RetrievalCandidate,
+)
 
-
-class SearchResult(BaseModel):
-    chunk_id: str
-    document_id: str
-    source_path: str
-    start_char: int | None = None
-    end_char: int | None = None
-    score: float
-    text: str
-    metadata: dict[str, Any] = Field(default_factory=dict)
+SearchResult = RetrievalCandidate
 
 
 class LexicalSearchService:
@@ -165,14 +158,14 @@ class BM25SearchService:
 
 @dataclass(frozen=True)
 class _BM25Chunk:
-    record: dict[str, Any]
+    record: ChunkRecord
     text: str
     tokens: list[str]
     term_frequencies: Counter[str]
     length: int
 
     @classmethod
-    def from_record(cls, record: dict[str, Any]) -> _BM25Chunk:
+    def from_record(cls, record: ChunkRecord) -> _BM25Chunk:
         text = str(record.get("text", ""))
         tokens = tokenize(text)
         return cls(

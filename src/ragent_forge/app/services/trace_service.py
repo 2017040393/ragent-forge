@@ -28,6 +28,7 @@ def build_ingest_trace(
     summary_path: Path,
     started_at: datetime,
     finished_at: datetime,
+    snapshot_id: str | None = None,
 ) -> OperationTrace:
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
@@ -41,6 +42,8 @@ def build_ingest_trace(
         "chunks_path": str(chunks_path),
         "summary_path": str(summary_path),
     }
+    if snapshot_id is not None:
+        metadata["snapshot_id"] = snapshot_id
     pdf_summary = result.metadata.get("pdf")
     if isinstance(pdf_summary, dict):
         metadata["pdf"] = pdf_summary
@@ -145,6 +148,7 @@ def build_search_trace(
     embedding_provider: str | None = None,
     embedding_model: str | None = None,
     index_path: Path | None = None,
+    retrieval_stages: list[dict[str, object]] | None = None,
 ) -> OperationTrace:
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
@@ -177,6 +181,8 @@ def build_search_trace(
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
+    if retrieval_stages is not None:
+        metadata["retrieval_pipeline"] = retrieval_stages
     steps = _build_search_steps(
         query=query,
         limit=limit,
@@ -229,6 +235,7 @@ def build_retrieval_eval_trace(
     embedding_provider: str | None = None,
     embedding_model: str | None = None,
     index_path: Path | None = None,
+    retrieval_stages: list[dict[str, object]] | None = None,
 ) -> OperationTrace:
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
@@ -288,6 +295,8 @@ def build_retrieval_eval_trace(
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
+    if retrieval_stages is not None:
+        metadata["retrieval_pipeline"] = retrieval_stages
 
     return OperationTrace(
         trace_id=f"retrieval-eval-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
@@ -377,6 +386,7 @@ def build_ask_retrieval_trace(
     embedding_provider: str | None = None,
     embedding_model: str | None = None,
     index_path: Path | None = None,
+    retrieval_stages: list[dict[str, object]] | None = None,
 ) -> OperationTrace:
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
@@ -420,6 +430,8 @@ def build_ask_retrieval_trace(
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
+    if retrieval_stages is not None:
+        metadata["retrieval_pipeline"] = retrieval_stages
     metadata.update(_generation_metadata(generation_result.metadata))
     if generation_result.status == "success":
         metadata["source_count"] = len(retrieved_chunk_ids)
@@ -462,6 +474,7 @@ def build_index_build_trace(
     batch_size: int,
     started_at: datetime,
     finished_at: datetime,
+    snapshot_id: str | None = None,
 ) -> OperationTrace:
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
@@ -474,6 +487,8 @@ def build_index_build_trace(
         "chunks_path": str(chunks_path),
         "batch_size": batch_size,
     }
+    if snapshot_id is not None:
+        metadata["snapshot_id"] = snapshot_id
     return OperationTrace(
         trace_id=f"index-build-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
         operation="index_build",

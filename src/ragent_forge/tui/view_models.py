@@ -7,6 +7,7 @@ from typing import Any, Literal, cast
 
 from ragent_forge.app.composition import (
     RetrievalRuntime,
+    build_generation_service,
     build_retrieval_runtime,
 )
 from ragent_forge.app.models import AppConfig, GenerationResult, WorkspaceStatus
@@ -23,11 +24,12 @@ from ragent_forge.app.source_labels import (
     format_source_label,
     format_source_metadata,
 )
-from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.core.retrieval.contracts import ChunkRecord
 from ragent_forge.core.retrieval.types import (
     RetrievalMode,
     normalize_retrieval_mode,
 )
+from ragent_forge.infrastructure.local_workspace import LocalWorkspace
 
 NO_CHUNKS_MESSAGE = "\n".join(
     [
@@ -310,7 +312,7 @@ def _documents_model_from_status(
     )
 
 
-def _chunk_row(index: int, chunk: dict[str, Any]) -> ChunkRow:
+def _chunk_row(index: int, chunk: ChunkRecord) -> ChunkRow:
     source_path = str(chunk.get("source_path", ""))
     return ChunkRow(
         index=index,
@@ -438,9 +440,13 @@ def run_tui_search(
             mode,
             limit=safe_limit,
         )
+        retrieval_run = retrieval.retrieval_pipeline.run(
+            normalized_query,
+            safe_limit,
+        )
         results = [
             _with_default_retrieval_method(result, retrieval.retrieval_method)
-            for result in retrieval.search_service.search(normalized_query, safe_limit)
+            for result in retrieval_run.results
         ]
     except (OSError, RuntimeError, ValueError):
         return SearchPageState(
@@ -556,7 +562,7 @@ def stream_tui_ask(
             limit=safe_limit,
             config=config,
         )
-        generation_service = GenerationService.from_config(config)
+        generation_service = build_generation_service(config)
         safe_generation_service = GenerationService(
             _SafeTuiGenerationProvider(generation_service.provider)
         )
@@ -564,6 +570,7 @@ def stream_tui_ask(
             workspace=workspace,
             generation_service=safe_generation_service,
             search_service=retrieval.search_service,
+            retrieval_pipeline=retrieval.retrieval_pipeline,
             retrieval_method=retrieval.retrieval_method,
         )
         answer_result: AskAnswerResult | None = None

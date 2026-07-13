@@ -7,7 +7,7 @@ from textual.widgets import Static
 
 from ragent_forge.app.models import TraceListResult
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
-from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.infrastructure.local_workspace import LocalWorkspace
 
 
 def load_latest_trace_text(workspace_path: str | Path = ".ragent") -> str:

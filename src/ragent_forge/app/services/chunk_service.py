@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import re
-from typing import Any
 
 from ragent_forge.app.ports import ChunkReader
+from ragent_forge.core.retrieval.contracts import ChunkRecord
 
 
 class ChunkService:
     def __init__(self, workspace: ChunkReader) -> None:
         self.workspace = workspace
 
-    def list_chunks(self, limit: int = 20) -> list[dict[str, Any]]:
+    def list_chunks(self, limit: int = 20) -> list[ChunkRecord]:
         if limit < 0:
             raise ValueError("limit must be greater than or equal to 0")
         return self.workspace.read_chunks()[:limit]
@@ -18,7 +18,7 @@ class ChunkService:
     def count_chunks(self) -> int:
         return len(self.workspace.read_chunks())
 
-    def get_chunk(self, chunk_id: str) -> dict[str, Any] | None:
+    def get_chunk(self, chunk_id: str) -> ChunkRecord | None:
         for chunk in self.workspace.read_chunks():
             if chunk.get("chunk_id") == chunk_id:
                 return chunk

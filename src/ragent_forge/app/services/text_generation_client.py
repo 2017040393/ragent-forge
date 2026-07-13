@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ragent_forge.app.models import AppConfig
+from ragent_forge.app.ports import HttpPostClient, HttpStreamClient
 from ragent_forge.app.services.eval_dataset_generation_service import SYSTEM_PROMPT
 from ragent_forge.app.services.generation_service import (
     OpenAIResponsesGenerationProvider,
@@ -111,7 +112,11 @@ class OpenAIResponsesTextGenerationClient(OpenAIResponsesGenerationProvider):
         return events
 
     @classmethod
-    def from_config(cls, config: AppConfig) -> OpenAIResponsesTextGenerationClient:
+    def from_config(
+        cls,
+        config: AppConfig,
+        http_client: HttpPostClient | HttpStreamClient | None = None,
+    ) -> OpenAIResponsesTextGenerationClient:
         generation = config.generation
         if generation.provider != "openai_responses":
             raise ValueError(f"Unsupported generation provider: {generation.provider}")
@@ -142,6 +147,7 @@ class OpenAIResponsesTextGenerationClient(OpenAIResponsesGenerationProvider):
             timeout_seconds=generation.timeout_seconds,
             temperature=generation.temperature,
             reasoning_effort=generation.reasoning_effort,
+            http_client=http_client,
         )
 
     def _post_text(self, prompt: str, system_prompt: str) -> object:
@@ -165,7 +171,10 @@ class OpenAIResponsesTextGenerationClient(OpenAIResponsesGenerationProvider):
         last_error: Exception | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
-                response = self.http_client.post(
+                post_method = getattr(self.http_client, "post", None)
+                if not callable(post_method):
+                    raise RuntimeError("HTTP client does not support POST")
+                response = post_method(
                     f"{self.base_url}/responses",
                     headers={
                         "Authorization": f"Bearer {self.api_key}",
