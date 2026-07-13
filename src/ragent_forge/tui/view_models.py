@@ -403,8 +403,17 @@ def run_tui_search(
     retrieval_mode: str,
     limit: int,
 ) -> SearchPageState:
-    mode = _normalize_retrieval_mode(retrieval_mode)
     safe_limit = max(limit, 0)
+    try:
+        mode = _normalize_retrieval_mode(retrieval_mode)
+    except ValueError as exc:
+        return SearchPageState(
+            query=query,
+            retrieval_mode="lexical",
+            limit=safe_limit,
+            error=str(exc),
+            has_searched=True,
+        )
     normalized_query = query.strip()
     if not normalized_query:
         return SearchPageState(
@@ -507,9 +516,23 @@ def stream_tui_ask(
     max_context_chars: int,
     show_prompt: bool,
 ) -> Iterator[TuiAskStreamEvent]:
-    mode = _normalize_retrieval_mode(retrieval_mode)
     safe_limit = max(limit, 0)
     safe_max_context_chars = max(max_context_chars, 0)
+    try:
+        mode = _normalize_retrieval_mode(retrieval_mode)
+    except ValueError as exc:
+        yield TuiAskStreamEvent(
+            type="done",
+            state=_ask_error_state(
+                question=question,
+                mode="lexical",
+                limit=safe_limit,
+                max_context_chars=safe_max_context_chars,
+                show_prompt=show_prompt,
+                message=str(exc),
+            ),
+        )
+        return
     normalized_question = question.strip()
     if not normalized_question:
         yield TuiAskStreamEvent(

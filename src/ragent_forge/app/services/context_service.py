@@ -29,6 +29,11 @@ def build_context_pack(
                 score=result.score,
                 text=text,
                 metadata=result.metadata,
+                source_kind=result.source_kind,
+                provenance=result.provenance,
+                authority=result.authority,
+                freshness=result.freshness,
+                lifecycle=result.lifecycle,
             )
         )
         text_length = len(text)

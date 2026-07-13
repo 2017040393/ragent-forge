@@ -9,6 +9,9 @@ from ragent_forge.core.models import (
     DocumentChunk,
     RagTrace,
     RetrievedChunk,
+    SourceAuthority,
+    SourceKind,
+    SourceLifecycle,
     SourceRef,
     TraceStep,
 )
@@ -46,6 +49,11 @@ class ContextChunk(BaseModel):
     score: float
     text: str
     metadata: dict[str, Any] = Field(default_factory=dict)
+    source_kind: SourceKind = "document"
+    provenance: str | None = None
+    authority: SourceAuthority = "source"
+    freshness: str | None = None
+    lifecycle: SourceLifecycle = "regenerable"
 
 
 class ContextPack(BaseModel):

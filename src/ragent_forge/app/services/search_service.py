@@ -4,11 +4,11 @@ import math
 import re
 from collections import Counter
 from dataclasses import dataclass
-from typing import Any
 
 from ragent_forge.app.ports import ChunkReader
 from ragent_forge.core.retrieval.contracts import (
     ChunkRecord,
+    MetadataRecord,
     RetrievalCandidate,
 )
 
@@ -46,6 +46,11 @@ class LexicalSearchService:
                     score=score,
                     text=text,
                     metadata=_metadata(chunk.get("metadata")),
+                    source_kind=chunk.get("source_kind", "document"),
+                    provenance=chunk.get("provenance"),
+                    authority=chunk.get("authority", "source"),
+                    freshness=chunk.get("freshness"),
+                    lifecycle=chunk.get("lifecycle", "regenerable"),
                 )
             )
 
@@ -110,6 +115,11 @@ class BM25SearchService:
                     score=score,
                     text=chunk.text,
                     metadata=_metadata(chunk.record.get("metadata")),
+                    source_kind=chunk.record.get("source_kind", "document"),
+                    provenance=chunk.record.get("provenance"),
+                    authority=chunk.record.get("authority", "source"),
+                    freshness=chunk.record.get("freshness"),
+                    lifecycle=chunk.record.get("lifecycle", "regenerable"),
                 )
             )
 
@@ -199,7 +209,5 @@ def _optional_int(value: object) -> int | None:
     return None
 
 
-def _metadata(value: object) -> dict[str, Any]:
-    if isinstance(value, dict):
-        return value
-    return {}
+def _metadata(value: object) -> MetadataRecord:
+    return MetadataRecord.from_value(value if isinstance(value, dict) else {})

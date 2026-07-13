@@ -4,7 +4,11 @@ from collections.abc import Sequence
 from typing import Any
 
 from ragent_forge.core.ingestion.document_blocks import DocumentBlock
-from ragent_forge.core.models import Document, DocumentChunk
+from ragent_forge.core.models import (
+    Document,
+    DocumentChunk,
+    source_provenance_metadata,
+)
 
 
 class BlockChunker:
@@ -103,6 +107,7 @@ class BlockChunker:
             blocks,
             char_range_override=char_range_override,
         )
+        metadata.update(source_provenance_metadata(document.metadata))
         chunks.append(
             DocumentChunk(
                 id=f"{source_path}::chunk-{chunk_index:04d}",

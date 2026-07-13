@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from ragent_forge.core.models import Document, DocumentChunk
+from ragent_forge.core.models import (
+    Document,
+    DocumentChunk,
+    source_provenance_metadata,
+)
 
 
 class SimpleChunker:
@@ -37,6 +41,7 @@ class SimpleChunker:
                         "source_path": source_path,
                         "start_char": start,
                         "end_char": min(end, len(document.text)),
+                        **source_provenance_metadata(document.metadata),
                     },
                 )
             )

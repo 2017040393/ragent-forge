@@ -13,6 +13,14 @@ from ragent_forge.app.models import (
     WorkspaceStatus,
 )
 from ragent_forge.app.schema import add_schema_version, validate_schema_version
+from ragent_forge.core.models import (
+    SourceAuthority,
+    SourceKind,
+    SourceLifecycle,
+    is_source_authority,
+    is_source_kind,
+    is_source_lifecycle,
+)
 from ragent_forge.core.retrieval.contracts import ChunkRecord
 from ragent_forge.core.workspace import WorkspaceSnapshotManifest
 from ragent_forge.infrastructure.storage import (
@@ -417,6 +425,11 @@ class LocalWorkspace:
             "start_char": start_char,
             "end_char": end_char,
             "metadata": chunk.metadata,
+            "source_kind": _source_kind(chunk.metadata.get("source_kind")),
+            "provenance": _optional_string(chunk.metadata.get("provenance")),
+            "authority": _source_authority(chunk.metadata.get("authority")),
+            "freshness": _optional_string(chunk.metadata.get("freshness")),
+            "lifecycle": _source_lifecycle(chunk.metadata.get("lifecycle")),
         })
         if snapshot_id is not None:
             record["snapshot_id"] = snapshot_id
@@ -653,6 +666,11 @@ def _normalize_chunk_record(record: dict[str, Any]) -> ChunkRecord:
         "start_char": _optional_int(record.get("start_char")),
         "end_char": _optional_int(record.get("end_char")),
         "metadata": metadata if isinstance(metadata, dict) else {},
+        "source_kind": _source_kind(record.get("source_kind")),
+        "provenance": _optional_string(record.get("provenance")),
+        "authority": _source_authority(record.get("authority")),
+        "freshness": _optional_string(record.get("freshness")),
+        "lifecycle": _source_lifecycle(record.get("lifecycle")),
     }
 
 
@@ -660,6 +678,30 @@ def _optional_int(value: object) -> int | None:
     if isinstance(value, int) and not isinstance(value, bool):
         return value
     return None
+
+
+def _source_kind(value: object) -> SourceKind:
+    if value is None:
+        return "document"
+    if is_source_kind(value):
+        return value
+    raise ValueError(f"Invalid source_kind: {value!r}")
+
+
+def _source_authority(value: object) -> SourceAuthority:
+    if value is None:
+        return "source"
+    if is_source_authority(value):
+        return value
+    raise ValueError(f"Invalid source authority: {value!r}")
+
+
+def _source_lifecycle(value: object) -> SourceLifecycle:
+    if value is None:
+        return "regenerable"
+    if is_source_lifecycle(value):
+        return value
+    raise ValueError(f"Invalid source lifecycle: {value!r}")
 
 
 def _format_timestamp(value: datetime) -> str:

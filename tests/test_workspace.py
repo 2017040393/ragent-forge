@@ -71,6 +71,32 @@ def test_write_chunks_writes_valid_jsonl(tmp_path: Path) -> None:
     assert records[0]["metadata"]["source_path"] == "/knowledge/rag.md"
 
 
+def test_workspace_preserves_typed_source_provenance(tmp_path: Path) -> None:
+    document = Document(
+        id="project-memory",
+        text="The project uses a local-first workspace.",
+        metadata={
+            "source_path": "project-memory",
+            "source_kind": "project_fact",
+            "provenance": "user-confirmed",
+            "authority": "user",
+            "freshness": "2026-07-13T00:00:00Z",
+            "lifecycle": "user_owned",
+        },
+    )
+    chunks = SimpleChunker(chunk_size=100, chunk_overlap=0).chunk(document)
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+
+    workspace.write_chunks(chunks)
+    record = workspace.read_chunks()[0]
+
+    assert record["source_kind"] == "project_fact"
+    assert record["provenance"] == "user-confirmed"
+    assert record["authority"] == "user"
+    assert record["freshness"] == "2026-07-13T00:00:00Z"
+    assert record["lifecycle"] == "user_owned"
+
+
 def test_write_ingest_summary_writes_valid_json(tmp_path: Path) -> None:
     result = make_ingest_result()
     workspace = LocalWorkspace(tmp_path / ".ragent")

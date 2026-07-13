@@ -2,6 +2,8 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 from ragent_forge.app.services.session_service import (
     SessionService,
     TuiSessionRun,
@@ -31,6 +33,14 @@ def make_run() -> TuiSessionRun:
         generation_provider="openai_responses",
         error=None,
     )
+
+
+def test_session_run_rejects_invalid_retrieval_mode() -> None:
+    payload = make_run().to_dict()
+    payload["retrieval_mode"] = "bm-25"
+
+    with pytest.raises(ValueError, match="Invalid retrieval mode"):
+        TuiSessionRun.from_dict(payload)
 
 
 def test_session_service_creates_session_index_and_latest(tmp_path: Path) -> None:

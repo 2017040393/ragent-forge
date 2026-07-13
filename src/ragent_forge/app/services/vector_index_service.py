@@ -11,7 +11,12 @@ from pydantic import BaseModel, Field
 from ragent_forge.app.ports import VectorIndexWorkspace
 from ragent_forge.app.schema import add_schema_version, validate_schema_version
 from ragent_forge.app.storage import atomic_write_text, workspace_write_lock
-from ragent_forge.core.retrieval.contracts import ChunkRecord
+from ragent_forge.core.models import (
+    SourceAuthority,
+    SourceKind,
+    SourceLifecycle,
+)
+from ragent_forge.core.retrieval.contracts import ChunkRecord, MetadataRecord
 
 
 class VectorIndexRecord(BaseModel):
@@ -27,7 +32,12 @@ class VectorIndexRecord(BaseModel):
     embedding_dim: int
     embedding: list[float]
     text_hash: str
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: MetadataRecord = Field(default_factory=MetadataRecord)
+    source_kind: SourceKind = "document"
+    provenance: str | None = None
+    authority: SourceAuthority = "source"
+    freshness: str | None = None
+    lifecycle: SourceLifecycle = "regenerable"
 
     @classmethod
     def from_chunk(
@@ -51,6 +61,11 @@ class VectorIndexRecord(BaseModel):
             embedding=embedding,
             text_hash=hash_text(text),
             metadata=_metadata(chunk.get("metadata")),
+            source_kind=chunk.get("source_kind", "document"),
+            provenance=chunk.get("provenance"),
+            authority=chunk.get("authority", "source"),
+            freshness=chunk.get("freshness"),
+            lifecycle=chunk.get("lifecycle", "regenerable"),
         )
 
 
@@ -198,10 +213,8 @@ def _optional_int(value: object) -> int | None:
     return None
 
 
-def _metadata(value: object) -> dict[str, Any]:
-    if isinstance(value, dict):
-        return value
-    return {}
+def _metadata(value: object) -> MetadataRecord:
+    return MetadataRecord.from_value(value if isinstance(value, dict) else {})
 
 
 def _optional_string(value: object) -> str | None:

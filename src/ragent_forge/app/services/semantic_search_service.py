@@ -52,6 +52,11 @@ class SemanticSearchService:
                     end_char=record.end_char,
                     score=score,
                     text=str(chunk.get("text", "")),
+                    source_kind=record.source_kind,
+                    provenance=record.provenance,
+                    authority=record.authority,
+                    freshness=record.freshness,
+                    lifecycle=record.lifecycle,
                     metadata={
                         **record.metadata,
                         "retrieval_method": "semantic_cosine_similarity",

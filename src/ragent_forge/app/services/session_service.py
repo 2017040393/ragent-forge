@@ -6,12 +6,12 @@ import uuid
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from ragent_forge.app.schema import add_schema_version, validate_schema_version
 from ragent_forge.app.storage import atomic_write_text, workspace_write_lock
 from ragent_forge.app.workspace import LocalWorkspace
-from ragent_forge.core.retrieval.types import RetrievalMode
+from ragent_forge.core.retrieval.types import RetrievalMode, normalize_retrieval_mode
 
 TuiSessionMessageRole = Literal["user", "assistant"]
 TuiSessionRetrievalMode = RetrievalMode
@@ -776,9 +776,11 @@ def _message_role(value: object) -> TuiSessionMessageRole:
 
 
 def _retrieval_mode(value: object) -> TuiSessionRetrievalMode:
-    if value in {"bm25", "semantic", "hybrid"}:
-        return cast(TuiSessionRetrievalMode, value)
-    return "lexical"
+    if value is None:
+        return "lexical"
+    if not isinstance(value, str):
+        raise ValueError("Invalid retrieval mode in session: expected string")
+    return normalize_retrieval_mode(value)
 
 
 def _dict_value(value: object) -> dict[str, Any]:

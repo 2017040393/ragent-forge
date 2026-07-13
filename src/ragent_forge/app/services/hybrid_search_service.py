@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
@@ -199,6 +200,11 @@ class HybridSearchService:
             end_char=result.end_char,
             score=hybrid_score,
             text=result.text,
+            source_kind=result.source_kind,
+            provenance=result.provenance,
+            authority=result.authority,
+            freshness=result.freshness,
+            lifecycle=result.lifecycle,
             metadata={
                 **_safe_representative_metadata(result.metadata),
                 "retrieval_method": "hybrid_rrf",
@@ -218,7 +224,9 @@ class HybridSearchService:
         )
 
 
-def _safe_representative_metadata(metadata: dict[str, object]) -> dict[str, object]:
+def _safe_representative_metadata(
+    metadata: Mapping[str, object],
+) -> dict[str, object]:
     excluded_fragments = (
         "api_key",
         "secret",

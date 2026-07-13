@@ -269,6 +269,11 @@ class AskService:
                     document_id=result.document_id,
                     chunk_id=result.chunk_id,
                     source_path=result.source_path,
+                    source_kind=result.source_kind,
+                    provenance=result.provenance,
+                    authority=result.authority,
+                    freshness=result.freshness,
+                    lifecycle=result.lifecycle,
                 )
                 for result in results
             ],

@@ -311,6 +311,34 @@ def test_tui_ask_rejects_empty_question(tmp_path: Path) -> None:
     assert state.sources == []
 
 
+def test_tui_search_rejects_invalid_retrieval_mode(tmp_path: Path) -> None:
+    state = run_tui_search(
+        tmp_path / ".ragent",
+        "agent memory",
+        "bm-25",
+        5,
+    )
+
+    assert state.error is not None
+    assert "Invalid retrieval mode" in state.error
+    assert state.results == []
+
+
+def test_tui_ask_rejects_invalid_retrieval_mode(tmp_path: Path) -> None:
+    state = vm.run_tui_ask(
+        tmp_path / ".ragent",
+        "What is RAG?",
+        "bm-25",
+        5,
+        4000,
+        False,
+    )
+
+    assert state.error is not None
+    assert "Invalid retrieval mode" in state.error
+    assert state.sources == []
+
+
 def test_tui_ask_missing_chunks_is_friendly(tmp_path: Path) -> None:
     state = vm.run_tui_ask(
         tmp_path / ".ragent",

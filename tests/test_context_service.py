@@ -44,3 +44,28 @@ def test_build_generation_prompt_handles_empty_context() -> None:
 
     assert "Question:\nWhat is Agentic RAG?" in prompt
     assert "Retrieved context:\nNo retrieved context." in prompt
+
+
+def test_context_pack_preserves_source_provenance() -> None:
+    context_pack = build_context_pack(
+        "Which project fact applies?",
+        [
+            SearchResult(
+                chunk_id="fact-1",
+                document_id="project-memory",
+                source_path="project-memory",
+                score=1.0,
+                text="The workspace is local-first.",
+                source_kind="project_fact",
+                provenance="user-confirmed",
+                authority="user",
+                lifecycle="user_owned",
+            )
+        ],
+    )
+
+    chunk = context_pack.context_chunks[0]
+    assert chunk.source_kind == "project_fact"
+    assert chunk.provenance == "user-confirmed"
+    assert chunk.authority == "user"
+    assert chunk.lifecycle == "user_owned"
