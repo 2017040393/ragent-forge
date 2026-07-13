@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
+from threading import RLock
 from typing import Protocol
 
 from ragent_forge.app.models import AppConfig
@@ -36,6 +38,10 @@ from ragent_forge.infrastructure.providers.openai_generation import (
 from ragent_forge.infrastructure.providers.openai_text_generation import (
     OpenAIResponsesTextGenerationClient,
 )
+
+_PREPARED_CACHE_LIMIT = 16
+_prepared_cache_lock = RLock()
+_prepared_caches: OrderedDict[Path, PreparedStateCache] = OrderedDict()
 
 
 class SearchService(Protocol):
@@ -79,7 +85,7 @@ def build_retrieval_runtime(
     limit: int,
     config: AppConfig | None = None,
 ) -> RetrievalRuntime:
-    prepared_state_cache = PreparedStateCache(tokenize)
+    prepared_state_cache = _prepared_state_cache_for(workspace)
     if mode == "lexical":
         search_service = LexicalSearchService(
             workspace,
@@ -233,3 +239,20 @@ def build_text_generation_client(
 
 def build_session_service(workspace_path: str | Path = ".ragent") -> SessionService:
     return SessionService(LocalWorkspace(workspace_path))
+
+
+def _prepared_state_cache_for(
+    workspace: ApplicationWorkspace,
+) -> PreparedStateCache:
+    if _snapshot_id(workspace) is None:
+        return PreparedStateCache(tokenize)
+
+    cache_key = workspace.root_path.expanduser().resolve()
+    with _prepared_cache_lock:
+        cache = _prepared_caches.pop(cache_key, None)
+        if cache is None:
+            cache = PreparedStateCache(tokenize)
+        _prepared_caches[cache_key] = cache
+        while len(_prepared_caches) > _PREPARED_CACHE_LIMIT:
+            _prepared_caches.popitem(last=False)
+        return cache

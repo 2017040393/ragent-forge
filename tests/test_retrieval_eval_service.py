@@ -115,6 +115,7 @@ def test_retrieval_eval_uses_engine_run_and_preserves_stage_trace() -> None:
                         name="candidate_retrieval",
                         status="completed",
                         outputs={"candidate_count": 1},
+                        latency_ms=2.5,
                     )
                 ],
             )
@@ -140,6 +141,12 @@ def test_retrieval_eval_uses_engine_run_and_preserves_stage_trace() -> None:
     assert report.results[0].metadata["retrieval_pipeline"][0]["status"] == (
         "completed"
     )
+    assert report.stage_latency_ms["candidate_retrieval"].model_dump() == {
+        "sample_count": 1,
+        "average_ms": 2.5,
+        "p50_ms": 2.5,
+        "p95_ms": 2.5,
+    }
 
 
 def make_chunk_record(

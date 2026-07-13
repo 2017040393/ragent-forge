@@ -109,15 +109,33 @@ stage-level percentiles。
 
 按 use case 而不是任意行数拆分：
 
-- `cli.py`：只保留 parser 与 top-level dispatch；
+- `cli/__init__.py`：只保留 parser facade 与 top-level dispatch；
+- `cli/parser.py`：负责参数 parser 构造；
 - `cli/handlers/`：ingest、index、retrieval、eval、config 与 trace handlers；
 - `tui/main.py`：只保留 Textual composition 与 event routing；
 - `tui/controllers/`：Ask、search、session 与 worker coordination；
-- retrieval eval：拆为 case loading、runner、metrics 与 reporting；
+- retrieval eval：拆为 `evaluation/contracts.py`、`cases.py`、`runner.py`、
+  `metrics.py` 与 `reporting.py`；
 - infrastructure：filesystem、provider 与 prepared-index adapters。
 
 旧 import path 可以作为薄 compatibility facade 保留，但生产 application code 必须
 使用新边界。
+
+## 完成证据
+
+本轮 convergence 已按独立且始终通过验证的 commits 完成。最终的
+presentation/evaluation 拆分由 architecture tests 与 compatibility tests 覆盖。
+Checked-in benchmark manifest 是 `benchmarks/prepared_retrieval_manifest.json`，可用
+以下命令运行：
+
+```text
+uv run --extra dev python -m benchmarks.prepared_retrieval
+```
+
+Benchmark 会分开报告 cold/warm timings，并验证 cache 的结构性复用；它有意不声称
+retrieval quality 已提升，也不声称具备 ANN scalability。Retrieval evaluation report
+现在还会在 overall latency metrics 之外，保存 typed stage-level latency summary：
+`sample_count`、`average_ms`、`p50_ms` 与 `p95_ms`。
 
 ## 验收矩阵
 

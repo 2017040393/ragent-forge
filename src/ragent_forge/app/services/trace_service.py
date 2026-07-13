@@ -11,6 +11,9 @@ from ragent_forge.app.models import (
     RagTrace,
     TraceStep,
 )
+from ragent_forge.app.services.evaluation.contracts import (
+    RetrievalStageLatencySummary,
+)
 from ragent_forge.app.services.hybrid_search_service import (
     HybridDenseMethod,
     HybridSparseMethod,
@@ -243,6 +246,7 @@ def build_retrieval_eval_trace(
     embedding_model: str | None = None,
     index_path: Path | None = None,
     retrieval_stages: list[dict[str, object]] | None = None,
+    stage_latency_ms: dict[str, RetrievalStageLatencySummary] | None = None,
 ) -> OperationTrace:
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
@@ -303,6 +307,11 @@ def build_retrieval_eval_trace(
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
     _attach_retrieval_run(metadata, None, retrieval_stages)
+    if stage_latency_ms:
+        metadata["stage_latency_ms"] = {
+            name: summary.model_dump(mode="json")
+            for name, summary in stage_latency_ms.items()
+        }
 
     return OperationTrace(
         trace_id=_trace_id("retrieval-eval", started_at_utc),

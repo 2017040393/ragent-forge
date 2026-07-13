@@ -7,8 +7,7 @@ from pathlib import Path
 from textual import events
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, ScrollableContainer, Vertical
-from textual.screen import ModalScreen
-from textual.widgets import Header, Input, Label, ListItem, ListView, Static
+from textual.widgets import Header, Input, Label, Static
 from textual.worker import Worker, WorkerState
 
 from ragent_forge.app.services.config_service import ConfigService
@@ -17,19 +16,47 @@ from ragent_forge.app.services.session_service import (
     TuiSessionExportFormat,
     TuiSessionListFilter,
     TuiSessionRun,
-    TuiSessionSource,
-    TuiSessionSummary,
 )
 from ragent_forge.composition import (
     build_session_service,
     build_text_generation_client,
 )
+from ragent_forge.tui import modals as _modals
 from ragent_forge.tui.commands import (
     TuiCommandSuggestionContext,
     complete_tui_command_suggestion,
     count_tui_command_suggestions,
     format_tui_command_suggestions,
-    format_tui_task_help,
+)
+from ragent_forge.tui.controllers.session import (
+    assistant_message_from_ask_result as _assistant_message_from_ask_result_controller,
+)
+from ragent_forge.tui.controllers.session import (
+    fallback_title_from_question as _fallback_title_from_question,
+)
+from ragent_forge.tui.controllers.session import (
+    retrieval_method_from_mode as _retrieval_method_from_mode,
+)
+from ragent_forge.tui.controllers.session import (
+    run_metadata_from_session_run as _run_metadata_from_session_run,
+)
+from ragent_forge.tui.controllers.session import (
+    session_run_from_ask_result as _session_run_from_ask_result_controller,
+)
+from ragent_forge.tui.controllers.session import (
+    session_sources_from_transcript_sources as _session_sources_from_transcript_sources,
+)
+from ragent_forge.tui.controllers.workers import (
+    run_ask_worker as _run_ask_worker_controller,
+)
+from ragent_forge.tui.controllers.workers import (
+    run_search_worker as _run_search_worker_controller,
+)
+from ragent_forge.tui.modals import (
+    CommandResultModal,
+    HelpModal,
+    SessionPickerModal,
+    SourcePickerModal,
 )
 from ragent_forge.tui.shell_dispatch import (
     ShellDispatchResult,
@@ -49,7 +76,6 @@ from ragent_forge.tui.shell_models import (
     format_shell_inspector,
     format_shell_status,
     message_from_search_state,
-    messages_from_ask_state,
     replace_state_from_session,
     select_next_turn,
     select_previous_turn,
@@ -60,7 +86,6 @@ from ragent_forge.tui.shell_models import (
     set_notice,
     set_running,
     set_session_summaries,
-    transcript_sources_from_search_results,
 )
 from ragent_forge.tui.theme import (
     style_command_suggestions,
@@ -71,8 +96,6 @@ from ragent_forge.tui.theme import (
 from ragent_forge.tui.view_models import (
     AskPageState,
     SearchPageState,
-    compact_chunk_label,
-    compact_source_label,
     format_documents_page,
     format_settings_page,
     format_trace_overview,
@@ -99,240 +122,16 @@ SHELL_RUNNING_DRAFT_QUEUED_STATUS = (
 SHELL_DRAFT_READY_STATUS = "1 draft ready. Press Enter to send."
 SHELL_RUNNING_EMPTY_SUBMIT_STATUS = "Request is still running."
 
+__all__ = [
+    "RagentForgeApp",
+    "_session_picker_label",
+    "_source_picker_label",
+    "_source_picker_retrieval_label",
+]
 
-class SourcePickerModal(ModalScreen[TranscriptSource | None]):
-    BINDINGS = [("escape", "close", "Close"), ("enter", "select", "Open")]
-
-    def __init__(
-        self,
-        sources: tuple[TranscriptSource, ...],
-        selected_source: TranscriptSource | None,
-    ) -> None:
-        super().__init__()
-        self.sources = sources
-        self.selected_source = selected_source
-
-    def compose(self) -> ComposeResult:
-        with Vertical(id="source-picker-dialog"):
-            yield Label("Sources")
-            yield Static("Use Up/Down and Enter, or click a source.")
-            yield ListView(
-                *(
-                    ListItem(Label(_source_picker_label(source)))
-                    for source in self.sources
-                ),
-                id="source-picker-list",
-            )
-
-    def on_mount(self) -> None:
-        source_list = self.query_one("#source-picker-list", ListView)
-        if self.selected_source is None:
-            source_list.focus()
-            return
-        for index, source in enumerate(self.sources):
-            if source == self.selected_source:
-                source_list.index = index
-                source_list.focus()
-                return
-        source_list.focus()
-
-    def on_list_view_selected(self, event: ListView.Selected) -> None:
-        self.dismiss(self.sources[event.index])
-
-    def action_select(self) -> None:
-        source_list = self.query_one("#source-picker-list", ListView)
-        index = source_list.index
-        if index is None or index < 0 or index >= len(self.sources):
-            return
-        self.dismiss(self.sources[index])
-
-    def action_close(self) -> None:
-        self.dismiss(None)
-
-
-class HelpModal(ModalScreen[None]):
-    BINDINGS = [("escape", "close", "Close")]
-
-    def compose(self) -> ComposeResult:
-        with Vertical(id="help-dialog"):
-            yield Label("Commands")
-            yield Static(format_tui_task_help())
-
-    def action_close(self) -> None:
-        self.dismiss(None)
-
-
-class CommandResultModal(ModalScreen[None]):
-    BINDINGS = [("escape", "close", "Close")]
-
-    def __init__(self, title: str, text: str) -> None:
-        super().__init__()
-        self.modal_title = title
-        self.text = text
-
-    def compose(self) -> ComposeResult:
-        with Vertical(id="command-result-dialog"):
-            yield Label(self.modal_title)
-            with ScrollableContainer(id="command-result-scroll"):
-                yield Static(self.text)
-
-    def action_close(self) -> None:
-        self.dismiss(None)
-
-
-class SessionPickerModal(ModalScreen[str | None]):
-    BINDINGS = [("escape", "close", "Close"), ("enter", "select", "Open")]
-
-    def __init__(
-        self,
-        summaries: tuple[TuiSessionSummary, ...],
-        selected_session_id: str | None,
-    ) -> None:
-        super().__init__()
-        self.summaries = summaries
-        self.selected_session_id = selected_session_id
-
-    def compose(self) -> ComposeResult:
-        with Vertical(id="session-picker-dialog"):
-            yield Label("Sessions")
-            yield Static("Use Up/Down and Enter, or click a session.")
-            yield ListView(
-                *(
-                    ListItem(Label(_session_picker_label(summary)))
-                    for summary in self.summaries
-                ),
-                id="session-picker-list",
-            )
-
-    def on_mount(self) -> None:
-        session_list = self.query_one("#session-picker-list", ListView)
-        if self.selected_session_id is None:
-            session_list.focus()
-            return
-        for index, summary in enumerate(self.summaries):
-            if summary.id == self.selected_session_id:
-                session_list.index = index
-                session_list.focus()
-                return
-        session_list.focus()
-
-    def on_list_view_selected(self, event: ListView.Selected) -> None:
-        self.dismiss(self.summaries[event.index].id)
-
-    def action_select(self) -> None:
-        session_list = self.query_one("#session-picker-list", ListView)
-        index = session_list.index
-        if index is None or index < 0 or index >= len(self.summaries):
-            return
-        self.dismiss(self.summaries[index].id)
-
-    def action_close(self) -> None:
-        self.dismiss(None)
-
-
-def _source_picker_label(source: TranscriptSource) -> str:
-    label = compact_source_label(source.source_path, source.metadata)
-    parts = [f"{source.rank}. {label}"]
-    retrieval = _source_picker_retrieval_label(source)
-    if retrieval:
-        parts.append(retrieval)
-    parts.extend(
-        [
-            f"score={source.score:.4g}",
-            f"chunk={compact_chunk_label(source.chunk_id)}",
-        ]
-    )
-    return "  ".join(parts)
-
-
-def _source_picker_retrieval_label(source: TranscriptSource) -> str:
-    method = source.metadata.get("retrieval_method")
-    if isinstance(method, str) and method:
-        return f"method={method}"
-    mode = source.metadata.get("retrieval_mode")
-    if isinstance(mode, str) and mode:
-        return f"mode={mode}"
-    return ""
-
-
-def _session_picker_label(summary: TuiSessionSummary) -> str:
-    markers: list[str] = []
-    if summary.pinned:
-        markers.append("pin")
-    if summary.starred:
-        markers.append("star")
-    prefix = f"[{','.join(markers)}] " if markers else ""
-    metrics = [f"turns={summary.turn_count}"]
-    if summary.source_count:
-        metrics.append(f"sources={summary.source_count}")
-    if summary.failed_turn_count:
-        metrics.append(f"failed={summary.failed_turn_count}")
-    metrics.append(f"updated={summary.updated_at}")
-    return f"{prefix}{summary.title}  {'  '.join(metrics)}"
-
-
-def _retrieval_method_from_mode(mode: str) -> str:
-    if mode == "hybrid":
-        return "hybrid_rrf"
-    if mode == "semantic":
-        return "semantic_cosine_similarity"
-    if mode == "bm25":
-        return "bm25"
-    return "lexical_token_overlap"
-
-
-def _retrieval_method_from_sources(
-    sources: tuple[TranscriptSource, ...],
-    fallback_mode: str,
-) -> str:
-    for source in sources:
-        method = source.metadata.get("retrieval_method")
-        if isinstance(method, str) and method:
-            return method
-    return _retrieval_method_from_mode(fallback_mode)
-
-
-def _session_sources_from_transcript_sources(
-    sources: tuple[TranscriptSource, ...],
-) -> tuple[TuiSessionSource, ...]:
-    return tuple(
-        TuiSessionSource(
-            rank=source.rank,
-            chunk_id=source.chunk_id,
-            source_path=source.source_path,
-            score=source.score,
-            preview=source.preview,
-            metadata=dict(source.metadata),
-        )
-        for source in sources
-    )
-
-
-def _run_metadata_from_session_run(
-    run: TuiSessionRun,
-    *,
-    source_count: int,
-) -> dict[str, object]:
-    return {
-        "operation": "ask",
-        "retrieval_mode": run.retrieval_mode,
-        "retrieval_method": run.retrieval_method,
-        "limit": run.limit,
-        "max_context_chars": run.max_context_chars,
-        "show_prompt": run.show_prompt,
-        "trace_id": run.trace_id,
-        "generation_status": run.generation_status,
-        "generation_provider": run.generation_provider,
-        "error": run.error,
-        "source_count": source_count,
-    }
-
-
-def _fallback_title_from_question(question: str) -> str:
-    title = " ".join(question.split())
-    if len(title) <= 80:
-        return title
-    return f"{title[:77].rstrip()}..."
+_session_picker_label = _modals.session_picker_label
+_source_picker_label = _modals.source_picker_label
+_source_picker_retrieval_label = _modals.source_picker_retrieval_label
 
 
 class RagentForgeApp(App[None]):
@@ -875,34 +674,19 @@ class RagentForgeApp(App[None]):
         max_context_chars: int,
         show_prompt: bool,
     ) -> AskPageState:
-        final_state: AskPageState | None = None
-        for event in stream_tui_ask(
+        return _run_ask_worker_controller(
             self.workspace_path,
             question,
             mode,
             limit,
             max_context_chars,
             show_prompt,
-        ):
-            if event.type == "delta":
-                if event.text:
-                    self._call_from_worker_thread(
-                        self._apply_shell_ask_delta,
-                        event.text,
-                    )
-                continue
-            if event.type == "done":
-                final_state = event.state
-
-        if final_state is not None:
-            return final_state
-        return run_tui_ask(
-            self.workspace_path,
-            question,
-            mode,
-            limit,
-            max_context_chars,
-            show_prompt,
+            stream=stream_tui_ask,
+            fallback=run_tui_ask,
+            on_delta=lambda text: self._call_from_worker_thread(
+                self._apply_shell_ask_delta,
+                text,
+            ),
         )
 
     def _run_shell_search_from_dispatch(self, query: str) -> None:
@@ -930,7 +714,13 @@ class RagentForgeApp(App[None]):
         mode: str,
         limit: int,
     ) -> SearchPageState:
-        return run_tui_search(self.workspace_path, query, mode, limit)
+        return _run_search_worker_controller(
+            self.workspace_path,
+            query,
+            mode,
+            limit,
+            search=run_tui_search,
+        )
 
     def _set_shell_running(self, running: bool) -> None:
         self.shell_state = set_running(self.shell_state, running)
@@ -1139,105 +929,16 @@ class RagentForgeApp(App[None]):
         self,
         result: AskPageState,
     ) -> TranscriptMessage:
-        if result.error:
-            sources = transcript_sources_from_search_results(result.sources)
-            metadata = {
-                "operation": "ask",
-                "retrieval_mode": result.retrieval_mode,
-                "retrieval_method": _retrieval_method_from_sources(
-                    sources,
-                    result.retrieval_mode,
-                ),
-                "limit": result.limit,
-                "max_context_chars": result.max_context_chars,
-                "show_prompt": result.show_prompt,
-                "generation_status": "failed",
-                "generation_provider": result.generation_provider,
-                "error": result.error,
-                "source_count": len(sources),
-                "trace_id": result.trace_id,
-            }
-            return TranscriptMessage(
-                role="assistant",
-                text=result.error,
-                metadata=metadata,
-                sources=sources,
-            )
-
-        messages = messages_from_ask_state(result)
-        for message in messages:
-            if message.role == "assistant":
-                metadata = dict(message.metadata)
-                metadata.setdefault(
-                    "retrieval_method",
-                    _retrieval_method_from_sources(
-                        message.sources,
-                        result.retrieval_mode,
-                    ),
-                )
-                metadata.setdefault("limit", result.limit)
-                metadata.setdefault("max_context_chars", result.max_context_chars)
-                metadata.setdefault("show_prompt", result.show_prompt)
-                metadata.setdefault("trace_id", result.trace_id)
-                return replace(message, metadata=metadata)
-
-        sources = transcript_sources_from_search_results(result.sources)
-        text = result.status or "Ask completed."
-        metadata = {
-            "operation": "ask",
-            "retrieval_mode": result.retrieval_mode,
-            "retrieval_method": _retrieval_method_from_sources(
-                sources,
-                result.retrieval_mode,
-            ),
-            "limit": result.limit,
-            "max_context_chars": result.max_context_chars,
-            "show_prompt": result.show_prompt,
-            "generation_status": result.generation_status,
-            "generation_provider": result.generation_provider,
-            "source_count": len(sources),
-            "trace_id": result.trace_id,
-        }
-        return TranscriptMessage(
-            role="assistant",
-            text=text,
-            metadata=metadata,
-            sources=sources,
-        )
+        return _assistant_message_from_ask_result_controller(result)
 
     def _session_run_from_ask_result(
         self,
         result: AskPageState,
         message: TranscriptMessage,
     ) -> TuiSessionRun:
-        metadata = message.metadata
-        return TuiSessionRun(
-            retrieval_mode=result.retrieval_mode,
-            retrieval_method=str(
-                metadata.get(
-                    "retrieval_method",
-                    _retrieval_method_from_sources(
-                        message.sources,
-                        result.retrieval_mode,
-                    ),
-                )
-            ),
-            limit=result.limit,
-            max_context_chars=result.max_context_chars,
-            show_prompt=result.show_prompt,
-            trace_id=result.trace_id,
-            generation_status=str(metadata.get("generation_status") or ""),
-            generation_provider=(
-                str(metadata["generation_provider"])
-                if metadata.get("generation_provider") is not None
-                else None
-            ),
-            error=(
-                str(metadata["error"])
-                if metadata.get("error") is not None
-                else result.error
-            ),
-            prompt_preview=result.prompt_preview,
+        return _session_run_from_ask_result_controller(
+            result,
+            message,
         )
 
     def _discard_streaming_assistant(self) -> None:

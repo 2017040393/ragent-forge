@@ -43,13 +43,14 @@ local documents
 
 ### CLI Layer
 
-The CLI in `src/ragent_forge/cli.py` is the primary write-capable operator
-surface. It runs ingestion, status inspection, chunk inspection, config
-inspection/init, semantic index build/status, search, ask, trace inspection,
-and retrieval evaluation.
+The CLI package in `src/ragent_forge/cli/` is the primary write-capable
+operator surface. `cli/__init__.py` contains only top-level dispatch and the
+historical import facade, `parser.py` owns argument parsing, and
+`cli/handlers/` owns workspace, chunk, config, trace, index, retrieval, and
+evaluation commands.
 
-CLI workflows write local artifacts such as chunks, summaries, vector indexes,
-traces, and eval reports. CLI `ragent ask` is the trace-producing Ask workflow.
+CLI workflows write local artifacts such as generations, traces, and eval
+reports. Search and Ask persist the canonical `RetrievalRun` trace payload.
 
 ### TUI Shell Layer
 
@@ -63,12 +64,12 @@ renders user questions and assistant replies with small status badges such as
 command-result modals, and the Inspector.
 
 The Shell intentionally does not run ingest, build indexes, run eval, edit
-config, or open local files. It does write local TUI session artifacts under
-`.ragent/sessions/`, including saved turns, sources, run metadata, exports, and
-the latest-session pointer. Shell Ask does not write operation traces; `/trace`
-reads traces produced by CLI workflows. Running workers leave the composer
-editable and can queue one draft; worker failures surface actionable next steps
-such as `/settings`, `/docs`, or a sparse fallback like `/mode bm25`.
+config, or open local files. It writes local session artifacts and persists
+Search/Ask operation traces with the same schema as the CLI. Saved Ask turns
+store the corresponding `trace_id`, so compact transcript metadata can resolve
+to the full trace. `/trace` reads the latest trace from either surface. Running
+workers leave the composer editable and can queue one draft; worker failures
+surface actionable next steps such as `/settings`, `/docs`, or `/mode bm25`.
 
 ### Application Services
 
@@ -81,16 +82,16 @@ These services keep CLI and TUI code thin and reduce duplication between
 presentation surfaces.
 
 Application services depend on ports rather than on a concrete filesystem or
-HTTP library. The composition module wires those ports to the adapters in
-`src/ragent_forge/infrastructure/`. `app/workspace.py` and `app/storage.py`
-remain compatibility import facades for older callers; new presentation code
-uses the infrastructure adapters through composition.
+HTTP library. The top-level composition root wires those ports to adapters in
+`src/ragent_forge/infrastructure/`. `app/composition.py`, `app/workspace.py`,
+and `app/storage.py` remain small compatibility import facades.
 
 The dependency direction is one-way:
 
 ```text
-CLI / TUI -> application -> core
-                    \-> ports <- infrastructure adapters
+CLI / TUI -> application use cases -> core contracts
+                         \-> application ports
+composition root -> application ports + infrastructure adapters
 ```
 
 The infrastructure layer contains the local filesystem workspace, atomic
@@ -99,15 +100,15 @@ implementations replaceable in tests and in future hosted deployments.
 
 ### Composition and Dependency Rules
 
-Retrieval service construction lives in `app/composition.py`. CLI and TUI use
-the same `RetrievalRuntime`, so retrieval modes, provider wiring, and hybrid
-configuration cannot drift between presentation surfaces.
+Concrete service construction lives in `src/ragent_forge/composition.py`. CLI
+and TUI use the same `RetrievalRuntime`, so retrieval modes, provider wiring,
+prepared caches, and hybrid configuration cannot drift between surfaces.
 
 The dependency direction is one-way:
 
 ```text
 CLI / TUI -> application -> core
-                    \-> infrastructure adapters
+composition -> application ports <- infrastructure adapters
 ```
 
 Core modules do not import `app`, `cli`, or `tui`. Application services depend
@@ -136,6 +137,8 @@ the same pipeline, so their traces describe the same retrieval semantics.
 The retrieval modes themselves are:
 
 - `lexical` uses deterministic token overlap over local chunks.
+- `bm25` uses prepared term frequencies, document frequencies, and document
+  lengths as the stronger sparse baseline.
 - `semantic` uses cosine similarity over the local JSONL vector index.
 - `hybrid` combines BM25 and semantic candidates with Reciprocal Rank
   Fusion.
@@ -160,28 +163,32 @@ path can stream provider deltas into its local transcript/session state.
 The source documents remain the source of truth; workspace files can be
 regenerated.
 
-Workspace writes use temporary files followed by atomic replacement and an
-in-process write lock for related updates. Versioned workspace state artifacts
-carry `schema_version = 1`; readers continue to accept legacy files without a
-version and reject versions newer than the supported format.
+Ingest writes a complete immutable generation in a temporary directory,
+validates its manifest and artifacts, atomically publishes the directory, and
+atomically replaces `.ragent/current.json` last. Index builds publish a child
+generation in the same way. A failure at any write point leaves the previous
+generation readable.
 
-In addition, ingest creates a workspace snapshot. The manifest at
-`.ragent/snapshot.json` records the active snapshot id, source path, creation
-time, and chunk count. Chunks, ingest summaries, traces, and vector-index
-records/manifests reference that same id. Readers reject mixed generations and
-reject snapshot-tagged artifacts when the manifest has not been committed.
-This gives the workspace a coherent generation boundary even though its
-individual files remain plain JSON/JSONL files.
+The current workspace schema is version 2. Boundary readers run explicit v0 to
+v1 to v2 migrations and reject unknown future versions. Legacy flat workspaces
+remain readable and can be inspected or upgraded with
+`ragent workspace migrate --dry-run` and `ragent workspace migrate`.
+
+Chunks, ingest summaries, vector records, traces, eval runs, and sessions carry
+or resolve a committed snapshot id. Readers reject mixed generations. Traces,
+eval reports, and sessions are append-oriented artifacts outside immutable
+generation directories.
 
 Important workspace files include:
 
 ```text
-.ragent/chunks/chunks.jsonl
-.ragent/ingest/latest_summary.json
-.ragent/snapshot.json
+.ragent/current.json
+.ragent/generations/<snapshot-id>/manifest.json
+.ragent/generations/<snapshot-id>/chunks.jsonl
+.ragent/generations/<snapshot-id>/ingest_summary.json
+.ragent/generations/<snapshot-id>/vector_index.jsonl
+.ragent/generations/<snapshot-id>/vector_index_manifest.json
 .ragent/config.toml
-.ragent/index/vector_index.jsonl
-.ragent/index/vector_index_manifest.json
 .ragent/traces/latest_trace.json
 .ragent/traces/<trace_id>.json
 .ragent/eval/latest_retrieval_eval.json
@@ -195,20 +202,38 @@ Important workspace files include:
 
 ### Trace and Evaluation
 
-Traces are local JSON files that record compact metadata and workflow steps for
-CLI operations. Retrieval evaluation reads JSONL cases and reports hit rate,
-recall, precision, nDCG, evidence and mapping coverage, latency percentiles,
-context quality, and failed cases.
+Traces are local JSON files that record compact workflow metadata. CLI and TUI
+Search/Ask traces embed the same canonical `RetrievalRun` payload without full
+result text. Retrieval evaluation reads JSONL cases and reports hit rate,
+recall, precision, nDCG, evidence and mapping coverage, overall latency
+percentiles, stage-level latency p50/p95, context quality, and failed cases.
 
 Retrieval eval is retrieval-only. It does not judge generated answer quality.
+
+### Responsibility and Performance Boundaries
+
+Presentation coordination is split by use case: CLI handlers live under
+`cli/handlers/`, while TUI worker and session mapping live under
+`tui/controllers/`. Retrieval evaluation keeps its contracts, JSONL case
+loader, runner, metrics, and failure reporting under
+`app/services/evaluation/`; `retrieval_eval_service.py` is a compatibility
+facade. Architecture tests lock these module and dependency boundaries.
+
+Prepared lexical/BM25 chunks and semantic vector records are cached by active
+snapshot id. The composition root keeps a bounded per-workspace cache across
+TUI runtime builds; legacy workspaces without a snapshot receive a fresh cache.
+A snapshot change invalidates both sparse and dense state. The checked-in
+`benchmarks/prepared_retrieval_manifest.json` separates one cold query from
+repeated warm queries and verifies one workspace read, one prepared chunk load,
+and warm-cache reuse. It is an architecture benchmark, not a v0.3 quality
+baseline or an ANN scalability claim.
 
 ## Data Flow
 
 ### Ingestion Flow
 
-`ragent ingest <path>` loads Markdown/TXT files, skips unsupported files,
-chunks documents deterministically, writes chunk JSONL, writes the latest
-ingestion summary, and writes an ingest trace.
+`ragent ingest <path>` loads supported Markdown/TXT/PDF files, chunks them
+deterministically, publishes a complete generation, and writes an ingest trace.
 
 ### Search Flow
 
@@ -238,7 +263,9 @@ ragent traces list
 ragent traces show <trace_id>
 ```
 
-The TUI `/trace` command shows a compact read-only summary of the latest trace.
+TUI Search and Ask write the same trace shape as their CLI counterparts. The
+TUI `/trace` command shows a compact read-only summary of the latest trace, and
+saved Ask turns reference the exact trace by id.
 
 ### Evaluation Flow
 
@@ -318,15 +345,16 @@ multi-turn memory as retrieval context, agent tool loops, planning loops,
 OCR/scanned PDF support, web UI, vector databases, or TUI write operations such
 as ingest/index/eval/config mutation.
 
-The TUI is not a dashboard and does not mutate backend state beyond its local
-transcript/session state.
+The TUI is not a dashboard. It mutates only local session and retrieval-trace
+artifacts; ingest, index, eval, and config mutation remain CLI responsibilities.
 
 ## Current v0.3 Foundation and Future Extension Points
 
-The current architecture provides the typed retrieval contracts, explicit
-single-pass stages, snapshot consistency boundary, and adapter seams needed by
-v0.3. The reranker is deliberately a skipped stage until an implementation is
-configured. v0.3 can add typed document and project-memory sources on the same
-pipeline. v0.4 can build controlled query refinement and iterative retrieval on
-these explicit stages. v0.5 is expected to add local comparison views for
-retrieval and answer quality.
+The current architecture provides typed retrieval/source contracts, one
+injected `RetrievalEngine`, immutable workspace generations, explicit schema
+migrations, snapshot-keyed prepared state, infrastructure adapters, canonical
+CLI/TUI traces, trace-linked TUI sessions, focused presentation/eval modules,
+and cold/warm benchmark coverage. The reranker deliberately remains a skipped
+stage until v0.3 measurements justify an implementation. v0.3 can add typed
+project-memory sources on the same pipeline; v0.4 can build controlled query
+refinement and iterative retrieval on these explicit stages.

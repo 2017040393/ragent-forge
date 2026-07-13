@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "name": "pre-v0.3-prepared-retrieval",
+  "description": "Deterministic BM25 cold versus warm prepared-state benchmark.",
+  "workload": {
+    "chunk_count": 5000,
+    "words_per_chunk": 32,
+    "warm_runs": 12,
+    "limit": 10,
+    "queries": [
+      "agent memory retrieval",
+      "hybrid context selection",
+      "workspace snapshot trace"
+    ]
+  },
+  "gates": {
+    "max_workspace_reads": 1,
+    "max_chunk_loads": 1,
+    "minimum_warm_hits": 12
+  }
+}

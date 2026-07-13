@@ -117,15 +117,34 @@ per-case stage timings and aggregates them into stage-level percentiles.
 
 The refactor splits ownership by use case rather than by arbitrary line count:
 
-- `cli.py`: parser and top-level dispatch only;
+- `cli/__init__.py`: parser facade and top-level dispatch only;
+- `cli/parser.py`: argument parser construction;
 - `cli/handlers/`: ingest, index, retrieval, eval, config, and trace handlers;
 - `tui/main.py`: Textual composition and event routing only;
 - `tui/controllers/`: Ask, search, session, and worker coordination;
-- retrieval eval: case loading, runner, metrics, and reporting modules;
+- retrieval eval: `evaluation/contracts.py`, `cases.py`, `runner.py`,
+  `metrics.py`, and `reporting.py`;
 - infrastructure: filesystem, provider, and prepared-index adapters.
 
 The old import paths may remain as thin compatibility facades, but production
 application code must use the new ownership boundaries.
+
+## Completion Evidence
+
+The convergence sequence is implemented through independently green commits.
+The final presentation/evaluation split is covered by architecture and
+compatibility tests. The checked-in benchmark manifest is
+`benchmarks/prepared_retrieval_manifest.json`; run it with:
+
+```text
+uv run --extra dev python -m benchmarks.prepared_retrieval
+```
+
+The benchmark reports cold and warm timings separately and gates structural
+cache reuse. It deliberately does not claim a retrieval-quality improvement or
+ANN scalability result. Retrieval evaluation reports now include typed
+stage-level latency summaries (`sample_count`, `average_ms`, `p50_ms`, and
+`p95_ms`) in addition to overall latency metrics.
 
 ## Acceptance Matrix
 

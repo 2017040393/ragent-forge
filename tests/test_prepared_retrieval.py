@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import cast
 
 import pytest
 
 from ragent_forge.app.models import EmbeddingResult
-from ragent_forge.app.ports import RetrievalWorkspace
+from ragent_forge.app.ports import ApplicationWorkspace, RetrievalWorkspace
 from ragent_forge.app.services.prepared_retrieval import PreparedStateCache
 from ragent_forge.app.services.search_service import (
     BM25SearchService,
@@ -15,11 +16,13 @@ from ragent_forge.app.services.search_service import (
 )
 from ragent_forge.app.services.semantic_search_service import SemanticSearchService
 from ragent_forge.app.services.vector_index_service import VectorIndexRecord
+from ragent_forge.composition import build_retrieval_runtime
 from ragent_forge.core.retrieval.contracts import ChunkRecord
 
 
 class CountingWorkspace:
-    def __init__(self) -> None:
+    def __init__(self, root_path: Path | None = None) -> None:
+        self.root_path = root_path or Path(".benchmark-workspace")
         self.records: list[ChunkRecord] = [
             {
                 "schema_version": 2,
@@ -116,6 +119,44 @@ def test_bm25_and_lexical_services_can_share_prepared_chunks() -> None:
     assert workspace.read_chunks_calls == 1
     assert cache.stats().chunk_loads == 1
     assert cache.stats().warm_hits == 1
+
+
+def test_composition_reuses_cache_across_runtime_builds_and_snapshots(
+    tmp_path: Path,
+) -> None:
+    workspace = CountingWorkspace(tmp_path / ".ragent")
+    application_workspace = cast(ApplicationWorkspace, workspace)
+
+    lexical = build_retrieval_runtime(
+        application_workspace,
+        "lexical",
+        limit=2,
+    )
+    lexical.retrieval_engine.run("agent", 2)
+    bm25 = build_retrieval_runtime(
+        application_workspace,
+        "bm25",
+        limit=2,
+    )
+    bm25.retrieval_engine.run("agent", 2)
+
+    assert lexical.prepared_state_cache is bm25.prepared_state_cache
+    assert workspace.read_chunks_calls == 1
+    assert bm25.prepared_state_cache is not None
+    assert bm25.prepared_state_cache.stats().warm_hits == 1
+
+    workspace.snapshot_id = "snapshot-2"
+    refreshed = build_retrieval_runtime(
+        application_workspace,
+        "lexical",
+        limit=2,
+    )
+    refreshed.retrieval_engine.run("agent", 2)
+
+    assert refreshed.prepared_state_cache is bm25.prepared_state_cache
+    assert workspace.read_chunks_calls == 2
+    assert refreshed.prepared_state_cache is not None
+    assert refreshed.prepared_state_cache.stats().invalidations == 1
 
 
 def test_warm_query_avoids_cold_workspace_load_cost(

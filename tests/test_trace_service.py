@@ -2,6 +2,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ragent_forge.app.models import Document, GenerationResult, IngestResult
+from ragent_forge.app.services.evaluation.contracts import (
+    RetrievalStageLatencySummary,
+)
 from ragent_forge.app.services.trace_service import (
     build_ask_retrieval_trace,
     build_index_build_trace,
@@ -348,6 +351,46 @@ def test_build_retrieval_eval_trace_records_lexical_metrics_safely() -> None:
     }
     assert "embedding_provider" not in trace.metadata
     assert "embedding_model" not in trace.metadata
+
+
+def test_build_retrieval_eval_trace_records_stage_latency_percentiles() -> None:
+    started_at = datetime(2026, 6, 30, tzinfo=UTC)
+    trace = build_retrieval_eval_trace(
+        cases_path=Path("eval/retrieval_cases.jsonl"),
+        retrieval_mode="bm25",
+        retrieval_method="bm25",
+        limit=5,
+        case_count=2,
+        passed_count=2,
+        failed_count=0,
+        metrics={
+            "hit@1": 1.0,
+            "hit@3": 1.0,
+            "hit@5": 1.0,
+            "hit@k": 1.0,
+            "mrr": 1.0,
+        },
+        report_path=Path(".ragent/eval/latest_retrieval_eval.json"),
+        started_at=started_at,
+        finished_at=started_at,
+        stage_latency_ms={
+            "candidate_retrieval": RetrievalStageLatencySummary(
+                sample_count=2,
+                average_ms=2.0,
+                p50_ms=1.5,
+                p95_ms=2.45,
+            )
+        },
+    )
+
+    assert trace.metadata["stage_latency_ms"] == {
+        "candidate_retrieval": {
+            "sample_count": 2,
+            "average_ms": 2.0,
+            "p50_ms": 1.5,
+            "p95_ms": 2.45,
+        }
+    }
 
 
 def test_build_retrieval_eval_trace_records_semantic_index_metadata_safely() -> None:

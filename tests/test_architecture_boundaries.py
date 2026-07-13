@@ -10,6 +10,7 @@ COMPATIBILITY_FACADES = {
     PACKAGE_ROOT / "app" / "workspace.py",
     PACKAGE_ROOT / "app" / "services" / "embedding_service.py",
     PACKAGE_ROOT / "app" / "services" / "generation_service.py",
+    PACKAGE_ROOT / "app" / "services" / "retrieval_eval_service.py",
     PACKAGE_ROOT / "app" / "services" / "text_generation_client.py",
 }
 
@@ -66,3 +67,32 @@ def test_legacy_import_paths_are_small_compatibility_facades() -> None:
     for path in COMPATIBILITY_FACADES:
         assert path.is_file()
         assert len(path.read_text(encoding="utf-8").splitlines()) <= 80
+
+
+def test_presentation_and_eval_responsibilities_have_focused_modules() -> None:
+    expected_modules = (
+        PACKAGE_ROOT / "cli" / "parser.py",
+        PACKAGE_ROOT / "cli" / "handlers" / "workspace.py",
+        PACKAGE_ROOT / "cli" / "handlers" / "chunks.py",
+        PACKAGE_ROOT / "cli" / "handlers" / "config.py",
+        PACKAGE_ROOT / "cli" / "handlers" / "traces.py",
+        PACKAGE_ROOT / "cli" / "handlers" / "index.py",
+        PACKAGE_ROOT / "cli" / "handlers" / "retrieval.py",
+        PACKAGE_ROOT / "cli" / "handlers" / "evaluation.py",
+        PACKAGE_ROOT / "tui" / "controllers" / "workers.py",
+        PACKAGE_ROOT / "tui" / "controllers" / "session.py",
+        PACKAGE_ROOT / "app" / "services" / "evaluation" / "contracts.py",
+        PACKAGE_ROOT / "app" / "services" / "evaluation" / "cases.py",
+        PACKAGE_ROOT / "app" / "services" / "evaluation" / "metrics.py",
+        PACKAGE_ROOT / "app" / "services" / "evaluation" / "reporting.py",
+        PACKAGE_ROOT / "app" / "services" / "evaluation" / "runner.py",
+    )
+    assert all(path.is_file() for path in expected_modules)
+
+    cli_tree = ast.parse(
+        (PACKAGE_ROOT / "cli" / "__init__.py").read_text(encoding="utf-8")
+    )
+    cli_functions = {
+        node.name for node in cli_tree.body if isinstance(node, ast.FunctionDef)
+    }
+    assert cli_functions == {"main"}
