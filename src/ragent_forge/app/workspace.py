@@ -11,6 +11,8 @@ from ragent_forge.app.models import (
     OperationTrace,
     WorkspaceStatus,
 )
+from ragent_forge.app.schema import add_schema_version, validate_schema_version
+from ragent_forge.app.storage import atomic_write_text, workspace_write_lock
 
 
 class LocalWorkspace:
@@ -75,12 +77,13 @@ class LocalWorkspace:
         content = "\n".join(lines)
         if content:
             content = f"{content}\n"
-        self.chunks_path.write_text(content, encoding="utf-8")
+        atomic_write_text(self.chunks_path, content)
         return self.chunks_path
 
     def write_ingest_summary(self, result: IngestResult) -> Path:
         self.ensure_exists()
-        self.latest_summary_path.write_text(
+        atomic_write_text(
+            self.latest_summary_path,
             json.dumps(
                 self._summary_record(result),
                 ensure_ascii=False,
@@ -88,19 +91,24 @@ class LocalWorkspace:
                 sort_keys=True,
             )
             + "\n",
-            encoding="utf-8",
         )
         return self.latest_summary_path
 
     def write_trace(self, trace: OperationTrace) -> Path:
         self.ensure_exists()
         content = (
-            trace.model_dump_json(indent=2, exclude_none=True)
+            json.dumps(
+                add_schema_version(trace.model_dump(exclude_none=True)),
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
             + "\n"
         )
         trace_path = self.traces_dir / f"{trace.trace_id}.json"
-        trace_path.write_text(content, encoding="utf-8")
-        self.latest_trace_path.write_text(content, encoding="utf-8")
+        with workspace_write_lock():
+            atomic_write_text(trace_path, content)
+            atomic_write_text(self.latest_trace_path, content)
         return self.latest_trace_path
 
     def write_retrieval_eval_report(
@@ -109,19 +117,20 @@ class LocalWorkspace:
         report_path: str | Path | None = None,
     ) -> Path:
         self.ensure_exists()
-        if report_path is None:
-            destination = self._next_eval_json_path("retrieval_eval")
-        else:
-            destination = Path(report_path).expanduser()
-        destination.parent.mkdir(parents=True, exist_ok=True)
         content = json.dumps(
-            report,
+            add_schema_version(report),
             ensure_ascii=False,
             indent=2,
             sort_keys=True,
         ) + "\n"
-        destination.write_text(content, encoding="utf-8")
-        self.latest_retrieval_eval_path.write_text(content, encoding="utf-8")
+        with workspace_write_lock():
+            destination = (
+                self._next_eval_json_path("retrieval_eval")
+                if report_path is None
+                else Path(report_path).expanduser()
+            )
+            atomic_write_text(destination, content)
+            atomic_write_text(self.latest_retrieval_eval_path, content)
         return destination
 
     def write_retrieval_compare_report(
@@ -130,19 +139,20 @@ class LocalWorkspace:
         output_path: str | Path | None = None,
     ) -> Path:
         self.ensure_exists()
-        if output_path is None:
-            destination = self._next_eval_json_path("retrieval_compare")
-        else:
-            destination = Path(output_path).expanduser()
-        destination.parent.mkdir(parents=True, exist_ok=True)
         content = json.dumps(
-            report,
+            add_schema_version(report),
             ensure_ascii=False,
             indent=2,
             sort_keys=True,
         ) + "\n"
-        destination.write_text(content, encoding="utf-8")
-        self.latest_retrieval_compare_path.write_text(content, encoding="utf-8")
+        with workspace_write_lock():
+            destination = (
+                self._next_eval_json_path("retrieval_compare")
+                if output_path is None
+                else Path(output_path).expanduser()
+            )
+            atomic_write_text(destination, content)
+            atomic_write_text(self.latest_retrieval_compare_path, content)
         return destination
 
     def write_retrieval_eval_run(
@@ -151,19 +161,27 @@ class LocalWorkspace:
         report_path: str | Path | None = None,
     ) -> Path:
         self.ensure_exists()
-        run_dir = self._next_retrieval_eval_run_dir()
-        run_dir.mkdir(parents=True)
+        with workspace_write_lock():
+            run_dir = self._next_retrieval_eval_run_dir()
+            run_dir.mkdir(parents=True)
 
         summary_json_path = run_dir / "summary.json"
         summary_md_path = run_dir / "summary.md"
         cases_jsonl_path = run_dir / "cases.jsonl"
         failures_jsonl_path = run_dir / "failures.jsonl"
 
-        summary_json_path.write_text(
-            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
+        atomic_write_text(
+            summary_json_path,
+            json.dumps(
+                add_schema_version(report),
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
         )
-        summary_md_path.write_text(
+        atomic_write_text(
+            summary_md_path,
             self._retrieval_eval_summary_markdown(
                 report,
                 summary_json_path=summary_json_path,
@@ -171,7 +189,6 @@ class LocalWorkspace:
                 failures_jsonl_path=failures_jsonl_path,
                 report_path=Path(report_path) if report_path is not None else None,
             ),
-            encoding="utf-8",
         )
 
         compact_cases = [
@@ -205,6 +222,7 @@ class LocalWorkspace:
                     f"Invalid JSON in chunks file {self.chunks_path} "
                     f"at line {line_number}: expected object"
                 )
+            validate_schema_version(record, "chunks file")
             records.append(record)
         return records
 
@@ -223,6 +241,7 @@ class LocalWorkspace:
                 f"Invalid JSON in ingest summary {self.latest_summary_path}: "
                 "expected object"
             )
+        validate_schema_version(summary, "ingest summary")
         return summary
 
     def read_latest_trace(self) -> dict[str, Any]:
@@ -237,6 +256,7 @@ class LocalWorkspace:
                 f"Invalid JSON in latest trace {self.latest_trace_path}: "
                 "expected object"
             )
+        validate_schema_version(trace, "latest trace")
         return trace
 
     def status(self) -> WorkspaceStatus:
@@ -273,7 +293,7 @@ class LocalWorkspace:
     def _chunk_record(self, chunk: DocumentChunk) -> dict[str, Any]:
         start_char = chunk.metadata.get("start_char")
         end_char = chunk.metadata.get("end_char")
-        return {
+        return add_schema_version({
             "chunk_id": chunk.id,
             "document_id": chunk.document_id,
             "text": chunk.text,
@@ -281,17 +301,17 @@ class LocalWorkspace:
             "start_char": start_char,
             "end_char": end_char,
             "metadata": chunk.metadata,
-        }
+        })
 
     def _summary_record(self, result: IngestResult) -> dict[str, Any]:
-        return {
+        return add_schema_version({
             "source_path": result.source_path,
             "document_count": result.document_count,
             "chunk_count": result.chunk_count,
             "skipped_count": result.skipped_count,
             "skipped_files": result.skipped_files,
             "metadata": result.metadata,
-        }
+        })
 
     def _missing_files(self, chunks_exist: bool, summary_exists: bool) -> list[str]:
         missing_files: list[str] = []
@@ -441,7 +461,7 @@ class LocalWorkspace:
         content = "\n".join(lines)
         if content:
             content = f"{content}\n"
-        path.write_text(content, encoding="utf-8")
+        atomic_write_text(path, content)
 
 
 def _dict_value(value: object) -> dict[str, Any]:

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Literal, Protocol, cast
 
 from ragent_forge.app.services.evidence_span_service import EvidenceSpan
+from ragent_forge.app.storage import atomic_write_text
 
 QuestionType = Literal["factual", "reasoning", "comparison", "how_to"]
 Difficulty = Literal["easy", "medium", "hard"]
@@ -299,7 +300,7 @@ def write_jsonl(
         json.dumps(case.to_jsonl_record(), ensure_ascii=False, sort_keys=True)
         for case in cases
     ]
-    path.write_text("".join(f"{line}\n" for line in lines), encoding="utf-8")
+    atomic_write_text(path, "".join(f"{line}\n" for line in lines))
     return path
 
 

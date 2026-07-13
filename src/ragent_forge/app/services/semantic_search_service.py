@@ -3,16 +3,16 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from ragent_forge.app.ports import RetrievalWorkspace
 from ragent_forge.app.services.embedding_service import EmbeddingService
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.services.vector_index_service import VectorIndexService
-from ragent_forge.app.workspace import LocalWorkspace
 
 
 class SemanticSearchService:
     def __init__(
         self,
-        workspace: LocalWorkspace,
+        workspace: RetrievalWorkspace,
         embedding_service: EmbeddingService | Any,
     ) -> None:
         self.workspace = workspace

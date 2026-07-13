@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from ragent_forge.app.models import TraceListItem, TraceListResult
-from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.app.ports import TraceWorkspace
 
 
 class TraceHistoryService:
-    def __init__(self, workspace: LocalWorkspace) -> None:
+    def __init__(self, workspace: TraceWorkspace) -> None:
         self.workspace = workspace
 
     def list_traces(self, limit: int = 20) -> TraceListResult:

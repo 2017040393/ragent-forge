@@ -76,6 +76,24 @@ retrieval cases.
 These services keep CLI and TUI code thin and reduce duplication between
 presentation surfaces.
 
+### Composition and Dependency Rules
+
+Retrieval service construction lives in `app/composition.py`. CLI and TUI use
+the same `RetrievalRuntime`, so retrieval modes, provider wiring, and hybrid
+configuration cannot drift between presentation surfaces.
+
+The dependency direction is one-way:
+
+```text
+CLI / TUI -> application -> core
+                    \-> infrastructure adapters
+```
+
+Core modules do not import `app`, `cli`, or `tui`. Application services depend
+on narrow protocols such as `ChunkReader`, `ConfigWorkspace`, and
+`VectorIndexWorkspace` where they only need a subset of workspace behavior.
+The architecture tests enforce these import boundaries.
+
 ### Retrieval Services
 
 Retrieval is explicit and mode-based:
@@ -104,6 +122,11 @@ path can stream provider deltas into its local transcript/session state.
 `LocalWorkspace` centralizes `.ragent/` paths and reads/writes derived state.
 The source documents remain the source of truth; workspace files can be
 regenerated.
+
+Workspace writes use temporary files followed by atomic replacement and an
+in-process write lock for related updates. Versioned workspace state artifacts
+carry `schema_version = 1`; readers continue to accept legacy files without a
+version and reject versions newer than the supported format.
 
 Important workspace files include:
 

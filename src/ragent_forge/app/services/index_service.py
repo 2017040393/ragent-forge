@@ -5,12 +5,12 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from ragent_forge.app.ports import RetrievalWorkspace
 from ragent_forge.app.services.embedding_service import EmbeddingService
 from ragent_forge.app.services.vector_index_service import (
     VectorIndexRecord,
     VectorIndexService,
 )
-from ragent_forge.app.workspace import LocalWorkspace
 
 
 class IndexBuildResult(BaseModel):
@@ -27,7 +27,7 @@ class IndexBuildResult(BaseModel):
 class IndexBuildService:
     def __init__(
         self,
-        workspace: LocalWorkspace,
+        workspace: RetrievalWorkspace,
         embedding_service: EmbeddingService | Any | None = None,
     ) -> None:
         self.workspace = workspace

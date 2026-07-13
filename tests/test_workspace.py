@@ -62,6 +62,7 @@ def test_write_chunks_writes_valid_jsonl(tmp_path: Path) -> None:
     records = [json.loads(line) for line in lines]
     assert len(records) == 2
     assert records[0]["chunk_id"] == "/knowledge/rag.md::chunk-0000"
+    assert records[0]["schema_version"] == 1
     assert records[0]["document_id"] == "/knowledge/rag.md"
     assert records[0]["text"] == "abcde"
     assert records[0]["source_path"] == "/knowledge/rag.md"
@@ -78,6 +79,7 @@ def test_write_ingest_summary_writes_valid_json(tmp_path: Path) -> None:
 
     summary = json.loads(workspace.latest_summary_path.read_text(encoding="utf-8"))
     assert summary == {
+        "schema_version": 1,
         "source_path": "/knowledge",
         "document_count": 1,
         "chunk_count": 2,
@@ -182,6 +184,31 @@ def test_read_chunks_raises_clear_error_for_invalid_jsonl(tmp_path: Path) -> Non
     workspace.chunks_path.write_text('{"ok": true}\nnot-json\n', encoding="utf-8")
 
     with pytest.raises(ValueError, match="Invalid JSON in chunks file"):
+        workspace.read_chunks()
+
+
+def test_read_chunks_accepts_legacy_records_without_schema_version(
+    tmp_path: Path,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.ensure_exists()
+    workspace.chunks_path.write_text(
+        '{"chunk_id": "legacy", "text": "content"}\n',
+        encoding="utf-8",
+    )
+
+    assert workspace.read_chunks()[0]["chunk_id"] == "legacy"
+
+
+def test_read_chunks_rejects_newer_schema_version(tmp_path: Path) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.ensure_exists()
+    workspace.chunks_path.write_text(
+        '{"schema_version": 999, "chunk_id": "future"}\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Unsupported chunks file schema_version"):
         workspace.read_chunks()
 
 

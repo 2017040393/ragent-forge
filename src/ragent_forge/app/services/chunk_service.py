@@ -3,11 +3,11 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.app.ports import ChunkReader
 
 
 class ChunkService:
-    def __init__(self, workspace: LocalWorkspace) -> None:
+    def __init__(self, workspace: ChunkReader) -> None:
         self.workspace = workspace
 
     def list_chunks(self, limit: int = 20) -> list[dict[str, Any]]:

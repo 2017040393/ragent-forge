@@ -7,13 +7,13 @@ from typing import Literal, Protocol, runtime_checkable
 from pydantic import BaseModel, Field
 
 from ragent_forge.app.models import ContextPack, GenerationResult, SourceRef
+from ragent_forge.app.ports import ChunkReader
 from ragent_forge.app.services.context_service import build_context_pack
 from ragent_forge.app.services.generation_service import (
     GenerationService,
     GenerationStreamEvent,
 )
 from ragent_forge.app.services.search_service import LexicalSearchService, SearchResult
-from ragent_forge.app.workspace import LocalWorkspace
 
 
 class ProviderNameProtocol(Protocol):
@@ -78,7 +78,7 @@ class AskStreamEvent:
 class AskService:
     def __init__(
         self,
-        workspace: LocalWorkspace,
+        workspace: ChunkReader,
         generation_service: GenerationServiceProtocol | None = None,
         search_service: SearchServiceProtocol | None = None,
         retrieval_method: str = "lexical_token_overlap",
@@ -183,7 +183,7 @@ class AskService:
     @classmethod
     def from_config(
         cls,
-        workspace: LocalWorkspace,
+        workspace: ChunkReader,
         generation_service: GenerationServiceProtocol | None = None,
         search_service: SearchServiceProtocol | None = None,
         retrieval_method: str = "lexical_token_overlap",

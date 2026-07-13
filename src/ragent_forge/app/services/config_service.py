@@ -7,7 +7,8 @@ from typing import Any
 from pydantic import ValidationError
 
 from ragent_forge.app.models import AppConfig
-from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.app.ports import ConfigWorkspace
+from ragent_forge.app.storage import atomic_write_text
 
 DEFAULT_CONFIG_TEXT = """[generation]
 provider = "null"
@@ -37,7 +38,7 @@ SUPPORTED_EMBEDDING_KEYS = {
 
 
 class ConfigService:
-    def __init__(self, workspace: LocalWorkspace) -> None:
+    def __init__(self, workspace: ConfigWorkspace) -> None:
         self.workspace = workspace
 
     def default_config(self) -> AppConfig:
@@ -63,7 +64,7 @@ class ConfigService:
             return self.workspace.config_path
 
         self.workspace.root_path.mkdir(parents=True, exist_ok=True)
-        self.workspace.config_path.write_text(DEFAULT_CONFIG_TEXT, encoding="utf-8")
+        atomic_write_text(self.workspace.config_path, DEFAULT_CONFIG_TEXT)
         return self.workspace.config_path
 
     def _build_config(self, raw_config: dict[str, Any]) -> AppConfig:

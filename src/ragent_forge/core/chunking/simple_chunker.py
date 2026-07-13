@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ragent_forge.app.models import Document, DocumentChunk
+from ragent_forge.core.models import Document, DocumentChunk
 
 
 class SimpleChunker:

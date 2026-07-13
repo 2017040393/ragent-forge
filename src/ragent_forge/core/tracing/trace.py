@@ -1,4 +1,4 @@
-from ragent_forge.app.models import RagTrace, TraceStep
+from ragent_forge.core.models import RagTrace, TraceStep
 
 
 def add_step(trace: RagTrace, step: TraceStep) -> RagTrace:

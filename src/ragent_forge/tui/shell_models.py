@@ -16,6 +16,7 @@ from ragent_forge.app.services.session_service import (
 from ragent_forge.app.source_labels import (
     format_source_metadata as _format_structured_source_metadata,
 )
+from ragent_forge.core.retrieval.types import RetrievalMode
 from ragent_forge.tui.view_models import (
     AskPageState,
     SearchPageState,
@@ -24,7 +25,6 @@ from ragent_forge.tui.view_models import (
 )
 
 TranscriptRole = Literal["system", "user", "assistant", "tool", "error"]
-RetrievalMode = Literal["lexical", "bm25", "semantic", "hybrid"]
 
 WELCOME_MESSAGE = (
     "RAGentForge command shell.\n"

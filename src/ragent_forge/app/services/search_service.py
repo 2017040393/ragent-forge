@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.app.ports import ChunkReader
 
 
 class SearchResult(BaseModel):
@@ -23,7 +23,7 @@ class SearchResult(BaseModel):
 
 
 class LexicalSearchService:
-    def __init__(self, workspace: LocalWorkspace) -> None:
+    def __init__(self, workspace: ChunkReader) -> None:
         self.workspace = workspace
 
     def count_chunks(self) -> int:
@@ -65,7 +65,7 @@ class LexicalSearchService:
 class BM25SearchService:
     def __init__(
         self,
-        workspace: LocalWorkspace,
+        workspace: ChunkReader,
         *,
         k1: float = 1.5,
         b: float = 0.75,

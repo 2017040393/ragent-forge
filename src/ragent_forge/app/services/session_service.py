@@ -8,10 +8,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, cast
 
+from ragent_forge.app.schema import add_schema_version, validate_schema_version
+from ragent_forge.app.storage import atomic_write_text, workspace_write_lock
 from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.core.retrieval.types import RetrievalMode
 
 TuiSessionMessageRole = Literal["user", "assistant"]
-TuiSessionRetrievalMode = Literal["lexical", "bm25", "semantic", "hybrid"]
+TuiSessionRetrievalMode = RetrievalMode
 TuiSessionExportFormat = Literal["markdown", "json"]
 TuiSessionListFilter = Literal["recent", "pinned", "starred", "failed", "has-sources"]
 
@@ -322,10 +325,16 @@ class SessionService:
     def save_session(self, session: TuiSession) -> TuiSession:
         self.workspace.ensure_exists()
         sanitized = TuiSession.from_dict(session.to_dict())
-        self._session_path(sanitized.id).write_text(
-            json.dumps(sanitized.to_dict(), ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        with workspace_write_lock():
+            atomic_write_text(
+                self._session_path(sanitized.id),
+                json.dumps(
+                    add_schema_version(sanitized.to_dict()),
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+            )
         self._write_index()
         return sanitized
 
@@ -352,10 +361,14 @@ class SessionService:
 
     def set_latest(self, session_id: str) -> None:
         self.workspace.ensure_exists()
-        self.latest_path.write_text(
-            json.dumps({"session_id": session_id}, ensure_ascii=False, indent=2)
+        atomic_write_text(
+            self.latest_path,
+            json.dumps(
+                add_schema_version({"session_id": session_id}),
+                ensure_ascii=False,
+                indent=2,
+            )
             + "\n",
-            encoding="utf-8",
         )
 
     def list_sessions(
@@ -493,13 +506,18 @@ class SessionService:
         self.workspace.ensure_exists()
         if export_format == "markdown":
             path = self.exports_dir / f"{session.id}.md"
-            path.write_text(_session_to_markdown(session), encoding="utf-8")
+            atomic_write_text(path, _session_to_markdown(session))
             return path
         if export_format == "json":
             path = self.exports_dir / f"{session.id}.json"
-            path.write_text(
-                json.dumps(session.to_dict(), ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
+            atomic_write_text(
+                path,
+                json.dumps(
+                    add_schema_version(session.to_dict()),
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
             )
             return path
         raise ValueError("export_format must be markdown or json")
@@ -523,6 +541,10 @@ class SessionService:
             return None
         if not isinstance(payload, dict):
             return None
+        try:
+            validate_schema_version(payload, "latest session")
+        except ValueError:
+            return None
         session_id = payload.get("session_id")
         return session_id if isinstance(session_id, str) and session_id else None
 
@@ -533,6 +555,7 @@ class SessionService:
             raise ValueError(f"Invalid session file {path}: {exc.msg}") from exc
         if not isinstance(payload, dict):
             raise ValueError(f"Invalid session file {path}: expected object")
+        validate_schema_version(payload, "session file")
         return TuiSession.from_dict({str(key): value for key, value in payload.items()})
 
     def _load_all_sessions(self) -> list[TuiSession]:
@@ -602,14 +625,16 @@ class SessionService:
         summaries: list[TuiSessionSummary],
     ) -> None:
         self.workspace.ensure_exists()
-        self.index_path.write_text(
+        atomic_write_text(
+            self.index_path,
             json.dumps(
-                {"sessions": [summary.to_dict() for summary in summaries]},
+                add_schema_version(
+                    {"sessions": [summary.to_dict() for summary in summaries]}
+                ),
                 ensure_ascii=False,
                 indent=2,
             )
             + "\n",
-            encoding="utf-8",
         )
 
     def _session_search_text(self, session_id: str) -> str:

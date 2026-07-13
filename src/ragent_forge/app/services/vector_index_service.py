@@ -8,10 +8,13 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.app.ports import VectorIndexWorkspace
+from ragent_forge.app.schema import add_schema_version, validate_schema_version
+from ragent_forge.app.storage import atomic_write_text, workspace_write_lock
 
 
 class VectorIndexRecord(BaseModel):
+    schema_version: int = 1
     chunk_id: str
     document_id: str
     source_path: str
@@ -56,7 +59,7 @@ class VectorIndexWriteResult(BaseModel):
 
 
 class VectorIndexService:
-    def __init__(self, workspace: LocalWorkspace) -> None:
+    def __init__(self, workspace: VectorIndexWorkspace) -> None:
         self.workspace = workspace
 
     def write_index(
@@ -74,22 +77,28 @@ class VectorIndexService:
         content = "\n".join(lines)
         if content:
             content = f"{content}\n"
-        self.workspace.vector_index_path.write_text(content, encoding="utf-8")
+        manifest = add_schema_version(
+            {
+                "embedding_provider": embedding_provider,
+                "embedding_model": embedding_model,
+                "chunk_count": len(records),
+                "embedding_dim": (
+                    records[0].embedding_dim if records else 0
+                ),
+                "built_at": _format_timestamp(datetime.now(UTC)),
+                "chunks_path": str(chunks_path),
+                "index_path": str(self.workspace.vector_index_path),
+            }
+        )
+        with workspace_write_lock():
+            atomic_write_text(self.workspace.vector_index_path, content)
+            atomic_write_text(
+                self.workspace.vector_index_manifest_path,
+                json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True)
+                + "\n",
+            )
 
         embedding_dim = records[0].embedding_dim if records else 0
-        manifest = {
-            "embedding_provider": embedding_provider,
-            "embedding_model": embedding_model,
-            "chunk_count": len(records),
-            "embedding_dim": embedding_dim,
-            "built_at": _format_timestamp(datetime.now(UTC)),
-            "chunks_path": str(chunks_path),
-            "index_path": str(self.workspace.vector_index_path),
-        }
-        self.workspace.vector_index_manifest_path.write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
         return VectorIndexWriteResult(
             index_path=self.workspace.vector_index_path,
             manifest_path=self.workspace.vector_index_manifest_path,
@@ -123,6 +132,7 @@ class VectorIndexService:
                     f"{self.workspace.vector_index_path} at line {line_number}: "
                     "expected object"
                 )
+            validate_schema_version(payload, "vector index")
             records.append(VectorIndexRecord.model_validate(payload))
         return records
 
@@ -143,6 +153,7 @@ class VectorIndexService:
                 "Invalid JSON in vector index manifest "
                 f"{self.workspace.vector_index_manifest_path}: expected object"
             )
+        validate_schema_version(manifest, "vector index manifest")
         return manifest
 
 

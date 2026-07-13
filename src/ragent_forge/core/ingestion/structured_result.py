@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from ragent_forge.app.models import Document
 from ragent_forge.core.ingestion.document_blocks import (
     DocumentBlock,
     PdfExtractionWarning,
 )
+from ragent_forge.core.models import Document
 
 
 @dataclass(frozen=True)

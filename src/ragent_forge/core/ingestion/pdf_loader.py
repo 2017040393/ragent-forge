@@ -8,7 +8,6 @@ from typing import Any, cast
 
 import pdfplumber
 
-from ragent_forge.app.models import Document
 from ragent_forge.core.ingestion.document_blocks import (
     DocumentBlock,
     PdfExtractionWarning,
@@ -28,6 +27,7 @@ from ragent_forge.core.ingestion.table_serialization import (
     TableSerializationResult,
     serialize_table,
 )
+from ragent_forge.core.models import Document
 
 _TableWithBbox = tuple[
     Sequence[Sequence[Any] | None],

@@ -5,9 +5,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Never
 
-from ragent_forge.app.models import Document
 from ragent_forge.core.ingestion.document_blocks import BlockType, DocumentBlock
 from ragent_forge.core.ingestion.structured_result import StructuredLoadResult
+from ragent_forge.core.models import Document
 
 MARKDOWN_EXTENSIONS = {".md"}
 TEXT_EXTENSIONS = {".txt"}

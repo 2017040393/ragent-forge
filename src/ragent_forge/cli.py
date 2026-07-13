@@ -3,13 +3,16 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal, cast
+from typing import cast
 
 from rich.console import Console
 
+from ragent_forge.app.composition import (
+    RetrievalRuntime,
+    build_retrieval_runtime,
+)
 from ragent_forge.app.models import (
     AppConfig,
     ContextPack,
@@ -17,9 +20,6 @@ from ragent_forge.app.models import (
 )
 from ragent_forge.app.services.ask_service import (
     AskService,
-)
-from ragent_forge.app.services.ask_service import (
-    SearchServiceProtocol as AskSearchServiceProtocol,
 )
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
@@ -33,12 +33,6 @@ from ragent_forge.app.services.eval_dataset_generation_service import (
 )
 from ragent_forge.app.services.evidence_span_service import EvidenceSpanService
 from ragent_forge.app.services.generation_service import GenerationService
-from ragent_forge.app.services.hybrid_search_service import (
-    HybridDenseMethod,
-    HybridSearchConfig,
-    HybridSearchService,
-    HybridSparseMethod,
-)
 from ragent_forge.app.services.index_service import IndexBuildService
 from ragent_forge.app.services.ingest_service import IngestService
 from ragent_forge.app.services.retrieval_compare_service import (
@@ -50,11 +44,8 @@ from ragent_forge.app.services.retrieval_eval_service import (
     RetrievalEvalService,
 )
 from ragent_forge.app.services.search_service import (
-    BM25SearchService,
-    LexicalSearchService,
     SearchResult,
 )
-from ragent_forge.app.services.semantic_search_service import SemanticSearchService
 from ragent_forge.app.services.text_generation_client import (
     OpenAIResponsesTextGenerationClient,
 )
@@ -69,28 +60,14 @@ from ragent_forge.app.services.trace_service import (
 from ragent_forge.app.services.vector_index_service import VectorIndexService
 from ragent_forge.app.source_labels import format_source_label, format_source_range
 from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.core.retrieval.types import (
+    RETRIEVAL_MODES,
+    RetrievalMode,
+)
 from ragent_forge.tui.main import RagentForgeApp
 
-RETRIEVAL_CHOICES = ["lexical", "bm25", "semantic", "hybrid"]
-RetrievalMode = Literal["lexical", "bm25", "semantic", "hybrid"]
-
-
-@dataclass(frozen=True)
-class BuiltSearchService:
-    search_service: AskSearchServiceProtocol
-    retrieval_method: str
-    embedding_provider: str | None = None
-    embedding_model: str | None = None
-    index_path: Path | None = None
-    fusion_method: str | None = None
-    rrf_k: int | None = None
-    sparse_method: HybridSparseMethod | None = None
-    dense_method: HybridDenseMethod | None = None
-    sparse_weight: float | None = None
-    dense_weight: float | None = None
-    lexical_weight: float | None = None
-    semantic_weight: float | None = None
-    candidate_limit: int | None = None
+RETRIEVAL_CHOICES = list(RETRIEVAL_MODES)
+BuiltSearchService = RetrievalRuntime
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -951,53 +928,11 @@ def _build_search_service_for_retrieval(
     limit: int,
     config=None,
 ) -> BuiltSearchService:
-    if retrieval == "semantic":
-        config = config or ConfigService(workspace).load()
-        embedding_service = EmbeddingService.from_config(config)
-        return BuiltSearchService(
-            search_service=SemanticSearchService(workspace, embedding_service),
-            retrieval_method="semantic_cosine_similarity",
-            embedding_provider=config.embedding.provider,
-            embedding_model=config.embedding.model,
-            index_path=workspace.vector_index_path,
-        )
-
-    if retrieval == "hybrid":
-        config = config or ConfigService(workspace).load()
-        embedding_service = EmbeddingService.from_config(config)
-        semantic_search_service = SemanticSearchService(workspace, embedding_service)
-        hybrid_config = HybridSearchConfig()
-        hybrid_search_service = HybridSearchService(
-            sparse_search_service=BM25SearchService(workspace),
-            dense_search_service=semantic_search_service,
-            config=hybrid_config,
-        )
-        return BuiltSearchService(
-            search_service=hybrid_search_service,
-            retrieval_method="hybrid_rrf",
-            embedding_provider=config.embedding.provider,
-            embedding_model=config.embedding.model,
-            index_path=workspace.vector_index_path,
-            fusion_method="reciprocal_rank_fusion",
-            rrf_k=hybrid_config.rrf_k,
-            sparse_method=hybrid_config.sparse_method,
-            dense_method=hybrid_config.dense_method,
-            sparse_weight=hybrid_config.sparse_weight,
-            dense_weight=hybrid_config.dense_weight,
-            lexical_weight=hybrid_config.lexical_weight,
-            semantic_weight=hybrid_config.semantic_weight,
-            candidate_limit=hybrid_search_service.candidate_limit_for(limit),
-        )
-
-    if retrieval == "bm25":
-        return BuiltSearchService(
-            search_service=BM25SearchService(workspace),
-            retrieval_method="bm25",
-        )
-
-    return BuiltSearchService(
-        search_service=LexicalSearchService(workspace),
-        retrieval_method="lexical_token_overlap",
+    return build_retrieval_runtime(
+        workspace,
+        retrieval,
+        limit=limit,
+        config=config,
     )
 
 

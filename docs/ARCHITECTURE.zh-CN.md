@@ -96,6 +96,10 @@ transcript/session state。
 `LocalWorkspace` 统一管理 `.ragent/` 路径并读写派生状态。源文档仍然是事实
 来源；workspace files 可以重新生成。
 
+Workspace 写入先落到临时文件，再进行原子替换；相关更新在进程内由写锁保护。
+需要版本管理的 workspace 状态 artifact 带有 `schema_version = 1`。读取器继续兼容
+没有版本号的旧文件，但会拒绝高于当前支持版本的文件。
+
 重要 workspace files 包括：
 
 ```text

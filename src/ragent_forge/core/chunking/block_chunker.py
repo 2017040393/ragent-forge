@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from ragent_forge.app.models import Document, DocumentChunk
 from ragent_forge.core.ingestion.document_blocks import DocumentBlock
+from ragent_forge.core.models import Document, DocumentChunk
 
 
 class BlockChunker:

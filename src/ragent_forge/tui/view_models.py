@@ -5,30 +5,29 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, cast
 
+from ragent_forge.app.composition import (
+    RetrievalRuntime,
+    build_retrieval_runtime,
+)
 from ragent_forge.app.models import AppConfig, GenerationResult, WorkspaceStatus
 from ragent_forge.app.services.ask_service import AskAnswerResult, AskService
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
-from ragent_forge.app.services.embedding_service import EmbeddingService
 from ragent_forge.app.services.generation_service import (
     GenerationService,
     GenerationStreamEvent,
 )
-from ragent_forge.app.services.hybrid_search_service import HybridSearchService
-from ragent_forge.app.services.search_service import (
-    BM25SearchService,
-    LexicalSearchService,
-    SearchResult,
-)
-from ragent_forge.app.services.semantic_search_service import SemanticSearchService
+from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
 from ragent_forge.app.source_labels import (
     format_source_label,
     format_source_metadata,
 )
 from ragent_forge.app.workspace import LocalWorkspace
-
-RetrievalMode = Literal["lexical", "bm25", "semantic", "hybrid"]
+from ragent_forge.core.retrieval.types import (
+    RetrievalMode,
+    normalize_retrieval_mode,
+)
 
 NO_CHUNKS_MESSAGE = "\n".join(
     [
@@ -149,10 +148,7 @@ class SettingsPageModel:
     message: str | None = None
 
 
-@dataclass(frozen=True)
-class _TuiRetrievalService:
-    search_service: Any
-    retrieval_method: str
+_TuiRetrievalService = RetrievalRuntime
 
 
 class _SafeTuiGenerationProvider:
@@ -437,7 +433,11 @@ def run_tui_search(
         )
 
     try:
-        retrieval = _build_tui_retrieval_service(workspace, mode)
+        retrieval = _build_tui_retrieval_service(
+            workspace,
+            mode,
+            limit=safe_limit,
+        )
         results = [
             _with_default_retrieval_method(result, retrieval.retrieval_method)
             for result in retrieval.search_service.search(normalized_query, safe_limit)
@@ -550,7 +550,12 @@ def stream_tui_ask(
 
     try:
         config = ConfigService(workspace).load()
-        retrieval = _build_tui_retrieval_service(workspace, mode, config=config)
+        retrieval = _build_tui_retrieval_service(
+            workspace,
+            mode,
+            limit=safe_limit,
+            config=config,
+        )
         generation_service = GenerationService.from_config(config)
         safe_generation_service = GenerationService(
             _SafeTuiGenerationProvider(generation_service.provider)
@@ -675,47 +680,19 @@ def _build_tui_retrieval_service(
     workspace: LocalWorkspace,
     mode: RetrievalMode,
     *,
+    limit: int = 10,
     config: AppConfig | None = None,
 ) -> _TuiRetrievalService:
-    if mode == "lexical":
-        return _TuiRetrievalService(
-            search_service=LexicalSearchService(workspace),
-            retrieval_method="lexical_token_overlap",
-        )
-    if mode == "bm25":
-        return _TuiRetrievalService(
-            search_service=BM25SearchService(workspace),
-            retrieval_method="bm25",
-        )
-
-    config = config if config is not None else ConfigService(workspace).load()
-    semantic_search_service = SemanticSearchService(
+    return build_retrieval_runtime(
         workspace,
-        EmbeddingService.from_config(config),
-    )
-    if mode == "semantic":
-        return _TuiRetrievalService(
-            search_service=semantic_search_service,
-            retrieval_method="semantic_cosine_similarity",
-        )
-
-    return _TuiRetrievalService(
-        search_service=HybridSearchService(
-            sparse_search_service=BM25SearchService(workspace),
-            dense_search_service=semantic_search_service,
-        ),
-        retrieval_method="hybrid_rrf",
+        mode,
+        limit=limit,
+        config=config,
     )
 
 
 def _normalize_retrieval_mode(retrieval_mode: str) -> RetrievalMode:
-    if retrieval_mode == "bm25":
-        return "bm25"
-    if retrieval_mode == "semantic":
-        return "semantic"
-    if retrieval_mode == "hybrid":
-        return "hybrid"
-    return "lexical"
+    return normalize_retrieval_mode(retrieval_mode)
 
 
 def _with_default_retrieval_method(
