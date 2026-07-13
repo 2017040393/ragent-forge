@@ -270,18 +270,14 @@ def test_ingest_command_prints_statistics(
     assert "Saved chunks to:" in captured.out
     assert "chunks.jsonl" in captured.out
     assert "Saved summary to:" in captured.out
-    assert "latest_summary.json" in captured.out
     assert "Saved trace to:" in captured.out
     assert "latest_trace.json" in captured.out
-    assert (workspace_dir / "chunks" / "chunks.jsonl").is_file()
-    assert (workspace_dir / "ingest" / "latest_summary.json").is_file()
+    workspace = LocalWorkspace(workspace_dir)
+    assert workspace.chunks_path.is_file()
+    assert workspace.latest_summary_path.is_file()
     assert (workspace_dir / "traces" / "latest_trace.json").is_file()
 
-    summary = json.loads(
-        (workspace_dir / "ingest" / "latest_summary.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    summary = json.loads(workspace.latest_summary_path.read_text(encoding="utf-8"))
     assert summary["document_count"] == 2
     assert summary["chunk_count"] == 4
     assert summary["skipped_count"] == 1
@@ -316,6 +312,49 @@ def test_status_command_prints_not_initialized_for_missing_workspace(
     assert "Workspace:" in captured.out
     assert "Status: not initialized" in captured.out
     assert "Run `ragent ingest <path>`" in captured.out
+
+
+def test_workspace_migrate_dry_run_then_commits_generation(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.ensure_exists()
+    workspace.chunks_path.write_text(
+        '{"chunk_id": "legacy", "text": "content"}\n',
+        encoding="utf-8",
+    )
+    workspace.latest_summary_path.write_text(
+        '{"source_path": "/knowledge", "chunk_count": 1}\n',
+        encoding="utf-8",
+    )
+
+    dry_run_exit = main(
+        [
+            "workspace",
+            "migrate",
+            "--workspace",
+            str(workspace.root_path),
+            "--dry-run",
+        ]
+    )
+
+    dry_run_output = capsys.readouterr().out
+    assert dry_run_exit == 0
+    assert "Workspace migration dry run" in dry_run_output
+    assert "Migration required: true" in dry_run_output
+    assert not workspace.current_path.exists()
+
+    migrate_exit = main(
+        ["workspace", "migrate", "--workspace", str(workspace.root_path)]
+    )
+
+    migrate_output = capsys.readouterr().out
+    assert migrate_exit == 0
+    assert "Workspace migration complete" in migrate_output
+    assert workspace.current_path.is_file()
+    assert workspace.current_snapshot_id() is not None
+    assert workspace.read_chunks()[0]["schema_version"] == 2
 
 
 def test_status_command_prints_ready_after_ingest(
@@ -677,8 +716,8 @@ def test_chunks_show_command_prints_full_chunk_details_and_text(
     )
     capsys.readouterr()
     chunks = json.loads(
-        (workspace_dir / "chunks" / "chunks.jsonl")
-        .read_text(encoding="utf-8")
+        LocalWorkspace(workspace_dir)
+        .chunks_path.read_text(encoding="utf-8")
         .splitlines()[0]
     )
 
@@ -1092,9 +1131,8 @@ def test_index_build_command_writes_vector_index_and_trace_without_api_key(
     latest_trace = json.loads(
         (workspace_dir / "traces" / "latest_trace.json").read_text(encoding="utf-8")
     )
-    index_text = (workspace_dir / "index" / "vector_index.jsonl").read_text(
-        encoding="utf-8"
-    )
+    workspace = LocalWorkspace(workspace_dir)
+    index_text = workspace.vector_index_path.read_text(encoding="utf-8")
     assert exit_code == 0
     assert "Semantic index build" in captured.out
     assert "Embedding provider: openai_embeddings" in captured.out
@@ -1103,8 +1141,8 @@ def test_index_build_command_writes_vector_index_and_trace_without_api_key(
     assert "Embedding dim: 2" in captured.out
     assert "Index path:" in captured.out
     assert "Saved trace to:" in captured.out
-    assert (workspace_dir / "index" / "vector_index.jsonl").is_file()
-    assert (workspace_dir / "index" / "vector_index_manifest.json").is_file()
+    assert workspace.vector_index_path.is_file()
+    assert workspace.vector_index_manifest_path.is_file()
     assert "agent memory agent" not in index_text
     assert "embedding-secret-key" not in index_text
     assert "embedding-secret-key" not in captured.out
@@ -2020,7 +2058,7 @@ def test_eval_retrieval_defaults_to_lexical_and_writes_report_and_trace(
     capsys.readouterr()
     chunks = [
         json.loads(line)
-        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        for line in LocalWorkspace(workspace_dir).chunks_path
         .read_text(encoding="utf-8")
         .splitlines()
     ]
@@ -2196,7 +2234,7 @@ def test_eval_retrieval_bm25_works_without_vector_index(
     capsys.readouterr()
     chunks = [
         json.loads(line)
-        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        for line in LocalWorkspace(workspace_dir).chunks_path
         .read_text(encoding="utf-8")
         .splitlines()
     ]
@@ -2265,7 +2303,7 @@ def test_eval_compare_lexical_persists_report_runs_and_failure_breakdown(
     capsys.readouterr()
     chunks = [
         json.loads(line)
-        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        for line in LocalWorkspace(workspace_dir).chunks_path
         .read_text(encoding="utf-8")
         .splitlines()
     ]
@@ -2358,7 +2396,7 @@ def test_eval_compare_supports_bm25_runs_without_vector_index(
     capsys.readouterr()
     chunks = [
         json.loads(line)
-        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        for line in LocalWorkspace(workspace_dir).chunks_path
         .read_text(encoding="utf-8")
         .splitlines()
     ]
@@ -2432,7 +2470,7 @@ def test_eval_compare_records_missing_vector_index_without_fail_fast(
     capsys.readouterr()
     chunks = [
         json.loads(line)
-        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        for line in LocalWorkspace(workspace_dir).chunks_path
         .read_text(encoding="utf-8")
         .splitlines()
     ]
@@ -2511,7 +2549,7 @@ def test_eval_compare_fail_fast_stops_on_missing_vector_index(
     capsys.readouterr()
     chunks = [
         json.loads(line)
-        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        for line in LocalWorkspace(workspace_dir).chunks_path
         .read_text(encoding="utf-8")
         .splitlines()
     ]
@@ -2589,7 +2627,7 @@ def test_eval_retrieval_semantic_succeeds_after_index_build(
     capsys.readouterr()
     chunks = [
         json.loads(line)
-        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        for line in LocalWorkspace(workspace_dir).chunks_path
         .read_text(encoding="utf-8")
         .splitlines()
     ]
@@ -2726,7 +2764,7 @@ def test_eval_retrieval_hybrid_succeeds_after_index_build(
     capsys.readouterr()
     chunks = [
         json.loads(line)
-        for line in (workspace_dir / "chunks" / "chunks.jsonl")
+        for line in LocalWorkspace(workspace_dir).chunks_path
         .read_text(encoding="utf-8")
         .splitlines()
     ]

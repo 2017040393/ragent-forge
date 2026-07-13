@@ -6,6 +6,12 @@ import pytest
 from ragent_forge.app.models import Document, IngestResult, OperationTrace, TraceStep
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
+from ragent_forge.core.schema import (
+    WORKSPACE_SCHEMA_VERSION,
+    migrate_schema_record,
+    schema_migration_plan,
+)
+from ragent_forge.infrastructure import local_workspace as local_workspace_module
 
 
 def make_ingest_result() -> IngestResult:
@@ -62,7 +68,7 @@ def test_write_chunks_writes_valid_jsonl(tmp_path: Path) -> None:
     records = [json.loads(line) for line in lines]
     assert len(records) == 2
     assert records[0]["chunk_id"] == "/knowledge/rag.md::chunk-0000"
-    assert records[0]["schema_version"] == 1
+    assert records[0]["schema_version"] == 2
     assert records[0]["document_id"] == "/knowledge/rag.md"
     assert records[0]["text"] == "abcde"
     assert records[0]["source_path"] == "/knowledge/rag.md"
@@ -105,7 +111,7 @@ def test_write_ingest_summary_writes_valid_json(tmp_path: Path) -> None:
 
     summary = json.loads(workspace.latest_summary_path.read_text(encoding="utf-8"))
     assert summary == {
-        "schema_version": 1,
+        "schema_version": 2,
         "source_path": "/knowledge",
         "document_count": 1,
         "chunk_count": 2,
@@ -125,11 +131,199 @@ def test_commit_snapshot_writes_active_manifest(tmp_path: Path) -> None:
     )
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert manifest["schema_version"] == 1
+    assert manifest["schema_version"] == 2
     assert manifest["snapshot_id"] == "snapshot-20260713T000000Z-test"
     assert manifest["source_path"] == "/knowledge"
     assert manifest["chunk_count"] == 2
     assert workspace.current_snapshot_id() == manifest["snapshot_id"]
+
+
+def test_commit_ingest_generation_publishes_current_pointer_last(
+    tmp_path: Path,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    result = make_ingest_result()
+
+    commit = workspace.commit_ingest_generation(
+        result,
+        "snapshot-generation-test",
+    )
+
+    generation_dir = Path(commit.generation_dir)
+    current = json.loads(workspace.current_path.read_text(encoding="utf-8"))
+    manifest = json.loads(
+        Path(commit.manifest_path).read_text(encoding="utf-8")
+    )
+    assert current["schema_version"] == WORKSPACE_SCHEMA_VERSION
+    assert current["snapshot_id"] == "snapshot-generation-test"
+    assert generation_dir.parent == workspace.generations_dir
+    assert Path(commit.chunks_path) == workspace.chunks_path
+    assert Path(commit.ingest_summary_path) == workspace.latest_summary_path
+    assert manifest["artifacts"] == ["chunks", "ingest_summary"]
+    assert workspace.current_snapshot_id() == "snapshot-generation-test"
+    assert {record["snapshot_id"] for record in workspace.read_chunks()} == {
+        "snapshot-generation-test"
+    }
+    assert not (workspace.root_path / "chunks").exists()
+
+
+@pytest.mark.parametrize(
+    "failed_filename",
+    [
+        "chunks.jsonl",
+        "ingest_summary.json",
+        "manifest.json",
+        "current.json",
+    ],
+)
+def test_generation_write_failure_keeps_previous_snapshot_readable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failed_filename: str,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    result = make_ingest_result()
+    workspace.commit_ingest_generation(result, "snapshot-old")
+    real_atomic_write = local_workspace_module.atomic_write_text
+
+    def fail_selected_write(path: str | Path, content: str) -> Path:
+        if Path(path).name == failed_filename:
+            raise OSError(f"injected {failed_filename} failure")
+        return real_atomic_write(path, content)
+
+    monkeypatch.setattr(
+        local_workspace_module,
+        "atomic_write_text",
+        fail_selected_write,
+    )
+
+    with pytest.raises(OSError, match="injected"):
+        workspace.commit_ingest_generation(result, "snapshot-new")
+
+    assert workspace.current_snapshot_id() == "snapshot-old"
+    assert {record["snapshot_id"] for record in workspace.read_chunks()} == {
+        "snapshot-old"
+    }
+    assert not list(workspace.generations_dir.glob(".*.tmp"))
+
+
+def test_generation_publish_failure_keeps_previous_snapshot_readable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    result = make_ingest_result()
+    workspace.commit_ingest_generation(result, "snapshot-old")
+
+    def fail_publish(_source: Path, _destination: Path) -> None:
+        raise OSError("injected directory publish failure")
+
+    monkeypatch.setattr(
+        local_workspace_module,
+        "_publish_generation_directory",
+        fail_publish,
+    )
+
+    with pytest.raises(OSError, match="directory publish"):
+        workspace.commit_ingest_generation(result, "snapshot-new")
+
+    assert workspace.current_snapshot_id() == "snapshot-old"
+    assert not (workspace.generations_dir / "snapshot-new").exists()
+
+
+@pytest.mark.parametrize(
+    "failed_filename",
+    ["vector_index.jsonl", "vector_index_manifest.json"],
+)
+def test_vector_generation_failure_keeps_unindexed_snapshot_active(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failed_filename: str,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    workspace.commit_ingest_generation(make_ingest_result(), "snapshot-old")
+    real_atomic_write = local_workspace_module.atomic_write_text
+
+    def fail_selected_write(path: str | Path, content: str) -> Path:
+        if Path(path).name == failed_filename:
+            raise OSError(f"injected {failed_filename} failure")
+        return real_atomic_write(path, content)
+
+    monkeypatch.setattr(
+        local_workspace_module,
+        "atomic_write_text",
+        fail_selected_write,
+    )
+
+    with pytest.raises(OSError, match="injected"):
+        workspace.commit_vector_index_generation(
+            records=[{"chunk_id": "chunk-1"}],
+            index_manifest={"chunk_count": 1},
+            snapshot_id="snapshot-indexed",
+        )
+
+    assert workspace.current_snapshot_id() == "snapshot-old"
+    assert not workspace.vector_index_path.exists()
+
+
+def test_active_generation_rejects_legacy_mutation(tmp_path: Path) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    result = make_ingest_result()
+    workspace.commit_ingest_generation(result, "snapshot-current")
+
+    with pytest.raises(RuntimeError, match="Cannot mutate an active generation"):
+        workspace.write_chunks(result.chunks)
+
+
+@pytest.mark.parametrize(
+    ("fixture_name", "source_version"),
+    [("v0_chunk.json", 0), ("v1_chunk.json", 1)],
+)
+def test_schema_registry_upgrades_golden_legacy_fixtures(
+    fixture_name: str,
+    source_version: int,
+) -> None:
+    fixture_dir = Path(__file__).parent / "fixtures" / "workspace_schema"
+    payload = json.loads((fixture_dir / fixture_name).read_text(encoding="utf-8"))
+    expected = json.loads(
+        (fixture_dir / "v2_chunk.json").read_text(encoding="utf-8")
+    )
+
+    plan = schema_migration_plan(payload, "golden chunk")
+    migrated = migrate_schema_record(payload, "golden chunk")
+
+    assert plan.source_version == source_version
+    assert plan.target_version == WORKSPACE_SCHEMA_VERSION
+    assert [step.source_version for step in plan.steps] == list(
+        range(source_version, WORKSPACE_SCHEMA_VERSION)
+    )
+    assert migrated == expected
+
+
+def test_legacy_workspace_migration_supports_dry_run_and_preserves_source(
+    tmp_path: Path,
+) -> None:
+    workspace = LocalWorkspace(tmp_path / ".ragent")
+    result = make_ingest_result()
+    workspace.write_chunks(result.chunks)
+    workspace.write_ingest_summary(result)
+    workspace.commit_snapshot("snapshot-legacy", result.source_path, 2)
+
+    dry_run = workspace.migrate_legacy_workspace(dry_run=True)
+
+    assert dry_run.required is True
+    assert dry_run.snapshot_id == "snapshot-legacy"
+    assert not workspace.current_path.exists()
+    assert not workspace.generations_dir.exists()
+
+    report = workspace.migrate_legacy_workspace()
+
+    assert report.required is True
+    assert workspace.current_snapshot_id() == "snapshot-legacy"
+    assert workspace.current_path.is_file()
+    assert (workspace.root_path / "chunks" / "chunks.jsonl").is_file()
+    assert workspace.read_chunks()[0]["schema_version"] == 2
+    assert workspace.read_chunks()[0]["snapshot_id"] == "snapshot-legacy"
 
 
 def test_read_chunks_rejects_snapshot_mismatch(tmp_path: Path) -> None:

@@ -8,8 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ragent_forge.app.ports import VectorIndexWorkspace
-from ragent_forge.app.schema import add_schema_version, validate_schema_version
+from ragent_forge.app.ports import GenerationWorkspace, VectorIndexWorkspace
 from ragent_forge.app.storage import atomic_write_text, workspace_write_lock
 from ragent_forge.core.models import (
     SourceAuthority,
@@ -17,10 +16,15 @@ from ragent_forge.core.models import (
     SourceLifecycle,
 )
 from ragent_forge.core.retrieval.contracts import ChunkRecord, MetadataRecord
+from ragent_forge.core.schema import (
+    WORKSPACE_SCHEMA_VERSION,
+    add_schema_version,
+    migrate_schema_record,
+)
 
 
 class VectorIndexRecord(BaseModel):
-    schema_version: int = 1
+    schema_version: int = WORKSPACE_SCHEMA_VERSION
     snapshot_id: str | None = None
     chunk_id: str
     document_id: str
@@ -74,6 +78,7 @@ class VectorIndexWriteResult(BaseModel):
     manifest_path: Path
     chunk_count: int
     embedding_dim: int
+    snapshot_id: str | None = None
 
 
 class VectorIndexService:
@@ -88,7 +93,6 @@ class VectorIndexService:
         chunks_path: Path,
         snapshot_id: str | None = None,
     ) -> VectorIndexWriteResult:
-        self.workspace.index_dir.mkdir(parents=True, exist_ok=True)
         lines = [
             json.dumps(record.model_dump(), ensure_ascii=False, sort_keys=True)
             for record in records
@@ -110,6 +114,35 @@ class VectorIndexService:
                 "snapshot_id": snapshot_id,
             }
         )
+        if (
+            isinstance(self.workspace, GenerationWorkspace)
+            and self.workspace.uses_generation_layout()
+        ):
+            if snapshot_id is None:
+                raise ValueError(
+                    "snapshot_id is required for a vector index generation commit"
+                )
+            commit = self.workspace.commit_vector_index_generation(
+                [record.model_dump(mode="json") for record in records],
+                manifest,
+                snapshot_id,
+            )
+            if (
+                commit.vector_index_path is None
+                or commit.vector_index_manifest_path is None
+            ):
+                raise RuntimeError(
+                    "Vector index generation commit did not return index paths"
+                )
+            return VectorIndexWriteResult(
+                index_path=Path(commit.vector_index_path),
+                manifest_path=Path(commit.vector_index_manifest_path),
+                chunk_count=len(records),
+                embedding_dim=(records[0].embedding_dim if records else 0),
+                snapshot_id=commit.snapshot_id,
+            )
+
+        self.workspace.index_dir.mkdir(parents=True, exist_ok=True)
         with workspace_write_lock():
             atomic_write_text(self.workspace.vector_index_path, content)
             atomic_write_text(
@@ -124,6 +157,7 @@ class VectorIndexService:
             manifest_path=self.workspace.vector_index_manifest_path,
             chunk_count=len(records),
             embedding_dim=embedding_dim,
+            snapshot_id=snapshot_id,
         )
 
     def read_index(self) -> list[VectorIndexRecord]:
@@ -152,8 +186,11 @@ class VectorIndexService:
                     f"{self.workspace.vector_index_path} at line {line_number}: "
                     "expected object"
                 )
-            validate_schema_version(payload, "vector index")
-            records.append(VectorIndexRecord.model_validate(payload))
+            records.append(
+                VectorIndexRecord.model_validate(
+                    migrate_schema_record(payload, "vector index")
+                )
+            )
         self.read_manifest()
         active_snapshot_id = self.workspace.current_snapshot_id()
         if active_snapshot_id is not None and records:
@@ -189,7 +226,7 @@ class VectorIndexService:
                 "Invalid JSON in vector index manifest "
                 f"{self.workspace.vector_index_manifest_path}: expected object"
             )
-        validate_schema_version(manifest, "vector index manifest")
+        manifest = migrate_schema_record(manifest, "vector index manifest")
         active_snapshot_id = self.workspace.current_snapshot_id()
         manifest_snapshot_id = manifest.get("snapshot_id")
         if (

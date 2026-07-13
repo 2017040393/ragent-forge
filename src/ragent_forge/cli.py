@@ -119,6 +119,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Local RAGentForge workspace directory to inspect.",
     )
 
+    workspace_parser = subparsers.add_parser(
+        "workspace",
+        help="Inspect or migrate workspace storage layout.",
+    )
+    workspace_subparsers = workspace_parser.add_subparsers(
+        dest="workspace_command"
+    )
+    workspace_migrate_parser = workspace_subparsers.add_parser(
+        "migrate",
+        help="Migrate a legacy flat workspace to generation storage.",
+    )
+    workspace_migrate_parser.add_argument(
+        "--workspace",
+        default=".ragent",
+        help="Local RAGentForge workspace directory to migrate.",
+    )
+    workspace_migrate_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Inspect the migration plan without writing files.",
+    )
+
     config_parser = subparsers.add_parser(
         "config",
         help="Inspect or initialize local RAGentForge configuration.",
@@ -457,6 +479,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         RagentForgeApp(args.workspace).run()
         return 0
 
+    if args.command == "workspace":
+        if args.workspace_command != "migrate":
+            parser.print_help()
+            return 1
+        workspace = LocalWorkspace(args.workspace)
+        try:
+            migration = workspace.migrate_legacy_workspace(
+                dry_run=args.dry_run
+            )
+        except (OSError, ValueError) as exc:
+            console.print(f"[bold red]Workspace migration failed:[/bold red] {exc}")
+            return 1
+        title = (
+            "Workspace migration dry run"
+            if migration.dry_run
+            else "Workspace migration complete"
+        )
+        console.print(f"[bold green]{title}[/bold green]")
+        console.print(f"Source layout: {migration.source_layout}")
+        console.print(f"Migration required: {str(migration.required).lower()}")
+        if migration.snapshot_id is not None:
+            console.print(f"Workspace snapshot: {migration.snapshot_id}")
+        for action in migration.actions:
+            console.print(f"- {action}")
+        return 0
+
     if args.command == "ingest":
         started_at = datetime.now(UTC)
         try:
@@ -469,9 +517,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 1
 
         workspace = LocalWorkspace(args.workspace)
-        snapshot_id = workspace.new_snapshot_id()
-        chunks_path = workspace.write_chunks(result.chunks, snapshot_id)
-        summary_path = workspace.write_ingest_summary(result, snapshot_id)
+        try:
+            generation = workspace.commit_ingest_generation(result)
+        except (OSError, ValueError) as exc:
+            console.print(f"[bold red]Ingest commit failed:[/bold red] {exc}")
+            return 1
+        snapshot_id = generation.snapshot_id
+        chunks_path = Path(generation.chunks_path)
+        summary_path = Path(generation.ingest_summary_path)
         finished_at = datetime.now(UTC)
         trace = build_ingest_trace(
             result=result,
@@ -482,12 +535,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             snapshot_id=snapshot_id,
         )
         trace_path = workspace.write_trace(trace, snapshot_id)
-        workspace.commit_snapshot(
-            snapshot_id,
-            result.source_path,
-            result.chunk_count,
-        )
-
         console.print("[bold green]Ingest complete[/bold green]")
         console.print(f"Source: [cyan]{result.source_path}[/cyan]")
         console.print(f"Documents: {result.document_count}")

@@ -5,6 +5,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from ragent_forge.core.models import DocumentChunk
 from ragent_forge.core.retrieval.contracts import ChunkRecord
+from ragent_forge.core.workspace import WorkspaceGenerationCommit
 
 
 class ChunkReader(Protocol):
@@ -14,6 +15,23 @@ class ChunkReader(Protocol):
 
 class SnapshotReader(Protocol):
     def current_snapshot_id(self) -> str | None:
+        ...
+
+
+@runtime_checkable
+class GenerationWorkspace(SnapshotReader, Protocol):
+    def uses_generation_layout(self) -> bool:
+        ...
+
+    def new_snapshot_id(self) -> str:
+        ...
+
+    def commit_vector_index_generation(
+        self,
+        records: list[dict[str, object]],
+        index_manifest: dict[str, object],
+        snapshot_id: str,
+    ) -> WorkspaceGenerationCommit:
         ...
 
 
@@ -57,7 +75,9 @@ class HttpResponse(Protocol):
 
 
 class ChunkStore(ChunkReader, Protocol):
-    chunks_path: Path
+    @property
+    def chunks_path(self) -> Path:
+        ...
 
     def write_chunks(self, chunks: list[DocumentChunk]) -> Path:
         ...
@@ -73,9 +93,17 @@ class TraceWorkspace(Protocol):
 
 
 class VectorIndexWorkspace(SnapshotReader, Protocol):
-    index_dir: Path
-    vector_index_path: Path
-    vector_index_manifest_path: Path
+    @property
+    def index_dir(self) -> Path:
+        ...
+
+    @property
+    def vector_index_path(self) -> Path:
+        ...
+
+    @property
+    def vector_index_manifest_path(self) -> Path:
+        ...
 
 
 class RetrievalWorkspace(
@@ -83,7 +111,9 @@ class RetrievalWorkspace(
     VectorIndexWorkspace,
     Protocol,
 ):
-    chunks_path: Path
+    @property
+    def chunks_path(self) -> Path:
+        ...
 
 
 class ApplicationWorkspace(RetrievalWorkspace, ConfigWorkspace, Protocol):

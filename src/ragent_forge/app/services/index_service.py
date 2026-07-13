@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from ragent_forge.app.ports import RetrievalWorkspace
+from ragent_forge.app.ports import GenerationWorkspace, RetrievalWorkspace
 from ragent_forge.app.services.embedding_service import EmbeddingService
 from ragent_forge.app.services.vector_index_service import (
     VectorIndexRecord,
@@ -57,6 +57,11 @@ class IndexBuildService:
 
         chunks = self.workspace.read_chunks()
         snapshot_id = self.workspace.current_snapshot_id()
+        if (
+            isinstance(self.workspace, GenerationWorkspace)
+            and self.workspace.uses_generation_layout()
+        ):
+            snapshot_id = self.workspace.new_snapshot_id()
         records: list[VectorIndexRecord] = []
         for batch in _batched(chunks, batch_size):
             texts = [str(chunk.get("text", "")) for chunk in batch]
@@ -71,9 +76,13 @@ class IndexBuildService:
                 strict=True,
             )
             for chunk, embedding in paired_embeddings:
+                index_chunk: ChunkRecord = {
+                    **chunk,
+                    "snapshot_id": snapshot_id,
+                }
                 records.append(
                     VectorIndexRecord.from_chunk(
-                        chunk=chunk,
+                        chunk=index_chunk,
                         embedding_provider=embedding_result.provider_name,
                         embedding_model=embedding_result.model,
                         embedding=embedding,
@@ -96,7 +105,7 @@ class IndexBuildService:
             manifest_path=write_result.manifest_path,
             chunks_path=self.workspace.chunks_path,
             batch_size=batch_size,
-            snapshot_id=snapshot_id,
+            snapshot_id=write_result.snapshot_id,
         )
 
 

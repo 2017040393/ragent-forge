@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -12,7 +13,6 @@ from ragent_forge.app.models import (
     OperationTrace,
     WorkspaceStatus,
 )
-from ragent_forge.app.schema import add_schema_version, validate_schema_version
 from ragent_forge.core.models import (
     SourceAuthority,
     SourceKind,
@@ -22,7 +22,18 @@ from ragent_forge.core.models import (
     is_source_lifecycle,
 )
 from ragent_forge.core.retrieval.contracts import ChunkRecord
-from ragent_forge.core.workspace import WorkspaceSnapshotManifest
+from ragent_forge.core.schema import (
+    WORKSPACE_SCHEMA_VERSION,
+    add_schema_version,
+    migrate_schema_record,
+)
+from ragent_forge.core.workspace import (
+    GenerationArtifact,
+    WorkspaceCurrentPointer,
+    WorkspaceGenerationCommit,
+    WorkspaceMigrationReport,
+    WorkspaceSnapshotManifest,
+)
 from ragent_forge.infrastructure.storage import (
     atomic_write_text,
     workspace_write_lock,
@@ -32,16 +43,27 @@ from ragent_forge.infrastructure.storage import (
 class LocalWorkspace:
     def __init__(self, root_path: str | Path = ".ragent") -> None:
         self.root_path = Path(root_path).expanduser()
-        self.chunks_dir = self.root_path / "chunks"
-        self.ingest_dir = self.root_path / "ingest"
+        self.generations_dir = self.root_path / "generations"
+        self.current_path = self.root_path / "current.json"
+        self._legacy_chunks_dir = self.root_path / "chunks"
+        self._legacy_ingest_dir = self.root_path / "ingest"
+        self._legacy_index_dir = self.root_path / "index"
+        self._legacy_chunks_path = self._legacy_chunks_dir / "chunks.jsonl"
+        self._legacy_summary_path = (
+            self._legacy_ingest_dir / "latest_summary.json"
+        )
+        self._legacy_snapshot_manifest_path = self.root_path / "snapshot.json"
+        self._legacy_vector_index_path = (
+            self._legacy_index_dir / "vector_index.jsonl"
+        )
+        self._legacy_vector_index_manifest_path = (
+            self._legacy_index_dir / "vector_index_manifest.json"
+        )
         self.traces_dir = self.root_path / "traces"
-        self.index_dir = self.root_path / "index"
         self.eval_dir = self.root_path / "eval"
         self.eval_runs_dir = self.eval_dir / "runs"
         self.sessions_dir = self.root_path / "sessions"
         self.session_exports_dir = self.sessions_dir / "exports"
-        self.chunks_path = self.chunks_dir / "chunks.jsonl"
-        self.latest_summary_path = self.ingest_dir / "latest_summary.json"
         self.latest_trace_path = self.traces_dir / "latest_trace.json"
         self.latest_retrieval_eval_path = (
             self.eval_dir / "latest_retrieval_eval.json"
@@ -51,11 +73,53 @@ class LocalWorkspace:
         )
         self.session_index_path = self.sessions_dir / "index.json"
         self.latest_session_path = self.sessions_dir / "latest.json"
-        self.snapshot_manifest_path = self.root_path / "snapshot.json"
         self.config_path = self.root_path / "config.toml"
-        self.vector_index_path = self.index_dir / "vector_index.jsonl"
-        self.vector_index_manifest_path = (
-            self.index_dir / "vector_index_manifest.json"
+
+    @property
+    def chunks_dir(self) -> Path:
+        return self.chunks_path.parent
+
+    @property
+    def ingest_dir(self) -> Path:
+        return self.latest_summary_path.parent
+
+    @property
+    def index_dir(self) -> Path:
+        return self.vector_index_path.parent
+
+    @property
+    def chunks_path(self) -> Path:
+        return self._generation_artifact_path(
+            "chunks.jsonl",
+            self._legacy_chunks_path,
+        )
+
+    @property
+    def latest_summary_path(self) -> Path:
+        return self._generation_artifact_path(
+            "ingest_summary.json",
+            self._legacy_summary_path,
+        )
+
+    @property
+    def snapshot_manifest_path(self) -> Path:
+        return self._generation_artifact_path(
+            "manifest.json",
+            self._legacy_snapshot_manifest_path,
+        )
+
+    @property
+    def vector_index_path(self) -> Path:
+        return self._generation_artifact_path(
+            "vector_index.jsonl",
+            self._legacy_vector_index_path,
+        )
+
+    @property
+    def vector_index_manifest_path(self) -> Path:
+        return self._generation_artifact_path(
+            "vector_index_manifest.json",
+            self._legacy_vector_index_manifest_path,
         )
 
     def exists(self) -> bool:
@@ -83,32 +147,250 @@ class LocalWorkspace:
         self.sessions_dir.mkdir(parents=True, exist_ok=True)
         self.session_exports_dir.mkdir(parents=True, exist_ok=True)
 
+    def uses_generation_layout(self) -> bool:
+        return self.current_path.is_file()
+
     def new_snapshot_id(self) -> str:
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         return f"snapshot-{timestamp}-{uuid.uuid4().hex[:8]}"
 
     def current_snapshot_id(self) -> str | None:
-        manifest = self.read_snapshot_manifest()
+        if self.current_path.is_file():
+            pointer = self._read_current_pointer()
+            manifest = self._read_generation_manifest(pointer.snapshot_id)
+            if manifest.snapshot_id != pointer.snapshot_id:
+                raise ValueError(
+                    "Workspace current pointer mismatch: expected "
+                    f"{pointer.snapshot_id}, found {manifest.snapshot_id}"
+                )
+            return pointer.snapshot_id
+        manifest = self._read_legacy_snapshot_manifest()
         return manifest.snapshot_id if manifest is not None else None
 
     def read_snapshot_manifest(self) -> WorkspaceSnapshotManifest | None:
-        if not self.snapshot_manifest_path.is_file():
-            return None
-        try:
-            payload = json.loads(
-                self.snapshot_manifest_path.read_text(encoding="utf-8")
+        if self.current_path.is_file():
+            return self._read_generation_manifest(
+                self._read_current_pointer().snapshot_id
             )
-        except json.JSONDecodeError as exc:
-            raise ValueError(
-                f"Invalid snapshot manifest {self.snapshot_manifest_path}: {exc.msg}"
-            ) from exc
-        if not isinstance(payload, dict):
-            raise ValueError(
-                f"Invalid snapshot manifest {self.snapshot_manifest_path}: "
-                "expected object"
+        return self._read_legacy_snapshot_manifest()
+
+    def commit_ingest_generation(
+        self,
+        result: IngestResult,
+        snapshot_id: str | None = None,
+    ) -> WorkspaceGenerationCommit:
+        resolved_snapshot_id = snapshot_id or self.new_snapshot_id()
+        chunks_content = self._chunks_content(
+            result.chunks,
+            resolved_snapshot_id,
+        )
+        summary_content = self._json_content(
+            self._summary_record(result, resolved_snapshot_id)
+        )
+        manifest = WorkspaceSnapshotManifest(
+            snapshot_id=resolved_snapshot_id,
+            created_at=_format_timestamp(datetime.now(UTC)),
+            source_path=result.source_path,
+            chunk_count=result.chunk_count,
+            artifacts=["chunks", "ingest_summary"],
+        )
+        return self._commit_generation(
+            manifest,
+            {
+                "chunks.jsonl": chunks_content,
+                "ingest_summary.json": summary_content,
+            },
+        )
+
+    def commit_vector_index_generation(
+        self,
+        records: list[dict[str, object]],
+        index_manifest: dict[str, object],
+        snapshot_id: str,
+    ) -> WorkspaceGenerationCommit:
+        if not self.current_path.is_file():
+            raise RuntimeError(
+                "Vector index generation commits require an active generation"
             )
-        validate_schema_version(payload, "snapshot manifest")
-        return WorkspaceSnapshotManifest.model_validate(payload)
+        parent_manifest = self.read_snapshot_manifest()
+        if parent_manifest is None:
+            raise RuntimeError("Active workspace generation manifest is missing")
+
+        chunks = [
+            add_schema_version({**chunk, "snapshot_id": snapshot_id})
+            for chunk in self.read_chunks()
+        ]
+        summary = add_schema_version(
+            {**self.read_ingest_summary(), "snapshot_id": snapshot_id}
+        )
+        generation_dir = self.generations_dir / snapshot_id
+        normalized_records = [
+            add_schema_version({**record, "snapshot_id": snapshot_id})
+            for record in records
+        ]
+        normalized_index_manifest = add_schema_version(
+            {
+                **index_manifest,
+                "snapshot_id": snapshot_id,
+                "chunks_path": str(generation_dir / "chunks.jsonl"),
+                "index_path": str(generation_dir / "vector_index.jsonl"),
+            }
+        )
+        manifest = WorkspaceSnapshotManifest(
+            snapshot_id=snapshot_id,
+            created_at=_format_timestamp(datetime.now(UTC)),
+            source_path=parent_manifest.source_path,
+            chunk_count=len(chunks),
+            parent_snapshot_id=parent_manifest.snapshot_id,
+            artifacts=[
+                "chunks",
+                "ingest_summary",
+                "vector_index",
+                "vector_index_manifest",
+            ],
+        )
+        return self._commit_generation(
+            manifest,
+            {
+                "chunks.jsonl": self._jsonl_content(chunks),
+                "ingest_summary.json": self._json_content(summary),
+                "vector_index.jsonl": self._jsonl_content(normalized_records),
+                "vector_index_manifest.json": self._json_content(
+                    normalized_index_manifest
+                ),
+            },
+        )
+
+    def migrate_legacy_workspace(
+        self,
+        *,
+        dry_run: bool = False,
+    ) -> WorkspaceMigrationReport:
+        if self.current_path.is_file():
+            snapshot_id = self.current_snapshot_id()
+            return WorkspaceMigrationReport(
+                dry_run=dry_run,
+                required=False,
+                source_layout="generation",
+                snapshot_id=snapshot_id,
+                actions=["No migration required; current.json is already active."],
+            )
+        if (
+            not self._legacy_chunks_path.exists()
+            and not self._legacy_summary_path.exists()
+        ):
+            return WorkspaceMigrationReport(
+                dry_run=dry_run,
+                required=False,
+                source_layout="empty",
+                actions=["No legacy generation artifacts were found."],
+            )
+        missing = [
+            str(path)
+            for path in (self._legacy_chunks_path, self._legacy_summary_path)
+            if not path.is_file()
+        ]
+        if missing:
+            raise ValueError(
+                "Cannot migrate incomplete legacy workspace; missing: "
+                + ", ".join(missing)
+            )
+
+        legacy_manifest = self._read_legacy_snapshot_manifest()
+        snapshot_id = (
+            legacy_manifest.snapshot_id
+            if legacy_manifest is not None
+            else self.new_snapshot_id()
+        )
+        chunks = self._read_chunk_records(self._legacy_chunks_path)
+        chunks = [
+            add_schema_version({**chunk, "snapshot_id": snapshot_id})
+            for chunk in chunks
+        ]
+        summary = self._read_json_object(
+            self._legacy_summary_path,
+            "ingest summary",
+        )
+        summary = add_schema_version({**summary, "snapshot_id": snapshot_id})
+        source_path = str(summary.get("source_path", ""))
+        artifacts: dict[str, str] = {
+            "chunks.jsonl": self._jsonl_content(chunks),
+            "ingest_summary.json": self._json_content(summary),
+        }
+        manifest_artifacts: list[GenerationArtifact] = [
+            "chunks",
+            "ingest_summary",
+        ]
+
+        has_index = self._legacy_vector_index_path.is_file()
+        has_index_manifest = self._legacy_vector_index_manifest_path.is_file()
+        if has_index != has_index_manifest:
+            raise ValueError(
+                "Cannot migrate incomplete legacy vector index; both index and "
+                "manifest are required"
+            )
+        if has_index:
+            index_records = self._read_jsonl_objects(
+                self._legacy_vector_index_path,
+                "vector index",
+            )
+            index_records = [
+                add_schema_version({**record, "snapshot_id": snapshot_id})
+                for record in index_records
+            ]
+            index_manifest = self._read_json_object(
+                self._legacy_vector_index_manifest_path,
+                "vector index manifest",
+            )
+            generation_dir = self.generations_dir / snapshot_id
+            index_manifest = add_schema_version(
+                {
+                    **index_manifest,
+                    "snapshot_id": snapshot_id,
+                    "chunks_path": str(generation_dir / "chunks.jsonl"),
+                    "index_path": str(generation_dir / "vector_index.jsonl"),
+                }
+            )
+            artifacts["vector_index.jsonl"] = self._jsonl_content(index_records)
+            artifacts["vector_index_manifest.json"] = self._json_content(
+                index_manifest
+            )
+            manifest_artifacts.extend(
+                ["vector_index", "vector_index_manifest"]
+            )
+
+        actions = [
+            f"Create generations/{snapshot_id} with schema version "
+            f"{WORKSPACE_SCHEMA_VERSION}.",
+            "Validate all generation artifacts before publication.",
+            "Atomically replace current.json after generation publication.",
+            "Preserve legacy flat files for rollback and inspection.",
+        ]
+        if not dry_run:
+            manifest = WorkspaceSnapshotManifest(
+                snapshot_id=snapshot_id,
+                created_at=(
+                    legacy_manifest.created_at
+                    if legacy_manifest is not None
+                    else _format_timestamp(datetime.now(UTC))
+                ),
+                source_path=(
+                    legacy_manifest.source_path
+                    if legacy_manifest is not None
+                    else source_path
+                ),
+                chunk_count=len(chunks),
+                artifacts=manifest_artifacts,
+            )
+            self._commit_generation(manifest, artifacts)
+
+        return WorkspaceMigrationReport(
+            dry_run=dry_run,
+            required=True,
+            source_layout="legacy_flat",
+            snapshot_id=snapshot_id,
+            actions=actions,
+        )
 
     def commit_snapshot(
         self,
@@ -123,8 +405,12 @@ class LocalWorkspace:
             source_path=source_path,
             chunk_count=chunk_count,
         )
+        if self.current_path.is_file():
+            raise RuntimeError(
+                "Cannot mutate an active generation; commit a new generation instead"
+            )
         atomic_write_text(
-            self.snapshot_manifest_path,
+            self._legacy_snapshot_manifest_path,
             json.dumps(
                 add_schema_version(manifest.model_dump()),
                 ensure_ascii=False,
@@ -133,7 +419,7 @@ class LocalWorkspace:
             )
             + "\n",
         )
-        return self.snapshot_manifest_path
+        return self._legacy_snapshot_manifest_path
 
     def write_chunks(
         self,
@@ -141,19 +427,13 @@ class LocalWorkspace:
         snapshot_id: str | None = None,
     ) -> Path:
         self.ensure_exists()
-        lines = [
-            json.dumps(
-                self._chunk_record(chunk, snapshot_id),
-                ensure_ascii=False,
-                sort_keys=True,
+        if self.current_path.is_file():
+            raise RuntimeError(
+                "Cannot mutate an active generation; commit a new generation instead"
             )
-            for chunk in chunks
-        ]
-        content = "\n".join(lines)
-        if content:
-            content = f"{content}\n"
-        atomic_write_text(self.chunks_path, content)
-        return self.chunks_path
+        content = self._chunks_content(chunks, snapshot_id)
+        atomic_write_text(self._legacy_chunks_path, content)
+        return self._legacy_chunks_path
 
     def write_ingest_summary(
         self,
@@ -161,17 +441,15 @@ class LocalWorkspace:
         snapshot_id: str | None = None,
     ) -> Path:
         self.ensure_exists()
-        atomic_write_text(
-            self.latest_summary_path,
-            json.dumps(
-                self._summary_record(result, snapshot_id),
-                ensure_ascii=False,
-                indent=2,
-                sort_keys=True,
+        if self.current_path.is_file():
+            raise RuntimeError(
+                "Cannot mutate an active generation; commit a new generation instead"
             )
-            + "\n",
+        atomic_write_text(
+            self._legacy_summary_path,
+            self._json_content(self._summary_record(result, snapshot_id)),
         )
-        return self.latest_summary_path
+        return self._legacy_summary_path
 
     def write_trace(
         self,
@@ -296,27 +574,7 @@ class LocalWorkspace:
         return run_dir
 
     def read_chunks(self) -> list[ChunkRecord]:
-        records: list[ChunkRecord] = []
-        for line_number, line in enumerate(
-            self.chunks_path.read_text(encoding="utf-8").splitlines(),
-            start=1,
-        ):
-            if not line.strip():
-                continue
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError as exc:
-                raise ValueError(
-                    f"Invalid JSON in chunks file {self.chunks_path} "
-                    f"at line {line_number}: {exc.msg}"
-                ) from exc
-            if not isinstance(record, dict):
-                raise ValueError(
-                    f"Invalid JSON in chunks file {self.chunks_path} "
-                    f"at line {line_number}: expected object"
-                )
-            validate_schema_version(record, "chunks file")
-            records.append(_normalize_chunk_record(record))
+        records = self._read_chunk_records(self.chunks_path)
         self._validate_active_snapshot(
             [record.get("snapshot_id") for record in records]
         )
@@ -337,7 +595,7 @@ class LocalWorkspace:
                 f"Invalid JSON in ingest summary {self.latest_summary_path}: "
                 "expected object"
             )
-        validate_schema_version(summary, "ingest summary")
+        summary = migrate_schema_record(summary, "ingest summary")
         self._validate_active_snapshot([summary.get("snapshot_id")])
         return summary
 
@@ -353,8 +611,7 @@ class LocalWorkspace:
                 f"Invalid JSON in latest trace {self.latest_trace_path}: "
                 "expected object"
             )
-        validate_schema_version(trace, "latest trace")
-        return trace
+        return migrate_schema_record(trace, "latest trace")
 
     def _validate_active_snapshot(self, snapshot_ids: list[object]) -> None:
         active_snapshot_id = self.current_snapshot_id()
@@ -602,6 +859,283 @@ class LocalWorkspace:
             content = f"{content}\n"
         atomic_write_text(path, content)
 
+    def _generation_artifact_path(
+        self,
+        filename: str,
+        legacy_path: Path,
+    ) -> Path:
+        if not self.current_path.is_file():
+            return legacy_path
+        pointer = self._read_current_pointer()
+        return self.generations_dir / pointer.snapshot_id / filename
+
+    def _read_current_pointer(self) -> WorkspaceCurrentPointer:
+        payload = self._read_json_object(
+            self.current_path,
+            "workspace current pointer",
+        )
+        return WorkspaceCurrentPointer.model_validate(payload)
+
+    def _read_legacy_snapshot_manifest(
+        self,
+    ) -> WorkspaceSnapshotManifest | None:
+        if not self._legacy_snapshot_manifest_path.is_file():
+            return None
+        payload = self._read_json_object(
+            self._legacy_snapshot_manifest_path,
+            "snapshot manifest",
+        )
+        return WorkspaceSnapshotManifest.model_validate(payload)
+
+    def _read_generation_manifest(
+        self,
+        snapshot_id: str,
+    ) -> WorkspaceSnapshotManifest:
+        manifest_path = self.generations_dir / snapshot_id / "manifest.json"
+        if not manifest_path.is_file():
+            raise ValueError(
+                "Workspace generation manifest is missing for current snapshot "
+                f"{snapshot_id}: {manifest_path}"
+            )
+        payload = self._read_json_object(manifest_path, "generation manifest")
+        manifest = WorkspaceSnapshotManifest.model_validate(payload)
+        if manifest.snapshot_id != snapshot_id:
+            raise ValueError(
+                "Workspace generation directory mismatch: expected "
+                f"{snapshot_id}, found {manifest.snapshot_id}"
+            )
+        return manifest
+
+    def _commit_generation(
+        self,
+        manifest: WorkspaceSnapshotManifest,
+        artifacts: dict[str, str],
+    ) -> WorkspaceGenerationCommit:
+        snapshot_id = manifest.snapshot_id
+        if (
+            not snapshot_id
+            or Path(snapshot_id).name != snapshot_id
+            or snapshot_id in {".", ".."}
+        ):
+            raise ValueError(f"Invalid workspace snapshot id: {snapshot_id!r}")
+        required_files = {"chunks.jsonl", "ingest_summary.json"}
+        missing_files = required_files.difference(artifacts)
+        if missing_files:
+            raise ValueError(
+                "Generation commit is missing required artifacts: "
+                + ", ".join(sorted(missing_files))
+            )
+        unknown_files = {
+            name
+            for name in artifacts
+            if Path(name).name != name or name == "manifest.json"
+        }
+        if unknown_files:
+            raise ValueError(
+                "Generation commit contains invalid artifact names: "
+                + ", ".join(sorted(unknown_files))
+            )
+
+        self._ensure_runtime_dirs()
+        final_dir = self.generations_dir / snapshot_id
+        temporary_dir = self.generations_dir / (
+            f".{snapshot_id}.{uuid.uuid4().hex}.tmp"
+        )
+        pointer = WorkspaceCurrentPointer(
+            snapshot_id=snapshot_id,
+            committed_at=_format_timestamp(datetime.now(UTC)),
+        )
+        with workspace_write_lock():
+            if final_dir.exists():
+                raise FileExistsError(
+                    f"Workspace generation already exists: {final_dir}"
+                )
+            temporary_dir.mkdir(parents=False)
+            try:
+                for filename, content in artifacts.items():
+                    atomic_write_text(temporary_dir / filename, content)
+                atomic_write_text(
+                    temporary_dir / "manifest.json",
+                    self._json_content(manifest.model_dump()),
+                )
+                self._validate_generation_directory(temporary_dir, manifest)
+                _publish_generation_directory(temporary_dir, final_dir)
+                atomic_write_text(
+                    self.current_path,
+                    self._json_content(pointer.model_dump()),
+                )
+            finally:
+                if temporary_dir.exists():
+                    shutil.rmtree(temporary_dir)
+
+        vector_index_path = final_dir / "vector_index.jsonl"
+        vector_manifest_path = final_dir / "vector_index_manifest.json"
+        return WorkspaceGenerationCommit(
+            snapshot_id=snapshot_id,
+            generation_dir=str(final_dir),
+            manifest_path=str(final_dir / "manifest.json"),
+            chunks_path=str(final_dir / "chunks.jsonl"),
+            ingest_summary_path=str(final_dir / "ingest_summary.json"),
+            vector_index_path=(
+                str(vector_index_path) if vector_index_path.is_file() else None
+            ),
+            vector_index_manifest_path=(
+                str(vector_manifest_path)
+                if vector_manifest_path.is_file()
+                else None
+            ),
+        )
+
+    def _validate_generation_directory(
+        self,
+        generation_dir: Path,
+        expected_manifest: WorkspaceSnapshotManifest,
+    ) -> None:
+        manifest_payload = self._read_json_object(
+            generation_dir / "manifest.json",
+            "generation manifest",
+        )
+        manifest = WorkspaceSnapshotManifest.model_validate(manifest_payload)
+        if manifest != expected_manifest:
+            raise ValueError("Generation manifest changed during commit validation")
+        chunks = self._read_chunk_records(generation_dir / "chunks.jsonl")
+        if len(chunks) != manifest.chunk_count:
+            raise ValueError(
+                "Generation chunk count mismatch: manifest declares "
+                f"{manifest.chunk_count}, found {len(chunks)}"
+            )
+        self._validate_snapshot_ids(
+            manifest.snapshot_id,
+            [record.get("snapshot_id") for record in chunks],
+            "generation chunks",
+        )
+        summary = self._read_json_object(
+            generation_dir / "ingest_summary.json",
+            "ingest summary",
+        )
+        self._validate_snapshot_ids(
+            manifest.snapshot_id,
+            [summary.get("snapshot_id")],
+            "generation ingest summary",
+        )
+        index_path = generation_dir / "vector_index.jsonl"
+        index_manifest_path = generation_dir / "vector_index_manifest.json"
+        if index_path.is_file() != index_manifest_path.is_file():
+            raise ValueError(
+                "Generation vector index and manifest must be committed together"
+            )
+        if index_path.is_file():
+            index_records = self._read_jsonl_objects(index_path, "vector index")
+            self._validate_snapshot_ids(
+                manifest.snapshot_id,
+                [record.get("snapshot_id") for record in index_records],
+                "generation vector index",
+            )
+            index_manifest = self._read_json_object(
+                index_manifest_path,
+                "vector index manifest",
+            )
+            self._validate_snapshot_ids(
+                manifest.snapshot_id,
+                [index_manifest.get("snapshot_id")],
+                "generation vector index manifest",
+            )
+
+    def _ensure_runtime_dirs(self) -> None:
+        self.root_path.mkdir(parents=True, exist_ok=True)
+        self.generations_dir.mkdir(parents=True, exist_ok=True)
+        self.traces_dir.mkdir(parents=True, exist_ok=True)
+        self.eval_runs_dir.mkdir(parents=True, exist_ok=True)
+        self.session_exports_dir.mkdir(parents=True, exist_ok=True)
+
+    def _chunks_content(
+        self,
+        chunks: list[DocumentChunk],
+        snapshot_id: str | None,
+    ) -> str:
+        return self._jsonl_content(
+            [self._chunk_record(chunk, snapshot_id) for chunk in chunks]
+        )
+
+    def _read_chunk_records(self, path: Path) -> list[ChunkRecord]:
+        return [
+            _normalize_chunk_record(record)
+            for record in self._read_jsonl_objects(path, "chunks file")
+        ]
+
+    def _read_jsonl_objects(
+        self,
+        path: Path,
+        artifact: str,
+    ) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+        for line_number, line in enumerate(
+            path.read_text(encoding="utf-8").splitlines(),
+            start=1,
+        ):
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Invalid JSON in {artifact} {path} at line "
+                    f"{line_number}: {exc.msg}"
+                ) from exc
+            if not isinstance(record, dict):
+                raise ValueError(
+                    f"Invalid JSON in {artifact} {path} at line "
+                    f"{line_number}: expected object"
+                )
+            records.append(migrate_schema_record(record, artifact))
+        return records
+
+    def _read_json_object(self, path: Path, artifact: str) -> dict[str, Any]:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid {artifact} {path}: {exc.msg}") from exc
+        if not isinstance(payload, dict):
+            raise ValueError(f"Invalid {artifact} {path}: expected object")
+        return migrate_schema_record(payload, artifact)
+
+    def _json_content(self, record: dict[str, Any]) -> str:
+        return (
+            json.dumps(
+                add_schema_version(record),
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+    def _jsonl_content(self, records: list[dict[str, Any]]) -> str:
+        lines = [
+            json.dumps(
+                add_schema_version(record),
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            for record in records
+        ]
+        return "" if not lines else "\n".join(lines) + "\n"
+
+    def _validate_snapshot_ids(
+        self,
+        expected_snapshot_id: str,
+        values: list[object],
+        artifact: str,
+    ) -> None:
+        if not values:
+            return
+        actual = {value for value in values if isinstance(value, str) and value}
+        if actual != {expected_snapshot_id}:
+            raise ValueError(
+                f"{artifact} snapshot mismatch: expected {expected_snapshot_id}, "
+                f"found {sorted(actual)}"
+            )
+
 
 def _dict_value(value: object) -> dict[str, Any]:
     if isinstance(value, dict):
@@ -655,7 +1189,7 @@ def _normalize_chunk_record(record: dict[str, Any]) -> ChunkRecord:
     metadata = record.get("metadata")
     schema_version = record.get("schema_version")
     if isinstance(schema_version, bool) or not isinstance(schema_version, int):
-        schema_version = 1
+        schema_version = WORKSPACE_SCHEMA_VERSION
     return {
         "schema_version": schema_version,
         "snapshot_id": snapshot_id if isinstance(snapshot_id, str) else None,
@@ -706,3 +1240,7 @@ def _source_lifecycle(value: object) -> SourceLifecycle:
 
 def _format_timestamp(value: datetime) -> str:
     return value.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _publish_generation_directory(source: Path, destination: Path) -> None:
+    source.replace(destination)
