@@ -16,7 +16,7 @@ from ragent_forge.app.services.hybrid_search_service import (
     HybridSparseMethod,
 )
 from ragent_forge.app.services.retrieval_pipeline_service import (
-    RetrievalPipelineService,
+    RetrievalEngine,
 )
 from ragent_forge.app.services.search_service import (
     BM25SearchService,
@@ -42,7 +42,7 @@ class SearchService(Protocol):
 @dataclass(frozen=True)
 class RetrievalRuntime:
     search_service: SearchService
-    retrieval_pipeline: RetrievalPipelineService
+    retrieval_engine: RetrievalEngine
     retrieval_mode: RetrievalMode
     retrieval_method: RetrievalMethod
     embedding_provider: str | None = None
@@ -58,6 +58,11 @@ class RetrievalRuntime:
     semantic_weight: float | None = None
     candidate_limit: int | None = None
 
+    @property
+    def retrieval_pipeline(self) -> RetrievalEngine:
+        """Compatibility alias for the pre-engine composition contract."""
+        return self.retrieval_engine
+
 
 def build_retrieval_runtime(
     workspace: ApplicationWorkspace,
@@ -70,7 +75,7 @@ def build_retrieval_runtime(
         search_service = LexicalSearchService(workspace)
         return RetrievalRuntime(
             search_service=search_service,
-            retrieval_pipeline=RetrievalPipelineService(
+            retrieval_engine=RetrievalEngine(
                 search_service,
                 mode,
                 "lexical_token_overlap",
@@ -83,7 +88,7 @@ def build_retrieval_runtime(
         search_service = BM25SearchService(workspace)
         return RetrievalRuntime(
             search_service=search_service,
-            retrieval_pipeline=RetrievalPipelineService(
+            retrieval_engine=RetrievalEngine(
                 search_service,
                 mode,
                 "bm25",
@@ -101,7 +106,7 @@ def build_retrieval_runtime(
     if mode == "semantic":
         return RetrievalRuntime(
             search_service=semantic_search_service,
-            retrieval_pipeline=RetrievalPipelineService(
+            retrieval_engine=RetrievalEngine(
                 semantic_search_service,
                 mode,
                 "semantic_cosine_similarity",
@@ -122,7 +127,7 @@ def build_retrieval_runtime(
     )
     return RetrievalRuntime(
         search_service=hybrid_search_service,
-        retrieval_pipeline=RetrievalPipelineService(
+        retrieval_engine=RetrievalEngine(
             hybrid_search_service,
             mode,
             "hybrid_rrf",

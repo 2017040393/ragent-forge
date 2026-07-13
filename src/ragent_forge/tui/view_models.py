@@ -449,7 +449,7 @@ def run_tui_search(
             mode,
             limit=safe_limit,
         )
-        retrieval_run = retrieval.retrieval_pipeline.run(
+        retrieval_run = retrieval.retrieval_engine.run(
             normalized_query,
             safe_limit,
         )
@@ -593,7 +593,7 @@ def stream_tui_ask(
             workspace=workspace,
             generation_service=safe_generation_service,
             search_service=retrieval.search_service,
-            retrieval_pipeline=retrieval.retrieval_pipeline,
+            retrieval_engine=retrieval.retrieval_engine,
             retrieval_method=retrieval.retrieval_method,
         )
         answer_result: AskAnswerResult | None = None

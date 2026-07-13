@@ -1237,7 +1237,7 @@ def _handle_eval_compare(
                 )
                 report = eval_service.evaluate(
                     cases=cases,
-                    search_service=built_search.retrieval_pipeline,
+                    search_service=built_search.retrieval_engine,
                     limit=top_k,
                     retrieval_mode=retrieval_mode,
                     retrieval_method=built_search.retrieval_method,
@@ -1390,7 +1390,7 @@ def _handle_eval_retrieval(
 
         report = eval_service.evaluate(
             cases=cases,
-            search_service=built_search.search_service,
+            search_service=built_search.retrieval_engine,
             limit=limit,
             retrieval_mode=cast(RetrievalMode, retrieval),
             retrieval_method=built_search.retrieval_method,
@@ -1450,6 +1450,7 @@ def _handle_eval_retrieval(
         dense_weight=built_search.dense_weight,
         lexical_weight=built_search.lexical_weight,
         semantic_weight=built_search.semantic_weight,
+        retrieval_stages=report.retrieval_pipeline,
     )
     trace_path = workspace.write_trace(trace)
     _print_retrieval_eval_summary(
@@ -1687,7 +1688,7 @@ def _handle_search(
             limit,
         )
 
-        retrieval_run = built_search.retrieval_pipeline.run(query, limit)
+        retrieval_run = built_search.retrieval_engine.run(query, limit)
         results = retrieval_run.results
         total_chunks = built_search.search_service.count_chunks()
     except (OSError, RuntimeError, ValueError) as exc:
@@ -1811,8 +1812,8 @@ def _handle_ask(
         ask_service = AskService(
             workspace,
             generation_service=generation_service,
-            search_service=built_search.retrieval_pipeline,
-            retrieval_pipeline=built_search.retrieval_pipeline,
+            search_service=built_search.retrieval_engine,
+            retrieval_engine=built_search.retrieval_engine,
             retrieval_method=built_search.retrieval_method,
         )
         result = ask_service.ask(question, limit, max_context_chars)

@@ -19,7 +19,69 @@ class CandidateSearchService(Protocol):
         ...
 
 
-class RetrievalPipelineService:
+class QueryProcessor(Protocol):
+    def normalize(self, query: str) -> str:
+        ...
+
+
+class CandidateDeduplicator(Protocol):
+    def deduplicate(
+        self,
+        candidates: list[RetrievalCandidate],
+    ) -> list[RetrievalCandidate]:
+        ...
+
+
+class Reranker(Protocol):
+    name: str
+
+    def rerank(
+        self,
+        query: str,
+        candidates: list[RetrievalCandidate],
+    ) -> list[RetrievalCandidate]:
+        ...
+
+
+class ContextSelector(Protocol):
+    def select(
+        self,
+        candidates: list[RetrievalCandidate],
+        limit: int,
+    ) -> list[RetrievalCandidate]:
+        ...
+
+
+class DefaultQueryProcessor:
+    def normalize(self, query: str) -> str:
+        return query.strip()
+
+
+class ChunkIdDeduplicator:
+    def deduplicate(
+        self,
+        candidates: list[RetrievalCandidate],
+    ) -> list[RetrievalCandidate]:
+        seen: set[str] = set()
+        results: list[RetrievalCandidate] = []
+        for candidate in candidates:
+            if candidate.chunk_id in seen:
+                continue
+            seen.add(candidate.chunk_id)
+            results.append(candidate)
+        return results
+
+
+class TopKContextSelector:
+    def select(
+        self,
+        candidates: list[RetrievalCandidate],
+        limit: int,
+    ) -> list[RetrievalCandidate]:
+        return candidates[:limit]
+
+
+class RetrievalEngine:
     """Run retrieval as explicit, inspectable stages.
 
     Reranking is intentionally represented as a skipped stage until a reranker
@@ -33,31 +95,53 @@ class RetrievalPipelineService:
         retrieval_mode: RetrievalMode,
         retrieval_method: RetrievalMethod,
         snapshot_id: str | None = None,
+        query_processor: QueryProcessor | None = None,
+        deduplicator: CandidateDeduplicator | None = None,
+        reranker: Reranker | None = None,
+        context_selector: ContextSelector | None = None,
     ) -> None:
-        self.search_service = search_service
+        self.candidate_retriever = search_service
         self.retrieval_mode: RetrievalMode = retrieval_mode
         self.retrieval_method: RetrievalMethod = retrieval_method
         self.snapshot_id = snapshot_id
+        self.query_processor = query_processor or DefaultQueryProcessor()
+        self.deduplicator = deduplicator or ChunkIdDeduplicator()
+        self.reranker = reranker
+        self.context_selector = context_selector or TopKContextSelector()
+
+    @property
+    def search_service(self) -> CandidateSearchService:
+        """Compatibility name for callers that still inspect the adapter."""
+        return self.candidate_retriever
 
     def search(self, query: str, limit: int = 10) -> list[RetrievalCandidate]:
         return self.run(query, limit).results
 
     def count_chunks(self) -> int:
-        return self.search_service.count_chunks()
+        return self.candidate_retriever.count_chunks()
 
     def run(self, query: str, limit: int = 10) -> RetrievalRun:
         if limit < 0:
             raise ValueError("limit must be greater than or equal to 0")
 
         stages: list[RetrievalStageRecord] = []
-        normalized_query, normalize_stage = self._normalize_query(query)
-        stages.append(normalize_stage)
+        normalize_started = perf_counter()
+        normalized_query = self.query_processor.normalize(query)
+        stages.append(
+            RetrievalStageRecord(
+                name="normalize_query",
+                status="completed",
+                inputs={"query": query},
+                outputs={"normalized_query": normalized_query},
+                latency_ms=_elapsed_ms(normalize_started),
+            )
+        )
 
         candidates: list[RetrievalCandidate]
         candidate_started = perf_counter()
         candidate_status: Literal["completed", "skipped"]
         if normalized_query:
-            candidates = self.search_service.search(normalized_query, limit)
+            candidates = self.candidate_retriever.search(normalized_query, limit)
             candidate_status = "completed"
             candidate_error = None
         else:
@@ -76,7 +160,7 @@ class RetrievalPipelineService:
         )
 
         deduplicate_started = perf_counter()
-        deduplicated = _deduplicate(candidates)
+        deduplicated = self.deduplicator.deduplicate(candidates)
         stages.append(
             RetrievalStageRecord(
                 name="deduplicate",
@@ -86,17 +170,27 @@ class RetrievalPipelineService:
                 latency_ms=_elapsed_ms(deduplicate_started),
             )
         )
+        rerank_started = perf_counter()
+        if self.reranker is None:
+            ranked = deduplicated
+            rerank_status: Literal["completed", "skipped"] = "skipped"
+            rerank_outputs: dict[str, object] = {"reranker": None}
+        else:
+            ranked = self.reranker.rerank(normalized_query, deduplicated)
+            rerank_status = "completed"
+            rerank_outputs = {"reranker": self.reranker.name}
         stages.append(
             RetrievalStageRecord(
                 name="rerank",
-                status="skipped",
+                status=rerank_status,
                 inputs={"candidate_count": len(deduplicated)},
-                outputs={"reranker": None},
+                outputs=rerank_outputs,
+                latency_ms=_elapsed_ms(rerank_started),
             )
         )
 
         context_started = perf_counter()
-        results = deduplicated[:limit]
+        results = self.context_selector.select(ranked, limit)
         stages.append(
             RetrievalStageRecord(
                 name="context_selection",
@@ -130,32 +224,7 @@ class RetrievalPipelineService:
             snapshot_id=self.snapshot_id,
         )
 
-    def _normalize_query(
-        self,
-        query: str,
-    ) -> tuple[str, RetrievalStageRecord]:
-        started = perf_counter()
-        normalized = query.strip()
-        return normalized, RetrievalStageRecord(
-            name="normalize_query",
-            status="completed",
-            inputs={"query": query},
-            outputs={"normalized_query": normalized},
-            latency_ms=_elapsed_ms(started),
-        )
-
-
-def _deduplicate(
-    candidates: list[RetrievalCandidate],
-) -> list[RetrievalCandidate]:
-    seen: set[str] = set()
-    results: list[RetrievalCandidate] = []
-    for candidate in candidates:
-        if candidate.chunk_id in seen:
-            continue
-        seen.add(candidate.chunk_id)
-        results.append(candidate)
-    return results
+RetrievalPipelineService = RetrievalEngine
 
 
 def _elapsed_ms(started: float) -> float:

@@ -10,6 +10,10 @@ from ragent_forge.app.services.retrieval_eval_service import (
     RetrievalEvalService,
 )
 from ragent_forge.app.services.search_service import SearchResult
+from ragent_forge.core.retrieval.contracts import (
+    RetrievalRun,
+    RetrievalStageRecord,
+)
 
 
 class FakeSearchService:
@@ -87,6 +91,54 @@ def make_evidence_span(
         page_start=page_start,
         page_end=page_end,
         metadata={"text_sha256": "abc123"},
+    )
+
+
+def test_retrieval_eval_uses_engine_run_and_preserves_stage_trace() -> None:
+    class FakeRetrievalEngine:
+        def search(self, query: str, limit: int) -> list[SearchResult]:
+            raise AssertionError("evaluate must call run(), not search()")
+
+        def run(self, query: str, limit: int) -> RetrievalRun:
+            result = make_result("docs/rag.md::chunk-0000", "docs/rag.md")
+            return RetrievalRun(
+                query=query,
+                retrieval_mode="bm25",
+                retrieval_method="bm25",
+                requested_limit=limit,
+                candidate_count=1,
+                result_count=1,
+                result_chunk_ids=[result.chunk_id],
+                results=[result],
+                stages=[
+                    RetrievalStageRecord(
+                        name="candidate_retrieval",
+                        status="completed",
+                        outputs={"candidate_count": 1},
+                    )
+                ],
+            )
+
+    report = RetrievalEvalService().evaluate(
+        cases=[
+            RetrievalEvalCase(
+                id="case-1",
+                query="agent memory",
+                expected_chunk_ids=["docs/rag.md::chunk-0000"],
+            )
+        ],
+        search_service=FakeRetrievalEngine(),
+        limit=5,
+        retrieval_mode="bm25",
+        retrieval_method="bm25",
+        cases_path="cases.jsonl",
+        workspace_path=".ragent",
+    )
+
+    assert report.passed_count == 1
+    assert report.retrieval_pipeline[0]["name"] == "candidate_retrieval"
+    assert report.results[0].metadata["retrieval_pipeline"][0]["status"] == (
+        "completed"
     )
 
 

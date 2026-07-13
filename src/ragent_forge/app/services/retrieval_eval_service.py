@@ -5,7 +5,7 @@ import math
 import time
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Literal, Protocol, Self
+from typing import Any, Literal, Protocol, Self, runtime_checkable
 
 from pydantic import (
     BaseModel,
@@ -26,6 +26,7 @@ from ragent_forge.app.services.hybrid_search_service import (
 )
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.workspace import LocalWorkspace
+from ragent_forge.core.retrieval.contracts import RetrievalRun
 
 MatchedBy = Literal["chunk_id", "source_path", "none"]
 FailureType = Literal[
@@ -45,6 +46,12 @@ class SearchServiceProtocol(Protocol):
 
 class WorkspaceChunksProtocol(Protocol):
     def read_chunks(self) -> Sequence[Mapping[str, object]]:
+        ...
+
+
+@runtime_checkable
+class RetrievalRunnerProtocol(Protocol):
+    def run(self, query: str, limit: int) -> RetrievalRun:
         ...
 
 
@@ -146,6 +153,7 @@ class RetrievalEvalReport(BaseModel):
     dense_weight: float | None = None
     lexical_weight: float | None = None
     semantic_weight: float | None = None
+    retrieval_pipeline: list[dict[str, object]] = Field(default_factory=list)
 
 
 class RetrievalEvalService:
@@ -214,6 +222,7 @@ class RetrievalEvalService:
         gold_chunk_mapping_service = GoldChunkMappingService()
 
         results: list[RetrievalEvalCaseResult] = []
+        representative_pipeline: list[dict[str, object]] = []
         for case in cases:
             effective_expected_chunk_ids = list(case.expected_chunk_ids)
             result_metadata: dict[str, Any] = {}
@@ -240,7 +249,20 @@ class RetrievalEvalService:
                 )
 
             retrieval_started_at = time.perf_counter()
-            search_results = search_service.search(case.query, limit)
+            if isinstance(search_service, RetrievalRunnerProtocol):
+                retrieval_run = search_service.run(case.query, limit)
+                search_results = retrieval_run.results
+                if not representative_pipeline:
+                    representative_pipeline = [
+                        stage.model_dump(mode="json")
+                        for stage in retrieval_run.stages
+                    ]
+                result_metadata["retrieval_pipeline"] = [
+                    stage.model_dump(mode="json")
+                    for stage in retrieval_run.stages
+                ]
+            else:
+                search_results = search_service.search(case.query, limit)
             retrieval_latency_ms = (
                 time.perf_counter() - retrieval_started_at
             ) * 1000
@@ -279,6 +301,7 @@ class RetrievalEvalService:
             dense_weight=dense_weight,
             lexical_weight=lexical_weight,
             semantic_weight=semantic_weight,
+            retrieval_pipeline=representative_pipeline,
             results=results,
         )
 

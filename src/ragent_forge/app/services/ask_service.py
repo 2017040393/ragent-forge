@@ -49,7 +49,7 @@ class SearchServiceProtocol(Protocol):
         ...
 
 
-class RetrievalPipelineProtocol(Protocol):
+class RetrievalEngineProtocol(Protocol):
     def run(self, query: str, limit: int = 10) -> RetrievalRun:
         ...
 
@@ -92,7 +92,8 @@ class AskService:
         workspace: ChunkReader,
         generation_service: GenerationServiceProtocol | None = None,
         search_service: SearchServiceProtocol | None = None,
-        retrieval_pipeline: RetrievalPipelineProtocol | None = None,
+        retrieval_engine: RetrievalEngineProtocol | None = None,
+        retrieval_pipeline: RetrievalEngineProtocol | None = None,
         retrieval_method: str = "lexical_token_overlap",
     ) -> None:
         self.workspace = workspace
@@ -100,7 +101,12 @@ class AskService:
             search_service or LexicalSearchService(workspace)
         )
         self.retrieval_method = retrieval_method
-        self.retrieval_pipeline = retrieval_pipeline
+        if retrieval_engine is not None and retrieval_pipeline is not None:
+            raise ValueError(
+                "retrieval_engine and retrieval_pipeline cannot both be provided"
+            )
+        self.retrieval_engine = retrieval_engine or retrieval_pipeline
+        self.retrieval_pipeline = self.retrieval_engine
         self.generation_service: GenerationServiceProtocol = (
             generation_service or GenerationService()
         )
@@ -203,20 +209,22 @@ class AskService:
         workspace: ChunkReader,
         generation_service: GenerationServiceProtocol | None = None,
         search_service: SearchServiceProtocol | None = None,
-        retrieval_pipeline: RetrievalPipelineProtocol | None = None,
+        retrieval_engine: RetrievalEngineProtocol | None = None,
+        retrieval_pipeline: RetrievalEngineProtocol | None = None,
         retrieval_method: str = "lexical_token_overlap",
     ) -> AskService:
         return cls(
             workspace=workspace,
             generation_service=generation_service or GenerationService(),
             search_service=search_service,
+            retrieval_engine=retrieval_engine,
             retrieval_pipeline=retrieval_pipeline,
             retrieval_method=retrieval_method,
         )
 
     def count_chunks(self) -> int:
-        if self.retrieval_pipeline is not None:
-            return self.retrieval_pipeline.count_chunks()
+        if self.retrieval_engine is not None:
+            return self.retrieval_engine.count_chunks()
         return self.search_service.count_chunks()
 
     def _retrieve(
@@ -224,9 +232,9 @@ class AskService:
         question: str,
         limit: int,
     ) -> tuple[list[SearchResult], RetrievalRun | None]:
-        if self.retrieval_pipeline is None:
+        if self.retrieval_engine is None:
             return self.search_service.search(question, limit), None
-        retrieval_run = self.retrieval_pipeline.run(question, limit)
+        retrieval_run = self.retrieval_engine.run(question, limit)
         return retrieval_run.results, retrieval_run
 
     def _skip_generation(self) -> GenerationResult:

@@ -1,4 +1,5 @@
 from ragent_forge.app.services.retrieval_pipeline_service import (
+    RetrievalEngine,
     RetrievalPipelineService,
 )
 from ragent_forge.core.retrieval.contracts import RetrievalCandidate
@@ -76,3 +77,31 @@ def test_pipeline_skips_candidate_retrieval_for_empty_normalized_query() -> None
     assert run.results == []
     assert run.stages[1].status == "skipped"
     assert run.stages[1].error == "query is empty"
+
+
+def test_engine_uses_injected_reranker_and_records_it() -> None:
+    class ReverseReranker:
+        name = "reverse-test-reranker"
+
+        def rerank(
+            self,
+            query: str,
+            candidates: list[RetrievalCandidate],
+        ) -> list[RetrievalCandidate]:
+            assert query == "agent memory"
+            return list(reversed(candidates))
+
+    engine = RetrievalEngine(
+        FakeCandidateSearchService(
+            [_candidate("chunk-1", 1.0), _candidate("chunk-2", 0.5)]
+        ),
+        retrieval_mode="bm25",
+        retrieval_method="bm25",
+        reranker=ReverseReranker(),
+    )
+
+    run = engine.run("agent memory", limit=2)
+
+    assert run.result_chunk_ids == ["chunk-2", "chunk-1"]
+    assert run.stages[3].status == "completed"
+    assert run.stages[3].outputs == {"reranker": "reverse-test-reranker"}
