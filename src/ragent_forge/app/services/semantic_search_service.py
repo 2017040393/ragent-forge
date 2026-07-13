@@ -4,6 +4,7 @@ import math
 from typing import Any
 
 from ragent_forge.app.ports import EmbeddingServicePort, RetrievalWorkspace
+from ragent_forge.app.services.prepared_retrieval import PreparedStateCache
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.services.vector_index_service import VectorIndexService
 
@@ -13,13 +14,18 @@ class SemanticSearchService:
         self,
         workspace: RetrievalWorkspace,
         embedding_service: EmbeddingServicePort | Any,
+        *,
+        prepared_state_cache: PreparedStateCache | None = None,
     ) -> None:
         self.workspace = workspace
         self.embedding_service = embedding_service
         self.vector_index_service = VectorIndexService(workspace)
+        self.prepared_state_cache = prepared_state_cache or PreparedStateCache(
+            lambda _text: []
+        )
 
     def count_chunks(self) -> int:
-        return len(self.workspace.read_chunks())
+        return len(self.prepared_state_cache.prepare_chunks(self.workspace).records)
 
     def search(self, query: str, limit: int = 10) -> list[SearchResult]:
         if limit < 0:
@@ -29,12 +35,12 @@ class SemanticSearchService:
 
         query_result = self.embedding_service.embed_texts([query])
         query_embedding = query_result.embeddings[0]
-        index_records = self.vector_index_service.read_index()
-        chunks = self.workspace.read_chunks()
-        chunk_by_id = {
-            str(chunk.get("chunk_id", "")): chunk
-            for chunk in chunks
-        }
+        vector_state = self.prepared_state_cache.prepare_vectors(
+            self.workspace,
+            self.vector_index_service.read_index,
+        )
+        index_records = vector_state.records
+        chunk_by_id = vector_state.chunk_by_id
 
         scored_results: list[SearchResult] = []
         for record in index_records:

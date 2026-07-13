@@ -3,11 +3,14 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
-from dataclasses import dataclass
+from collections.abc import Sequence
 
 from ragent_forge.app.ports import ChunkReader
+from ragent_forge.app.services.prepared_retrieval import (
+    PreparedBM25Chunk,
+    PreparedStateCache,
+)
 from ragent_forge.core.retrieval.contracts import (
-    ChunkRecord,
     MetadataRecord,
     RetrievalCandidate,
 )
@@ -16,11 +19,19 @@ SearchResult = RetrievalCandidate
 
 
 class LexicalSearchService:
-    def __init__(self, workspace: ChunkReader) -> None:
+    def __init__(
+        self,
+        workspace: ChunkReader,
+        *,
+        prepared_state_cache: PreparedStateCache | None = None,
+    ) -> None:
         self.workspace = workspace
+        self.prepared_state_cache = prepared_state_cache or PreparedStateCache(
+            tokenize
+        )
 
     def count_chunks(self) -> int:
-        return len(self.workspace.read_chunks())
+        return len(self.prepared_state_cache.prepare_chunks(self.workspace).records)
 
     def search(self, query: str, limit: int = 10) -> list[SearchResult]:
         if limit < 0:
@@ -30,10 +41,11 @@ class LexicalSearchService:
         if not query_tokens:
             return []
 
+        prepared = self.prepared_state_cache.prepare_chunks(self.workspace)
         results: list[SearchResult] = []
-        for chunk in self.workspace.read_chunks():
+        for chunk, text_tokens in prepared.lexical_chunks:
             text = str(chunk.get("text", ""))
-            score = score_text(query_tokens, tokenize(text))
+            score = score_text(query_tokens, text_tokens)
             if score <= 0:
                 continue
             results.append(
@@ -67,13 +79,17 @@ class BM25SearchService:
         *,
         k1: float = 1.5,
         b: float = 0.75,
+        prepared_state_cache: PreparedStateCache | None = None,
     ) -> None:
         self.workspace = workspace
         self.k1 = k1
         self.b = b
+        self.prepared_state_cache = prepared_state_cache or PreparedStateCache(
+            tokenize
+        )
 
     def count_chunks(self) -> int:
-        return len(self.workspace.read_chunks())
+        return len(self.prepared_state_cache.prepare_chunks(self.workspace).records)
 
     def search(self, query: str, limit: int = 10) -> list[SearchResult]:
         if limit < 0:
@@ -83,25 +99,19 @@ class BM25SearchService:
         if not query_tokens:
             return []
 
-        chunks = [
-            _BM25Chunk.from_record(chunk)
-            for chunk in self.workspace.read_chunks()
-        ]
+        prepared = self.prepared_state_cache.prepare_chunks(self.workspace)
+        chunks = prepared.bm25_chunks
         if not chunks:
             return []
 
-        document_frequencies = _bm25_document_frequencies(chunks)
-        average_document_length = (
-            sum(chunk.length for chunk in chunks) / len(chunks)
-        )
         results: list[SearchResult] = []
         for chunk in chunks:
             score = self._score_chunk(
                 query_tokens=query_tokens,
                 chunk=chunk,
-                document_frequencies=document_frequencies,
+                document_frequencies=prepared.document_frequencies,
                 document_count=len(chunks),
-                average_document_length=average_document_length,
+                average_document_length=prepared.average_document_length,
             )
             if score <= 0:
                 continue
@@ -132,7 +142,7 @@ class BM25SearchService:
         self,
         *,
         query_tokens: list[str],
-        chunk: _BM25Chunk,
+        chunk: PreparedBM25Chunk,
         document_frequencies: Counter[str],
         document_count: int,
         average_document_length: float,
@@ -166,39 +176,14 @@ class BM25SearchService:
         return score
 
 
-@dataclass(frozen=True)
-class _BM25Chunk:
-    record: ChunkRecord
-    text: str
-    tokens: list[str]
-    term_frequencies: Counter[str]
-    length: int
-
-    @classmethod
-    def from_record(cls, record: ChunkRecord) -> _BM25Chunk:
-        text = str(record.get("text", ""))
-        tokens = tokenize(text)
-        return cls(
-            record=record,
-            text=text,
-            tokens=tokens,
-            term_frequencies=Counter(tokens),
-            length=len(tokens),
-        )
-
-
-def _bm25_document_frequencies(chunks: list[_BM25Chunk]) -> Counter[str]:
-    frequencies: Counter[str] = Counter()
-    for chunk in chunks:
-        frequencies.update(set(chunk.tokens))
-    return frequencies
-
-
 def tokenize(text: str) -> list[str]:
     return re.findall(r"\w+", text.lower())
 
 
-def score_text(query_tokens: list[str], text_tokens: list[str]) -> float:
+def score_text(
+    query_tokens: Sequence[str],
+    text_tokens: Sequence[str],
+) -> float:
     query_token_set = set(query_tokens)
     return float(sum(1 for token in text_tokens if token in query_token_set))
 

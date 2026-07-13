@@ -14,6 +14,7 @@ from ragent_forge.app.services.hybrid_search_service import (
     HybridSearchService,
     HybridSparseMethod,
 )
+from ragent_forge.app.services.prepared_retrieval import PreparedStateCache
 from ragent_forge.app.services.retrieval_pipeline_service import (
     RetrievalEngine,
 )
@@ -21,6 +22,7 @@ from ragent_forge.app.services.search_service import (
     BM25SearchService,
     LexicalSearchService,
     SearchResult,
+    tokenize,
 )
 from ragent_forge.app.services.semantic_search_service import SemanticSearchService
 from ragent_forge.app.services.session_service import SessionService
@@ -62,6 +64,7 @@ class RetrievalRuntime:
     lexical_weight: float | None = None
     semantic_weight: float | None = None
     candidate_limit: int | None = None
+    prepared_state_cache: PreparedStateCache | None = None
 
     @property
     def retrieval_pipeline(self) -> RetrievalEngine:
@@ -76,8 +79,12 @@ def build_retrieval_runtime(
     limit: int,
     config: AppConfig | None = None,
 ) -> RetrievalRuntime:
+    prepared_state_cache = PreparedStateCache(tokenize)
     if mode == "lexical":
-        search_service = LexicalSearchService(workspace)
+        search_service = LexicalSearchService(
+            workspace,
+            prepared_state_cache=prepared_state_cache,
+        )
         return RetrievalRuntime(
             search_service=search_service,
             retrieval_engine=RetrievalEngine(
@@ -88,9 +95,13 @@ def build_retrieval_runtime(
             ),
             retrieval_mode=mode,
             retrieval_method="lexical_token_overlap",
+            prepared_state_cache=prepared_state_cache,
         )
     if mode == "bm25":
-        search_service = BM25SearchService(workspace)
+        search_service = BM25SearchService(
+            workspace,
+            prepared_state_cache=prepared_state_cache,
+        )
         return RetrievalRuntime(
             search_service=search_service,
             retrieval_engine=RetrievalEngine(
@@ -101,12 +112,14 @@ def build_retrieval_runtime(
             ),
             retrieval_mode=mode,
             retrieval_method="bm25",
+            prepared_state_cache=prepared_state_cache,
         )
 
     resolved_config = config or ConfigService(workspace).load()
     semantic_search_service = SemanticSearchService(
         workspace,
         build_embedding_service(resolved_config),
+        prepared_state_cache=prepared_state_cache,
     )
     if mode == "semantic":
         return RetrievalRuntime(
@@ -122,11 +135,15 @@ def build_retrieval_runtime(
             embedding_provider=resolved_config.embedding.provider,
             embedding_model=resolved_config.embedding.model,
             index_path=workspace.vector_index_path,
+            prepared_state_cache=prepared_state_cache,
         )
 
     hybrid_config = HybridSearchConfig()
     hybrid_search_service = HybridSearchService(
-        sparse_search_service=BM25SearchService(workspace),
+        sparse_search_service=BM25SearchService(
+            workspace,
+            prepared_state_cache=prepared_state_cache,
+        ),
         dense_search_service=semantic_search_service,
         config=hybrid_config,
     )
@@ -152,6 +169,7 @@ def build_retrieval_runtime(
         lexical_weight=hybrid_config.lexical_weight,
         semantic_weight=hybrid_config.semantic_weight,
         candidate_limit=hybrid_search_service.candidate_limit_for(limit),
+        prepared_state_cache=prepared_state_cache,
     )
 
 
