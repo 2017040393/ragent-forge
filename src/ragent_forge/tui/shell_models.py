@@ -584,6 +584,8 @@ def _metadata_from_session_turn(turn: TuiSessionTurn) -> dict[str, Any]:
             "generation_provider": run.generation_provider,
         }
     )
+    if run.trace_id is not None:
+        metadata["trace_id"] = run.trace_id
     if run.error:
         metadata["error"] = run.error
     return metadata

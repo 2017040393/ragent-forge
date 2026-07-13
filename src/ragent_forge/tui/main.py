@@ -320,6 +320,7 @@ def _run_metadata_from_session_run(
         "limit": run.limit,
         "max_context_chars": run.max_context_chars,
         "show_prompt": run.show_prompt,
+        "trace_id": run.trace_id,
         "generation_status": run.generation_status,
         "generation_provider": run.generation_provider,
         "error": run.error,
@@ -1154,6 +1155,7 @@ class RagentForgeApp(App[None]):
                 "generation_provider": result.generation_provider,
                 "error": result.error,
                 "source_count": len(sources),
+                "trace_id": result.trace_id,
             }
             return TranscriptMessage(
                 role="assistant",
@@ -1176,6 +1178,7 @@ class RagentForgeApp(App[None]):
                 metadata.setdefault("limit", result.limit)
                 metadata.setdefault("max_context_chars", result.max_context_chars)
                 metadata.setdefault("show_prompt", result.show_prompt)
+                metadata.setdefault("trace_id", result.trace_id)
                 return replace(message, metadata=metadata)
 
         sources = transcript_sources_from_search_results(result.sources)
@@ -1193,6 +1196,7 @@ class RagentForgeApp(App[None]):
             "generation_status": result.generation_status,
             "generation_provider": result.generation_provider,
             "source_count": len(sources),
+            "trace_id": result.trace_id,
         }
         return TranscriptMessage(
             role="assistant",
@@ -1221,6 +1225,7 @@ class RagentForgeApp(App[None]):
             limit=result.limit,
             max_context_chars=result.max_context_chars,
             show_prompt=result.show_prompt,
+            trace_id=result.trace_id,
             generation_status=str(metadata.get("generation_status") or ""),
             generation_provider=(
                 str(metadata["generation_provider"])

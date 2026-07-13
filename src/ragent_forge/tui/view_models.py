@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -15,6 +16,10 @@ from ragent_forge.app.services.generation_runtime import (
 )
 from ragent_forge.app.services.search_service import SearchResult
 from ragent_forge.app.services.trace_history_service import TraceHistoryService
+from ragent_forge.app.services.trace_service import (
+    build_ask_retrieval_trace,
+    build_search_trace,
+)
 from ragent_forge.app.source_labels import (
     format_source_label,
     format_source_metadata,
@@ -94,6 +99,7 @@ class SearchPageState:
     error: str | None = None
     selected_result: SearchResult | None = None
     has_searched: bool = False
+    trace_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -112,6 +118,7 @@ class AskPageState:
     prompt_preview: str | None = None
     error: str | None = None
     has_run: bool = False
+    trace_id: str | None = None
 
 
 TuiAskStreamEventType = Literal["delta", "done"]
@@ -404,6 +411,7 @@ def run_tui_search(
     limit: int,
 ) -> SearchPageState:
     safe_limit = max(limit, 0)
+    started_at = datetime.now(UTC)
     try:
         mode = _normalize_retrieval_mode(retrieval_mode)
     except ValueError as exc:
@@ -457,6 +465,32 @@ def run_tui_search(
             _with_default_retrieval_method(result, retrieval.retrieval_method)
             for result in retrieval_run.results
         ]
+        total_chunks = retrieval.search_service.count_chunks()
+        trace = build_search_trace(
+            query=normalized_query,
+            limit=safe_limit,
+            chunks_path=workspace.chunks_path,
+            total_chunks=total_chunks,
+            result_chunk_ids=retrieval_run.result_chunk_ids,
+            started_at=started_at,
+            finished_at=datetime.now(UTC),
+            retrieval_mode=mode,
+            retrieval_method=retrieval.retrieval_method,
+            fusion_method=retrieval.fusion_method,
+            rrf_k=retrieval.rrf_k,
+            sparse_method=retrieval.sparse_method,
+            dense_method=retrieval.dense_method,
+            sparse_weight=retrieval.sparse_weight,
+            dense_weight=retrieval.dense_weight,
+            lexical_weight=retrieval.lexical_weight,
+            semantic_weight=retrieval.semantic_weight,
+            candidate_limit=retrieval.candidate_limit,
+            embedding_provider=retrieval.embedding_provider,
+            embedding_model=retrieval.embedding_model,
+            index_path=retrieval.index_path,
+            retrieval_run=retrieval_run,
+        )
+        workspace.write_trace(trace)
     except (OSError, RuntimeError, ValueError):
         return SearchPageState(
             query=query,
@@ -473,6 +507,7 @@ def run_tui_search(
         results=results,
         selected_result=results[0] if results else None,
         has_searched=True,
+        trace_id=trace.trace_id,
     )
 
 
@@ -518,6 +553,8 @@ def stream_tui_ask(
 ) -> Iterator[TuiAskStreamEvent]:
     safe_limit = max(limit, 0)
     safe_max_context_chars = max(max_context_chars, 0)
+    started_at = datetime.now(UTC)
+    trace_id: str | None = None
     try:
         mode = _normalize_retrieval_mode(retrieval_mode)
     except ValueError as exc:
@@ -619,6 +656,40 @@ def stream_tui_ask(
                 ),
             )
             return
+        total_chunks = ask_service.count_chunks()
+        trace = build_ask_retrieval_trace(
+            question=normalized_question,
+            limit=safe_limit,
+            chunks_path=workspace.chunks_path,
+            total_chunks=total_chunks,
+            retrieved_chunk_ids=[
+                result.chunk_id for result in answer_result.results
+            ],
+            generation_result=answer_result.generation_result,
+            config_generation_provider=config.generation.provider,
+            context_chunk_count=len(answer_result.context_pack.context_chunks),
+            total_context_chars=answer_result.context_pack.total_context_chars,
+            prompt_preview_shown=show_prompt,
+            max_context_chars=safe_max_context_chars,
+            started_at=started_at,
+            finished_at=datetime.now(UTC),
+            retrieval_mode=mode,
+            retrieval_method=retrieval.retrieval_method,
+            fusion_method=retrieval.fusion_method,
+            rrf_k=retrieval.rrf_k,
+            sparse_method=retrieval.sparse_method,
+            dense_method=retrieval.dense_method,
+            sparse_weight=retrieval.sparse_weight,
+            dense_weight=retrieval.dense_weight,
+            lexical_weight=retrieval.lexical_weight,
+            semantic_weight=retrieval.semantic_weight,
+            embedding_provider=retrieval.embedding_provider,
+            embedding_model=retrieval.embedding_model,
+            index_path=retrieval.index_path,
+            retrieval_run=answer_result.retrieval_run,
+        )
+        workspace.write_trace(trace)
+        trace_id = trace.trace_id
     except (OSError, RuntimeError, ValueError):
         yield TuiAskStreamEvent(
             type="done",
@@ -643,6 +714,7 @@ def stream_tui_ask(
             show_prompt=show_prompt,
             answer_result=answer_result,
             retrieval_method=retrieval.retrieval_method,
+            trace_id=trace_id,
         ),
     )
 
@@ -656,6 +728,7 @@ def _ask_page_state_from_answer_result(
     show_prompt: bool,
     answer_result: AskAnswerResult,
     retrieval_method: str,
+    trace_id: str | None,
 ) -> AskPageState:
     sources = [
         _with_default_retrieval_method(source, retrieval_method)
@@ -682,6 +755,7 @@ def _ask_page_state_from_answer_result(
         generation_provider=generation_result.provider_name,
         prompt_preview=prompt_preview,
         has_run=True,
+        trace_id=trace_id,
     )
 
 

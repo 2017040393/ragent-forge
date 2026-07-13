@@ -99,6 +99,7 @@ class TuiSessionRun:
     limit: int
     max_context_chars: int
     show_prompt: bool
+    trace_id: str | None = None
     generation_status: str | None = None
     generation_provider: str | None = None
     error: str | None = None
@@ -112,6 +113,7 @@ class TuiSessionRun:
             "limit": self.limit,
             "max_context_chars": self.max_context_chars,
             "show_prompt": self.show_prompt,
+            "trace_id": self.trace_id,
             "generation_status": self.generation_status,
             "generation_provider": self.generation_provider,
             "error": _safe_optional_text(self.error),
@@ -127,6 +129,7 @@ class TuiSessionRun:
             limit=_int_value(value.get("limit")),
             max_context_chars=_int_value(value.get("max_context_chars")),
             show_prompt=bool(value.get("show_prompt", False)),
+            trace_id=_optional_string(value.get("trace_id")),
             generation_status=_optional_string(value.get("generation_status")),
             generation_provider=_optional_string(value.get("generation_provider")),
             error=_optional_string(value.get("error")),

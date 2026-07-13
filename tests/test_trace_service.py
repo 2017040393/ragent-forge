@@ -10,6 +10,10 @@ from ragent_forge.app.services.trace_service import (
     build_search_trace,
 )
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
+from ragent_forge.core.retrieval.contracts import (
+    RetrievalRun,
+    RetrievalStageRecord,
+)
 
 
 def test_build_ingest_trace_creates_success_trace_with_metadata() -> None:
@@ -37,7 +41,7 @@ def test_build_ingest_trace_creates_success_trace_with_metadata() -> None:
         finished_at=finished_at,
     )
 
-    assert trace.trace_id == "ingest-20260630T000000Z"
+    assert trace.trace_id == "ingest-20260630T000000000000Z"
     assert trace.operation == "ingest"
     assert trace.status == "success"
     assert trace.started_at == "2026-06-30T00:00:00Z"
@@ -74,7 +78,7 @@ def test_build_search_trace_creates_success_trace_with_metadata() -> None:
         finished_at=finished_at,
     )
 
-    assert trace.trace_id == "search-20260630T000000Z"
+    assert trace.trace_id == "search-20260630T000000000000Z"
     assert trace.operation == "search"
     assert trace.status == "success"
     assert trace.started_at == "2026-06-30T00:00:00Z"
@@ -100,6 +104,67 @@ def test_build_search_trace_creates_success_trace_with_metadata() -> None:
         "result_count": 1,
         "result_chunk_ids": ["/knowledge/rag.md::chunk-0002"],
     }
+
+
+def test_search_and_ask_traces_embed_same_canonical_retrieval_run() -> None:
+    retrieval_run = RetrievalRun(
+        query="agent memory",
+        retrieval_mode="bm25",
+        retrieval_method="bm25",
+        requested_limit=3,
+        candidate_count=2,
+        result_count=1,
+        result_chunk_ids=["chunk-1"],
+        snapshot_id="snapshot-1",
+        stages=[
+            RetrievalStageRecord(
+                name="candidate_retrieval",
+                status="completed",
+                outputs={"candidate_count": 2},
+            )
+        ],
+    )
+    started_at = datetime(2026, 6, 30, tzinfo=UTC)
+    search_trace = build_search_trace(
+        query="ignored",
+        limit=99,
+        chunks_path=Path(".ragent/chunks.jsonl"),
+        total_chunks=2,
+        result_chunk_ids=[],
+        started_at=started_at,
+        finished_at=started_at,
+        retrieval_run=retrieval_run,
+    )
+    ask_trace = build_ask_retrieval_trace(
+        question="ignored",
+        limit=99,
+        chunks_path=Path(".ragent/chunks.jsonl"),
+        total_chunks=2,
+        retrieved_chunk_ids=[],
+        generation_result=GenerationResult(
+            provider_name="null",
+            status="not_configured",
+        ),
+        config_generation_provider="null",
+        context_chunk_count=1,
+        total_context_chars=10,
+        prompt_preview_shown=False,
+        max_context_chars=100,
+        started_at=started_at,
+        finished_at=started_at,
+        retrieval_run=retrieval_run,
+    )
+
+    expected = retrieval_run.model_dump(mode="json", exclude={"results"})
+    assert search_trace.metadata["retrieval_run"] == expected
+    assert ask_trace.metadata["retrieval_run"] == expected
+    assert search_trace.metadata["retrieval_pipeline"] == expected["stages"]
+    assert ask_trace.metadata["retrieval_pipeline"] == expected["stages"]
+    assert search_trace.metadata["query"] == "agent memory"
+    assert ask_trace.metadata["question"] == "agent memory"
+    retrieval_payload = search_trace.metadata["retrieval_run"]
+    assert isinstance(retrieval_payload, dict)
+    assert "results" not in retrieval_payload
 
 
 def test_build_search_trace_records_semantic_metadata() -> None:
@@ -252,7 +317,7 @@ def test_build_retrieval_eval_trace_records_lexical_metrics_safely() -> None:
         finished_at=finished_at,
     )
 
-    assert trace.trace_id == "retrieval-eval-20260630T000000Z"
+    assert trace.trace_id == "retrieval-eval-20260630T000000000000Z"
     assert trace.operation == "retrieval_eval"
     assert trace.status == "success"
     assert [step.name for step in trace.steps] == [
@@ -402,7 +467,7 @@ def test_build_ask_retrieval_trace_creates_success_trace_with_metadata() -> None
         finished_at=finished_at,
     )
 
-    assert trace.trace_id == "ask-retrieval-20260630T000000Z"
+    assert trace.trace_id == "ask-retrieval-20260630T000000000000Z"
     assert trace.operation == "ask_retrieval"
     assert trace.status == "success"
     assert trace.started_at == "2026-06-30T00:00:00Z"
@@ -632,7 +697,7 @@ def test_build_index_build_trace_records_safe_metadata() -> None:
         finished_at=finished_at,
     )
 
-    assert trace.trace_id == "index-build-20260630T000000Z"
+    assert trace.trace_id == "index-build-20260630T000000000000Z"
     assert trace.operation == "index_build"
     assert trace.status == "success"
     assert [step.name for step in trace.steps] == [

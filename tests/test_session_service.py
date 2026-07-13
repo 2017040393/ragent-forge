@@ -30,6 +30,7 @@ def make_run() -> TuiSessionRun:
         limit=5,
         max_context_chars=4000,
         show_prompt=False,
+        trace_id="ask-retrieval-test-trace",
         generation_status="success",
         generation_provider="openai_responses",
         error=None,
@@ -79,6 +80,7 @@ def test_session_service_appends_turn_and_restores_messages(tmp_path: Path) -> N
     assert loaded.turns[0].sources[0].source_path == "/knowledge/source_1.md"
     assert loaded.turns[0].run is not None
     assert loaded.turns[0].run.retrieval_mode == "hybrid"
+    assert loaded.turns[0].run.trace_id == "ask-retrieval-test-trace"
     assert "embedding" not in loaded.turns[0].sources[0].metadata
 
 

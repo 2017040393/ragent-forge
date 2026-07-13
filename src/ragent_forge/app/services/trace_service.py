@@ -15,6 +15,7 @@ from ragent_forge.app.services.hybrid_search_service import (
     HybridDenseMethod,
     HybridSparseMethod,
 )
+from ragent_forge.core.retrieval.contracts import RetrievalRun
 
 
 class TraceService:
@@ -48,7 +49,7 @@ def build_ingest_trace(
     if isinstance(pdf_summary, dict):
         metadata["pdf"] = pdf_summary
     return OperationTrace(
-        trace_id=f"ingest-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        trace_id=_trace_id("ingest", started_at_utc),
         operation="ingest",
         status="success",
         started_at=_format_timestamp(started_at_utc),
@@ -149,7 +150,14 @@ def build_search_trace(
     embedding_model: str | None = None,
     index_path: Path | None = None,
     retrieval_stages: list[dict[str, object]] | None = None,
+    retrieval_run: RetrievalRun | None = None,
 ) -> OperationTrace:
+    if retrieval_run is not None:
+        query = retrieval_run.query
+        limit = retrieval_run.requested_limit
+        retrieval_mode = retrieval_run.retrieval_mode
+        retrieval_method = retrieval_run.retrieval_method
+        result_chunk_ids = retrieval_run.result_chunk_ids
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
     metadata = {
@@ -181,8 +189,7 @@ def build_search_trace(
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
-    if retrieval_stages is not None:
-        metadata["retrieval_pipeline"] = retrieval_stages
+    _attach_retrieval_run(metadata, retrieval_run, retrieval_stages)
     steps = _build_search_steps(
         query=query,
         limit=limit,
@@ -201,7 +208,7 @@ def build_search_trace(
         index_path=index_path,
     )
     return OperationTrace(
-        trace_id=f"search-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        trace_id=_trace_id("search", started_at_utc),
         operation="search",
         status="success",
         started_at=_format_timestamp(started_at_utc),
@@ -295,11 +302,10 @@ def build_retrieval_eval_trace(
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
-    if retrieval_stages is not None:
-        metadata["retrieval_pipeline"] = retrieval_stages
+    _attach_retrieval_run(metadata, None, retrieval_stages)
 
     return OperationTrace(
-        trace_id=f"retrieval-eval-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        trace_id=_trace_id("retrieval-eval", started_at_utc),
         operation="retrieval_eval",
         status="success",
         started_at=_format_timestamp(started_at_utc),
@@ -387,7 +393,14 @@ def build_ask_retrieval_trace(
     embedding_model: str | None = None,
     index_path: Path | None = None,
     retrieval_stages: list[dict[str, object]] | None = None,
+    retrieval_run: RetrievalRun | None = None,
 ) -> OperationTrace:
+    if retrieval_run is not None:
+        question = retrieval_run.query
+        limit = retrieval_run.requested_limit
+        retrieval_mode = retrieval_run.retrieval_mode
+        retrieval_method = retrieval_run.retrieval_method
+        retrieved_chunk_ids = retrieval_run.result_chunk_ids
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
     generation_status = (
@@ -430,8 +443,7 @@ def build_ask_retrieval_trace(
         metadata["embedding_provider"] = embedding_provider
         metadata["embedding_model"] = embedding_model
         metadata["index_path"] = str(index_path) if index_path is not None else None
-    if retrieval_stages is not None:
-        metadata["retrieval_pipeline"] = retrieval_stages
+    _attach_retrieval_run(metadata, retrieval_run, retrieval_stages)
     metadata.update(_generation_metadata(generation_result.metadata))
     if generation_result.status == "success":
         metadata["source_count"] = len(retrieved_chunk_ids)
@@ -454,7 +466,7 @@ def build_ask_retrieval_trace(
         index_path=index_path,
     )
     return OperationTrace(
-        trace_id=f"ask-retrieval-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        trace_id=_trace_id("ask-retrieval", started_at_utc),
         operation="ask_retrieval",
         status="success",
         started_at=_format_timestamp(started_at_utc),
@@ -490,7 +502,7 @@ def build_index_build_trace(
     if snapshot_id is not None:
         metadata["snapshot_id"] = snapshot_id
     return OperationTrace(
-        trace_id=f"index-build-{started_at_utc.strftime('%Y%m%dT%H%M%SZ')}",
+        trace_id=_trace_id("index-build", started_at_utc),
         operation="index_build",
         status="success",
         started_at=_format_timestamp(started_at_utc),
@@ -524,6 +536,25 @@ def build_index_build_trace(
         ],
         metadata=metadata,
     )
+
+
+def _attach_retrieval_run(
+    metadata: dict[str, Any],
+    retrieval_run: RetrievalRun | None,
+    retrieval_stages: list[dict[str, object]] | None,
+) -> None:
+    if retrieval_run is None:
+        if retrieval_stages is not None:
+            metadata["retrieval_pipeline"] = retrieval_stages
+        return
+
+    payload = retrieval_run.model_dump(mode="json", exclude={"results"})
+    metadata["retrieval_trace_schema"] = "retrieval_run_v1"
+    metadata["retrieval_run"] = payload
+    stages = payload.get("stages")
+    metadata["retrieval_pipeline"] = stages if isinstance(stages, list) else []
+    if retrieval_run.snapshot_id is not None:
+        metadata["snapshot_id"] = retrieval_run.snapshot_id
 
 
 def _build_search_steps(
@@ -816,3 +847,7 @@ def _as_utc(value: datetime) -> datetime:
 
 def _format_timestamp(value: datetime) -> str:
     return value.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _trace_id(prefix: str, started_at: datetime) -> str:
+    return f"{prefix}-{started_at.strftime('%Y%m%dT%H%M%S%fZ')}"

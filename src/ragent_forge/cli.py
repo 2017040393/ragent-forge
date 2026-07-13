@@ -56,7 +56,6 @@ from ragent_forge.composition import (
     build_retrieval_runtime,
     build_text_generation_client,
 )
-from ragent_forge.core.retrieval.contracts import RetrievalRun
 from ragent_forge.core.retrieval.types import (
     RETRIEVAL_MODES,
     RetrievalMode,
@@ -1775,7 +1774,7 @@ def _handle_search(
         embedding_provider=built_search.embedding_provider,
         embedding_model=built_search.embedding_model,
         index_path=built_search.index_path,
-        retrieval_stages=_retrieval_stage_payloads(retrieval_run),
+        retrieval_run=retrieval_run,
     )
     trace_path = workspace.write_trace(trace)
 
@@ -1815,17 +1814,6 @@ def _format_search_range(
     metadata: dict[str, object] | None = None,
 ) -> str:
     return format_source_range(start_char, end_char, metadata)
-
-
-def _retrieval_stage_payloads(
-    retrieval_run: RetrievalRun | None,
-) -> list[dict[str, object]] | None:
-    if retrieval_run is None:
-        return None
-    return [
-        {str(key): value for key, value in stage.model_dump(mode="json").items()}
-        for stage in retrieval_run.stages
-    ]
 
 
 def _handle_ask(
@@ -1901,11 +1889,7 @@ def _handle_ask(
         embedding_provider=built_search.embedding_provider,
         embedding_model=built_search.embedding_model,
         index_path=built_search.index_path,
-        retrieval_stages=(
-            _retrieval_stage_payloads(result.retrieval_run)
-            if result.retrieval_run is not None
-            else None
-        ),
+        retrieval_run=result.retrieval_run,
     )
     trace_path = workspace.write_trace(trace)
 

@@ -17,6 +17,7 @@ from ragent_forge.app.services.session_service import (
     TuiSessionRun,
     TuiSessionSource,
 )
+from ragent_forge.app.services.trace_history_service import TraceHistoryService
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
 from ragent_forge.tui import main as tui_main
@@ -181,6 +182,49 @@ async def test_tui_app_restores_latest_session_on_mount(tmp_path: Path) -> None:
         assert app.shell_state.current_session_title == "What is saved?"
         assert "User:\n  What is saved?" in transcript
         assert "Assistant: [1 source]\n  A persisted answer." in transcript
+
+
+@pytest.mark.anyio
+async def test_tui_app_session_run_trace_id_resolves_to_persisted_trace(
+    tmp_path: Path,
+) -> None:
+    workspace = make_tui_workspace(tmp_path)
+    trace_id = "ask-retrieval-app-trace"
+    workspace.write_trace(
+        OperationTrace(
+            trace_id=trace_id,
+            operation="ask_retrieval",
+            status="success",
+            started_at="2026-07-13T00:00:00Z",
+            finished_at="2026-07-13T00:00:01Z",
+            steps=[TraceStep(name="trace", description="Persist retrieval trace.")],
+            metadata={"retrieval_trace_schema": "retrieval_run_v1"},
+        )
+    )
+    app = RagentForgeApp(workspace.root_path)
+
+    async with app.run_test():
+        app._complete_shell_ask_result(
+            AskPageState(
+                question="What is saved?",
+                retrieval_mode="lexical",
+                limit=5,
+                max_context_chars=4000,
+                generation_status="not_configured",
+                generation_provider="null",
+                answer="A persisted answer.",
+                has_run=True,
+                trace_id=trace_id,
+            )
+        )
+
+    saved = SessionService(workspace).load_latest_or_create()
+    run = saved.turns[-1].run
+    assert run is not None
+    assert run.trace_id == trace_id
+    persisted_trace = TraceHistoryService(workspace).read_trace(run.trace_id)
+    assert persisted_trace is not None
+    assert persisted_trace["trace_id"] == trace_id
 
 
 def test_tui_app_has_no_global_key_bindings() -> None:

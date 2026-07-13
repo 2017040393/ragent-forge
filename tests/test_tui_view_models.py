@@ -412,6 +412,12 @@ def test_tui_lexical_ask_retrieval_only_works_without_generation_config(
 
     assert state.error is None
     assert state.generation_provider == "null"
+    assert state.trace_id is not None
+    ask_trace = workspace.read_latest_trace()
+    assert ask_trace["trace_id"] == state.trace_id
+    assert ask_trace["metadata"]["retrieval_run"]["retrieval_method"] == (
+        "lexical_token_overlap"
+    )
     assert state.generation_status == "not_configured"
     assert state.status == "Generation: not configured. Showing retrieved context only."
     assert "Generation: not configured. Showing retrieved context only." in page_text
@@ -642,6 +648,10 @@ def test_tui_lexical_search_renders_compact_results_and_inspector(
 
     assert state.error is None
     assert len(state.results) == 1
+    assert state.trace_id is not None
+    search_trace = workspace.read_latest_trace()
+    assert search_trace["trace_id"] == state.trace_id
+    assert search_trace["metadata"]["retrieval_run"]["retrieval_mode"] == "lexical"
     assert "Results: 1 | mode: lexical | limit: 5" in page_text
     assert "rag.md" in page_text
     assert str(workspace.root_path) not in page_text
