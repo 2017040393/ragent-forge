@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from ragent_forge.app.models import ContextPack, GenerationResult, SourceRef
 from ragent_forge.app.ports import ChunkReader
 from ragent_forge.app.services.context_service import build_context_pack
-from ragent_forge.app.services.generation_service import (
+from ragent_forge.app.services.generation_runtime import (
     GenerationService,
     GenerationStreamEvent,
 )

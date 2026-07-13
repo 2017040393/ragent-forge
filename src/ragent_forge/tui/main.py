@@ -11,16 +11,18 @@ from textual.screen import ModalScreen
 from textual.widgets import Header, Input, Label, ListItem, ListView, Static
 from textual.worker import Worker, WorkerState
 
-from ragent_forge.app.composition import build_text_generation_client
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.session_service import (
-    SessionService,
     TuiSession,
     TuiSessionExportFormat,
     TuiSessionListFilter,
     TuiSessionRun,
     TuiSessionSource,
     TuiSessionSummary,
+)
+from ragent_forge.composition import (
+    build_session_service,
+    build_text_generation_client,
 )
 from ragent_forge.tui.commands import (
     TuiCommandSuggestionContext,
@@ -419,7 +421,7 @@ class RagentForgeApp(App[None]):
     def __init__(self, workspace_path: str | Path = ".ragent") -> None:
         super().__init__()
         self.workspace_path = workspace_path
-        self.session_service = SessionService(workspace_path)
+        self.session_service = build_session_service(workspace_path)
         self.shell_state: ShellState = create_initial_shell_state()
         self.shell_suggestion_index = 0
         self._pending_ask_question: str | None = None

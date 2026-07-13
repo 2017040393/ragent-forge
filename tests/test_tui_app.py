@@ -164,7 +164,7 @@ async def test_tui_app_opens_as_single_shell_without_old_pages(
 @pytest.mark.anyio
 async def test_tui_app_restores_latest_session_on_mount(tmp_path: Path) -> None:
     workspace = make_tui_workspace(tmp_path)
-    service = SessionService(workspace.root_path)
+    service = SessionService(workspace)
     session = service.create_session()
     service.append_turn(
         session.id,
@@ -423,7 +423,7 @@ async def test_tui_app_session_commands_manage_current_session(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     workspace = make_tui_workspace(tmp_path)
-    service = SessionService(workspace.root_path)
+    service = SessionService(workspace)
     session = service.create_session()
     saved_session, turn = service.append_turn(
         session.id,
@@ -473,7 +473,7 @@ async def test_tui_app_session_commands_manage_current_session(
         shell_input.value = "/branch"
         app._submit_shell_input()
         assert app.shell_state.current_session_id != saved_session.id
-        branch = SessionService(workspace.root_path).load_latest_or_create()
+        branch = SessionService(workspace).load_latest_or_create()
         assert branch.branched_from_session_id == saved_session.id
         assert branch.branched_from_turn_id == turn.id
 
@@ -484,7 +484,7 @@ async def test_tui_app_switch_and_session_search_open_session_modal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     workspace = make_tui_workspace(tmp_path)
-    service = SessionService(workspace.root_path)
+    service = SessionService(workspace)
     first = service.create_session("First chat")
     second = service.create_session("Second chat")
     app = RagentForgeApp(workspace.root_path)
@@ -522,7 +522,7 @@ async def test_tui_app_delete_requires_second_confirmation(
     tmp_path: Path,
 ) -> None:
     workspace = make_tui_workspace(tmp_path)
-    service = SessionService(workspace.root_path)
+    service = SessionService(workspace)
     session = service.create_session("Important chat")
     app = RagentForgeApp(workspace.root_path)
 
@@ -550,7 +550,7 @@ async def test_tui_app_session_picker_enter_switches_and_refocuses_input(
     tmp_path: Path,
 ) -> None:
     workspace = make_tui_workspace(tmp_path)
-    service = SessionService(workspace.root_path)
+    service = SessionService(workspace)
     first = service.create_session("First chat")
     second = service.create_session("Second chat")
     app = RagentForgeApp(workspace.root_path)
@@ -909,7 +909,7 @@ async def test_tui_app_shell_ask_worker_streams_answer_into_current_message(
         assert app.shell_state.selected_source is not None
         assert app.shell_state.selected_turn_id is not None
 
-        saved = SessionService(workspace.root_path).load_latest_or_create()
+        saved = SessionService(workspace).load_latest_or_create()
         assert saved.turns[-1].user_message.text == "What is Agentic RAG?"
         assert saved.turns[-1].assistant_message.text == "Agentic RAG"
         assert saved.turns[-1].sources[0].source_path == "/knowledge/agentic_rag.md"
@@ -1076,7 +1076,7 @@ async def test_tui_app_shell_ask_missing_vector_index_guidance_is_actionable(
         assert "Vector index not found." not in status
         assert "ragent index build" in inspector
         assert event.stopped is True
-        saved = SessionService(workspace.root_path).load_latest_or_create()
+        saved = SessionService(workspace).load_latest_or_create()
         assert saved.turns[-1].assistant_message.text == guidance
         assert saved.turns[-1].run is not None
         assert saved.turns[-1].run.generation_status == "failed"

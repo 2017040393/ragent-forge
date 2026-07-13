@@ -8,9 +8,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
+from ragent_forge.app.ports import SessionWorkspace
 from ragent_forge.app.schema import add_schema_version, validate_schema_version
-from ragent_forge.app.storage import atomic_write_text, workspace_write_lock
-from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.retrieval.types import RetrievalMode, normalize_retrieval_mode
 
 TuiSessionMessageRole = Literal["user", "assistant"]
@@ -299,12 +298,8 @@ class TuiSessionSummary:
 
 
 class SessionService:
-    def __init__(self, workspace_path: str | Path | LocalWorkspace = ".ragent") -> None:
-        self.workspace = (
-            workspace_path
-            if isinstance(workspace_path, LocalWorkspace)
-            else LocalWorkspace(workspace_path)
-        )
+    def __init__(self, workspace: SessionWorkspace) -> None:
+        self.workspace = workspace
         self.sessions_dir = self.workspace.sessions_dir
         self.exports_dir = self.workspace.session_exports_dir
         self.index_path = self.workspace.session_index_path
@@ -325,8 +320,8 @@ class SessionService:
     def save_session(self, session: TuiSession) -> TuiSession:
         self.workspace.ensure_exists()
         sanitized = TuiSession.from_dict(session.to_dict())
-        with workspace_write_lock():
-            atomic_write_text(
+        with self.workspace.write_lock():
+            self.workspace.atomic_write_text(
                 self._session_path(sanitized.id),
                 json.dumps(
                     add_schema_version(sanitized.to_dict()),
@@ -361,7 +356,7 @@ class SessionService:
 
     def set_latest(self, session_id: str) -> None:
         self.workspace.ensure_exists()
-        atomic_write_text(
+        self.workspace.atomic_write_text(
             self.latest_path,
             json.dumps(
                 add_schema_version({"session_id": session_id}),
@@ -506,11 +501,11 @@ class SessionService:
         self.workspace.ensure_exists()
         if export_format == "markdown":
             path = self.exports_dir / f"{session.id}.md"
-            atomic_write_text(path, _session_to_markdown(session))
+            self.workspace.atomic_write_text(path, _session_to_markdown(session))
             return path
         if export_format == "json":
             path = self.exports_dir / f"{session.id}.json"
-            atomic_write_text(
+            self.workspace.atomic_write_text(
                 path,
                 json.dumps(
                     add_schema_version(session.to_dict()),
@@ -625,7 +620,7 @@ class SessionService:
         summaries: list[TuiSessionSummary],
     ) -> None:
         self.workspace.ensure_exists()
-        atomic_write_text(
+        self.workspace.atomic_write_text(
             self.index_path,
             json.dumps(
                 add_schema_version(

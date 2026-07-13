@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import uuid
+from contextlib import AbstractContextManager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -149,6 +150,12 @@ class LocalWorkspace:
 
     def uses_generation_layout(self) -> bool:
         return self.current_path.is_file()
+
+    def atomic_write_text(self, path: str | Path, content: str) -> Path:
+        return atomic_write_text(path, content)
+
+    def write_lock(self) -> AbstractContextManager[None]:
+        return workspace_write_lock()
 
     def new_snapshot_id(self) -> str:
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")

@@ -9,7 +9,6 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from ragent_forge.app.ports import GenerationWorkspace, VectorIndexWorkspace
-from ragent_forge.app.storage import atomic_write_text, workspace_write_lock
 from ragent_forge.core.models import (
     SourceAuthority,
     SourceKind,
@@ -143,9 +142,12 @@ class VectorIndexService:
             )
 
         self.workspace.index_dir.mkdir(parents=True, exist_ok=True)
-        with workspace_write_lock():
-            atomic_write_text(self.workspace.vector_index_path, content)
-            atomic_write_text(
+        with self.workspace.write_lock():
+            self.workspace.atomic_write_text(
+                self.workspace.vector_index_path,
+                content,
+            )
+            self.workspace.atomic_write_text(
                 self.workspace.vector_index_manifest_path,
                 json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True)
                 + "\n",

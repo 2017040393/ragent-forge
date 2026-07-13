@@ -9,13 +9,6 @@ from typing import cast
 
 from rich.console import Console
 
-from ragent_forge.app.composition import (
-    RetrievalRuntime,
-    build_embedding_service,
-    build_generation_service,
-    build_retrieval_runtime,
-    build_text_generation_client,
-)
 from ragent_forge.app.models import (
     AppConfig,
     ContextPack,
@@ -31,7 +24,6 @@ from ragent_forge.app.services.eval_dataset_generation_service import (
     EvalDatasetGenerationReport,
     EvalDatasetGenerationService,
     TextGenerationClient,
-    write_jsonl,
 )
 from ragent_forge.app.services.evidence_span_service import EvidenceSpanService
 from ragent_forge.app.services.index_service import IndexBuildService
@@ -57,10 +49,20 @@ from ragent_forge.app.services.trace_service import (
 )
 from ragent_forge.app.services.vector_index_service import VectorIndexService
 from ragent_forge.app.source_labels import format_source_label, format_source_range
+from ragent_forge.composition import (
+    RetrievalRuntime,
+    build_embedding_service,
+    build_generation_service,
+    build_retrieval_runtime,
+    build_text_generation_client,
+)
 from ragent_forge.core.retrieval.contracts import RetrievalRun
 from ragent_forge.core.retrieval.types import (
     RETRIEVAL_MODES,
     RetrievalMode,
+)
+from ragent_forge.infrastructure.eval_output import (
+    write_generated_eval_jsonl as write_jsonl,
 )
 from ragent_forge.infrastructure.local_workspace import LocalWorkspace
 from ragent_forge.tui.main import RagentForgeApp
@@ -1301,6 +1303,7 @@ def _handle_eval_compare(
                     dense_weight=built_search.dense_weight,
                     lexical_weight=built_search.lexical_weight,
                     semantic_weight=built_search.semantic_weight,
+                    workspace=workspace,
                 )
                 report_payload = report.model_dump(mode="json")
                 written_report_path = workspace.write_retrieval_eval_report(
@@ -1454,6 +1457,7 @@ def _handle_eval_retrieval(
             dense_weight=built_search.dense_weight,
             lexical_weight=built_search.lexical_weight,
             semantic_weight=built_search.semantic_weight,
+            workspace=workspace,
         )
         report_payload = report.model_dump(mode="json")
         written_report_path = workspace.write_retrieval_eval_report(

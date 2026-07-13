@@ -9,6 +9,7 @@ from ragent_forge.app.services.session_service import (
     TuiSessionRun,
     TuiSessionSource,
 )
+from ragent_forge.app.workspace import LocalWorkspace
 
 
 def make_source(rank: int = 1) -> TuiSessionSource:
@@ -44,7 +45,7 @@ def test_session_run_rejects_invalid_retrieval_mode() -> None:
 
 
 def test_session_service_creates_session_index_and_latest(tmp_path: Path) -> None:
-    service = SessionService(tmp_path / ".ragent")
+    service = SessionService(LocalWorkspace(tmp_path / ".ragent"))
 
     session = service.create_session("Research chat")
 
@@ -57,7 +58,7 @@ def test_session_service_creates_session_index_and_latest(tmp_path: Path) -> Non
 
 
 def test_session_service_appends_turn_and_restores_messages(tmp_path: Path) -> None:
-    service = SessionService(tmp_path / ".ragent")
+    service = SessionService(LocalWorkspace(tmp_path / ".ragent"))
     session = service.create_session()
 
     updated, turn = service.append_turn(
@@ -84,7 +85,7 @@ def test_session_service_appends_turn_and_restores_messages(tmp_path: Path) -> N
 def test_session_service_searches_title_messages_and_sources(
     tmp_path: Path,
 ) -> None:
-    service = SessionService(tmp_path / ".ragent")
+    service = SessionService(LocalWorkspace(tmp_path / ".ragent"))
     session = service.create_session("Planning notes")
     service.append_turn(
         session.id,
@@ -107,7 +108,7 @@ def test_session_service_searches_title_messages_and_sources(
 def test_session_service_pin_star_rename_delete_and_latest_update(
     tmp_path: Path,
 ) -> None:
-    service = SessionService(tmp_path / ".ragent")
+    service = SessionService(LocalWorkspace(tmp_path / ".ragent"))
     first = service.create_session("First")
     second = service.create_session("Second")
 
@@ -132,7 +133,7 @@ def test_session_service_pin_star_rename_delete_and_latest_update(
 def test_session_service_list_sessions_filters_workbench_modes(
     tmp_path: Path,
 ) -> None:
-    service = SessionService(tmp_path / ".ragent")
+    service = SessionService(LocalWorkspace(tmp_path / ".ragent"))
     pinned = service.set_pinned(service.create_session("Pinned").id, True)
     starred = service.set_starred(service.create_session("Starred").id, True)
     failed = service.create_session("Failed")
@@ -165,7 +166,7 @@ def test_session_service_list_sessions_filters_workbench_modes(
 def test_session_service_exports_markdown_and_json_without_secrets(
     tmp_path: Path,
 ) -> None:
-    service = SessionService(tmp_path / ".ragent")
+    service = SessionService(LocalWorkspace(tmp_path / ".ragent"))
     session = service.create_session("Export me")
     updated, _ = service.append_turn(
         session.id,
@@ -209,7 +210,7 @@ def test_session_service_exports_markdown_and_json_without_secrets(
 
 
 def test_session_service_branches_through_selected_turn(tmp_path: Path) -> None:
-    service = SessionService(tmp_path / ".ragent")
+    service = SessionService(LocalWorkspace(tmp_path / ".ragent"))
     session = service.create_session("Original")
     first_session, first_turn = service.append_turn(
         session.id,

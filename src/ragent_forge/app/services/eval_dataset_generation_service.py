@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from importlib import import_module
 from pathlib import Path
 from typing import Any, Literal, Protocol, cast
 
 from ragent_forge.app.services.evidence_span_service import EvidenceSpan
-from ragent_forge.app.storage import atomic_write_text
 
 QuestionType = Literal["factual", "reasoning", "comparison", "how_to"]
 Difficulty = Literal["easy", "medium", "hard"]
@@ -291,17 +292,11 @@ def write_jsonl(
     output_path: str | Path,
     overwrite: bool = False,
 ) -> Path:
-    path = Path(output_path)
-    if path.exists() and not overwrite:
-        raise FileExistsError(f"Output JSONL already exists: {path}")
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    lines = [
-        json.dumps(case.to_jsonl_record(), ensure_ascii=False, sort_keys=True)
-        for case in cases
-    ]
-    atomic_write_text(path, "".join(f"{line}\n" for line in lines))
-    return path
+    writer = cast(
+        Callable[[list[GeneratedEvalCase], str | Path, bool], Path],
+        import_module("ragent_forge.infrastructure.eval_output").write_generated_eval_jsonl,
+    )
+    return writer(cases, output_path, overwrite)
 
 
 def _required_non_empty_string(value: object, field_name: str) -> str:

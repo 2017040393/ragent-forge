@@ -25,7 +25,6 @@ from ragent_forge.app.services.hybrid_search_service import (
     HybridSparseMethod,
 )
 from ragent_forge.app.services.search_service import SearchResult
-from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.retrieval.contracts import RetrievalRun
 
 MatchedBy = Literal["chunk_id", "source_path", "none"]
@@ -475,10 +474,9 @@ def _read_chunks_for_evidence_spans(
             {str(key): value for key, value in record.items()}
             for record in workspace.read_chunks()
         ]
-    return [
-        {str(key): value for key, value in record.items()}
-        for record in LocalWorkspace(workspace_path).read_chunks()
-    ]
+    raise ValueError(
+        "Evidence-span evaluation requires an injected workspace adapter"
+    )
 
 
 def _evidence_span_mapping_metadata(

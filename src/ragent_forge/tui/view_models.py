@@ -5,16 +5,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from ragent_forge.app.composition import (
-    RetrievalRuntime,
-    build_generation_service,
-    build_retrieval_runtime,
-)
 from ragent_forge.app.models import AppConfig, GenerationResult, WorkspaceStatus
 from ragent_forge.app.services.ask_service import AskAnswerResult, AskService
 from ragent_forge.app.services.chunk_service import ChunkService, make_preview
 from ragent_forge.app.services.config_service import ConfigService
-from ragent_forge.app.services.generation_service import (
+from ragent_forge.app.services.generation_runtime import (
     GenerationService,
     GenerationStreamEvent,
 )
@@ -23,6 +18,11 @@ from ragent_forge.app.services.trace_history_service import TraceHistoryService
 from ragent_forge.app.source_labels import (
     format_source_label,
     format_source_metadata,
+)
+from ragent_forge.composition import (
+    RetrievalRuntime,
+    build_generation_service,
+    build_retrieval_runtime,
 )
 from ragent_forge.core.retrieval.contracts import ChunkRecord
 from ragent_forge.core.retrieval.types import (

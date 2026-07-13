@@ -8,7 +8,6 @@ from pydantic import ValidationError
 
 from ragent_forge.app.models import AppConfig
 from ragent_forge.app.ports import ConfigWorkspace
-from ragent_forge.app.storage import atomic_write_text
 
 DEFAULT_CONFIG_TEXT = """[generation]
 provider = "null"
@@ -64,7 +63,10 @@ class ConfigService:
             return self.workspace.config_path
 
         self.workspace.root_path.mkdir(parents=True, exist_ok=True)
-        atomic_write_text(self.workspace.config_path, DEFAULT_CONFIG_TEXT)
+        self.workspace.atomic_write_text(
+            self.workspace.config_path,
+            DEFAULT_CONFIG_TEXT,
+        )
         return self.workspace.config_path
 
     def _build_config(self, raw_config: dict[str, Any]) -> AppConfig:

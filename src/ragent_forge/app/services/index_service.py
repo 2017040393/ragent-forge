@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel
 
-from ragent_forge.app.ports import GenerationWorkspace, RetrievalWorkspace
-from ragent_forge.app.services.embedding_service import EmbeddingService
+from ragent_forge.app.ports import (
+    EmbeddingServicePort,
+    GenerationWorkspace,
+    RetrievalWorkspace,
+)
 from ragent_forge.app.services.vector_index_service import (
     VectorIndexRecord,
     VectorIndexService,
@@ -30,10 +33,12 @@ class IndexBuildService:
     def __init__(
         self,
         workspace: RetrievalWorkspace,
-        embedding_service: EmbeddingService | Any | None = None,
+        embedding_service: EmbeddingServicePort | Any | None = None,
     ) -> None:
         self.workspace = workspace
-        self.embedding_service = embedding_service or EmbeddingService()
+        if embedding_service is None:
+            raise ValueError("IndexBuildService requires an embedding service")
+        self.embedding_service = cast(EmbeddingServicePort, embedding_service)
         self.vector_index_service = VectorIndexService(workspace)
 
     def build(

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
+from ragent_forge.app.models import EmbeddingResult
 from ragent_forge.core.models import DocumentChunk
 from ragent_forge.core.retrieval.contracts import ChunkRecord
 from ragent_forge.core.workspace import WorkspaceGenerationCommit
@@ -10,6 +12,13 @@ from ragent_forge.core.workspace import WorkspaceGenerationCommit
 
 class ChunkReader(Protocol):
     def read_chunks(self) -> list[ChunkRecord]:
+        ...
+
+
+class EmbeddingServicePort(Protocol):
+    provider_name: str
+
+    def embed_texts(self, texts: list[str]) -> EmbeddingResult:
         ...
 
 
@@ -84,8 +93,40 @@ class ChunkStore(ChunkReader, Protocol):
 
 
 class ConfigWorkspace(Protocol):
-    root_path: Path
-    config_path: Path
+    @property
+    def root_path(self) -> Path:
+        ...
+
+    @property
+    def config_path(self) -> Path:
+        ...
+
+    def atomic_write_text(self, path: str | Path, content: str) -> Path:
+        ...
+
+
+class SessionWorkspace(ConfigWorkspace, Protocol):
+    @property
+    def sessions_dir(self) -> Path:
+        ...
+
+    @property
+    def session_exports_dir(self) -> Path:
+        ...
+
+    @property
+    def session_index_path(self) -> Path:
+        ...
+
+    @property
+    def latest_session_path(self) -> Path:
+        ...
+
+    def ensure_exists(self) -> None:
+        ...
+
+    def write_lock(self) -> AbstractContextManager[None]:
+        ...
 
 
 class TraceWorkspace(Protocol):
@@ -103,6 +144,12 @@ class VectorIndexWorkspace(SnapshotReader, Protocol):
 
     @property
     def vector_index_manifest_path(self) -> Path:
+        ...
+
+    def atomic_write_text(self, path: str | Path, content: str) -> Path:
+        ...
+
+    def write_lock(self) -> AbstractContextManager[None]:
         ...
 
 
