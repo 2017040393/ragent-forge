@@ -35,3 +35,5 @@
 - [统一检索入口与 typed sources](2026-07-11-unified-retrieval-typed-sources.md)
 - [v0.3 retrieval 研究顺序](2026-07-11-v0-3-retrieval-research-order.md)
 - [v0.2 retrieval baseline for v0.3](2026-07-11-v0-2-retrieval-baseline.md)
+- [Pre-v0.3 post-architecture retrieval baseline](2026-07-14-pre-v0-3-post-architecture-baseline.md)
+- [Retrieval representation screening protocol](2026-07-14-retrieval-screening-protocol.md)

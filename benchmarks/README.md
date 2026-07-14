@@ -71,6 +71,10 @@ dataset or report when producing this post-convergence baseline.
 used to reject weak representation variants before a full 50-case run. The
 screen keeps the complete 1744-chunk corpus and independently evaluates
 requested limits 5 and 20; it reduces query count, not the distractor corpus.
+The frozen E0 reference is checked in at
+[`results/screens/E0-raw-text-8a0544d`](results/screens/E0-raw-text-8a0544d),
+with its protocol and interpretation in the
+[`screening report`](../ideas/2026-07-14-retrieval-screening-protocol.md).
 
 The selected cases are grouped as stable controls, semantic opportunities,
 wrong-section challenges, hard misses, and observation-only boundary canaries.

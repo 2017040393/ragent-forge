@@ -1,0 +1,141 @@
+# Retrieval Representation Screening Protocol
+
+- 日期：2026-07-14
+- 状态：implemented
+- 相关版本：pre-v0.3 representation experiments
+- Workflow commit：`8a0544d`
+- Screening manifest：
+  [`retrieval_screen_manifest.json`](../benchmarks/retrieval_screen_manifest.json)
+- E0 summary：
+  [`summary.json`](../benchmarks/results/screens/E0-raw-text-8a0544d/summary.json)
+- Parent baseline：
+  [post-architecture baseline](2026-07-14-pre-v0-3-post-architecture-baseline.md)
+
+## 目的与边界
+
+快速筛选用于在完整 50-case 和正式 36-trial matrix 之前淘汰没有方向性收益的
+retrieval representation variants。它是 decision filter，不是 release benchmark，
+也不能产生 latency claim。
+
+筛选只减少 query 数量，不减少 corpus。每个 variant 仍使用完整的 4 documents、
+1744 chunks 和 4096-dimensional index，从而保留长 PDF 内的 cross-section
+distractors。缩小 corpus 会掩盖当前主要的 `wrong_section` failure mode。
+
+正式 baseline 的 `BaselineWorkloadSpec` 仍要求至少三轮。Screening 使用独立 typed
+contract，固定为一轮，不能通过 screening 参数降低正式 baseline 的重复次数。
+
+## 固定 Diagnostic Slice
+
+Manifest 从 canonical 50-case dataset 中按 ID 选择 16 条。14 条参与 gates，2 条
+boundary canaries 只观察 dense ranking 波动。
+
+| Group | Case IDs | Parent behavior | Purpose |
+|---|---|---|---|
+| Stable control | `000001`、`000019`、`000013`、`000022` | Semantic@5 3/3 hit | 防止基础能力回退 |
+| Semantic opportunity | `000016`、`000041` | Semantic@5 3/3 hit，BM25 miss | 保留 semantic 独立价值 |
+| Wrong-section challenge | `000003`、`000031`、`000017`、`000046` | BM25 hit，Semantic@5 0/3 | 直接检验 structured representation |
+| Hard miss | `000005`、`000006`、`000036`、`000040` | 主要 modes 均 miss | 观察真正的新能力 |
+| Boundary canary | `000014`、`000033` | Hybrid@5 分别 2/3、1/3 hit | 观察波动，不参与晋级 |
+
+完整 case IDs 使用 `v0-2-baseline-` 前缀。Source distribution 为 2 条 Markdown、
+6 条 probability PDF、8 条 linear algebra PDF，并覆盖 definition、formula、
+reasoning、comparison 和 cross-section distractors。
+
+## Workload 与 Cache Boundary
+
+每个 variant 独立执行：
+
+```text
+semantic@5
+semantic@20
+hybrid@5
+hybrid@20
+```
+
+Requested limits 5 和 20 必须独立执行，因为 candidate depth 与 hybrid fusion 会随
+requested limit 改变，不能从 top-20 截取 top-5。
+
+四组配置共享一个 snapshot-keyed prepared-state cache，因此 chunks 和 vector index
+只加载一次。16 个 raw queries 只向 provider 获取一次 embeddings；随后三个配置
+复用冻结的 query vectors。相同 query representation 的 candidate 通过
+`--query-cache-source` 读取 E0 cache，并写入自己的输出目录，不修改 source cache。
+
+因为 cache reuse 改变了 timing boundary，screening latency 只用于发现异常，不能与
+正式 cold/warm baseline 比较。真实 provider 和 release latency 仍由正式 matrix
+测量。
+
+## Promotion Gates
+
+Candidate 必须同时满足：
+
+1. Stable controls 与 semantic opportunities 的 Semantic@5 loss 为 0。
+2. 不产生新的 `missed_source` result。
+3. Challenge/hard cases 至少新增 1 个 Semantic@5 hit，或至少新增 2 个
+   Semantic@20 hit。
+4. 14 个 gated cases 的 Hybrid@5 net hit delta 不低于 0。
+5. Gated Hybrid@5 average selected tokens 不超过 parent 的 1.10 倍。
+6. 所有 selected results 的 evidence mapping coverage 为 1.0。
+
+Boundary canaries 的 hit、rank 和 fingerprint 会保留在 artifacts 中，但不参与这些
+gates。通过 screening 只允许进入 50-case direction confirmation，不等于达到 v0.3
+release gates。
+
+## E0 Frozen Result
+
+E0 使用 raw chunk text、raw query 和正式 baseline workspace：
+
+| Item | Value |
+|---|---|
+| Git commit | `8a0544d` |
+| Workspace build commit | `ca029f9` |
+| Workspace snapshot | `snapshot-20260714T024249Z-60c124c1` |
+| Variant | `E0-raw-text`，role `baseline` |
+| Query cache | 16 entries，4096 dimensions |
+| Cache behavior | 16 misses，48 hits |
+| Artifact count / size | 7 files / 3,136,764 bytes |
+| Structural result | `valid: true` |
+| Promotion | not applicable |
+
+Quality comparison：
+
+| Configuration | Parent 16-case Hit | E0 Hit | Parent 14-gated Hit | E0 gated Hit |
+|---|---:|---:|---:|---:|
+| Semantic@5 | 0.4375 | 0.4375 | 0.4286 | 0.4286 |
+| Semantic@20 | 0.5625 | 0.5625 | 0.5714 | 0.5714 |
+| Hybrid@5 | 0.6250 | 0.5625 | 0.6429 | 0.6429 |
+| Hybrid@20 | 0.7500 | 0.7500 | 0.7143 | 0.7143 |
+
+Hybrid@5 的全切片差异只来自两个 boundary canaries：E0 本轮均未命中，而 parent
+三轮分别是 2/3 和 1/3。排除 canaries 后，14 个 gated cases 的 Hybrid@5 Hit
+完全一致，说明 gate 没有把已知 dense boundary variability 误判为基础回退。
+
+E0 的 `semantic_challenge_gain` 为 fail，因为 raw-text baseline 相对自身没有新增
+challenge hit。这是 reference variant 的预期结果。E0 role 为 `baseline`，所以
+`promotion_applicable: false`、`promoted: null`；其余结构与回退 gates 均通过。
+
+## Reproduction
+
+```powershell
+uv run --extra dev python -m benchmarks.retrieval_screen `
+  --workspace .ragent/baselines/pre-v0.3-ca029f9 `
+  --output-dir benchmarks/results/screens/E0-raw-text-8a0544d
+```
+
+Runner 会验证 parent summary hash、dataset/corpus hashes、workspace generation
+layout、chunk/index counts、embedding configuration，以及跨机器稳定的 chunk-content
+和 index-input fingerprints。`--resume` 还会验证 manifest、Git commit、workspace
+snapshot、variant、mode、limit、case set 和已有 run artifact。
+
+## 下一步
+
+E1 candidate manifest 应保持 case groups、workload、promotion gates、corpus 和 raw
+query representation 不变，只更新：
+
+- `variant.role` 为 `candidate`；
+- document embedding representation 及其实现版本；
+- workspace build commit；
+- rebuilt workspace 的 chunk-content 和 index-input fingerprints。
+
+E1 使用本次 versioned `query_embeddings.json` 作为 `--query-cache-source`。通过本页
+gates 后，先运行完整 50-case semantic/hybrid direction confirmation，再执行 targeted
+three-trial gates；只有最终候选运行正式 36-trial matrix。
