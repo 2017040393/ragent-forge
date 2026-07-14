@@ -7,7 +7,7 @@ from threading import RLock
 from typing import Protocol
 
 from ragent_forge.app.models import AppConfig
-from ragent_forge.app.ports import ApplicationWorkspace
+from ragent_forge.app.ports import ApplicationWorkspace, EmbeddingServicePort
 from ragent_forge.app.services.config_service import ConfigService
 from ragent_forge.app.services.generation_runtime import GenerationService
 from ragent_forge.app.services.hybrid_search_service import (
@@ -85,6 +85,7 @@ def build_retrieval_runtime(
     limit: int,
     config: AppConfig | None = None,
     prepared_state_cache: PreparedStateCache | None = None,
+    embedding_service: EmbeddingServicePort | None = None,
 ) -> RetrievalRuntime:
     resolved_prepared_state_cache = (
         prepared_state_cache or _prepared_state_cache_for(workspace)
@@ -127,7 +128,7 @@ def build_retrieval_runtime(
     resolved_config = config or ConfigService(workspace).load()
     semantic_search_service = SemanticSearchService(
         workspace,
-        build_embedding_service(resolved_config),
+        embedding_service or build_embedding_service(resolved_config),
         prepared_state_cache=resolved_prepared_state_cache,
     )
     if mode == "semantic":

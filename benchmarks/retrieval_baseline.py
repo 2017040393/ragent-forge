@@ -91,7 +91,7 @@ def run_baseline(
         )
 
     resolved_workspace_build_commit = workspace_build_git_commit or git_state.commit
-    validated = _validate_inputs(
+    validated = validate_inputs(
         manifest,
         root,
         workspace,
@@ -387,7 +387,7 @@ def collect_runtime_environment() -> BaselineRuntimeEnvironment:
     )
 
 
-def _validate_inputs(
+def validate_inputs(
     manifest: RetrievalBaselineManifest,
     repository_root: Path,
     workspace: LocalWorkspace,

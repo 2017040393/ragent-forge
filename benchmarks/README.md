@@ -65,6 +65,48 @@ stage timings, and prepared-cache reuse. Diagnostic dirty-tree runs require
 The historical v0.2 baseline remains frozen. Do not overwrite its versioned
 dataset or report when producing this post-convergence baseline.
 
+## Representation Screening
+
+`retrieval_screen_manifest.json` defines the fixed 16-case diagnostic screen
+used to reject weak representation variants before a full 50-case run. The
+screen keeps the complete 1744-chunk corpus and independently evaluates
+requested limits 5 and 20; it reduces query count, not the distractor corpus.
+
+The selected cases are grouped as stable controls, semantic opportunities,
+wrong-section challenges, hard misses, and observation-only boundary canaries.
+Promotion is based on case transitions and explicit gates rather than the
+slice-wide average, because this diagnostic slice is intentionally not a
+representative benchmark sample.
+
+Run the E0 screen against the workspace used for the formal baseline:
+
+```powershell
+uv run --extra dev python -m benchmarks.retrieval_screen `
+  --workspace .ragent/baselines/pre-v0.3-ca029f9 `
+  --output-dir .ragent/eval/screens/E0-raw-text
+```
+
+The four semantic/hybrid configurations share one prepared-state cache and a
+query embedding cache. A later variant using the same query representation can
+reuse the frozen vectors without mutating the source cache:
+
+```powershell
+uv run --extra dev python -m benchmarks.retrieval_screen `
+  --manifest <candidate-manifest> `
+  --workspace <candidate-workspace> `
+  --query-cache-source <E0-result>/query_embeddings.json `
+  --output-dir <candidate-result>
+```
+
+Use `--resume` only with the same manifest, Git commit, workspace snapshot, and
+output directory. The runner validates every reused artifact before continuing.
+
+Screen latency is diagnostic only: cache reuse deliberately changes the timing
+boundary. A promoted candidate must still pass the full 50-case confirmation
+and formal three-trial matrix before its quality or latency can be used for a
+release decision. `BaselineWorkloadSpec` continues to require at least three
+repetitions; the one-run screening contract is separate.
+
 ## Prepared Retrieval Smoke Benchmark
 
 This deterministic harness measures the snapshot-keyed BM25 prepared-state

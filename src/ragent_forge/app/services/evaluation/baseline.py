@@ -381,7 +381,7 @@ def build_configuration_report(
 
     ranking_stable = len({trial.result_fingerprint_sha256 for trial in trials}) == 1
     metric_distributions = {
-        cutoff: _aggregate_cutoff_metrics(
+        cutoff: aggregate_cutoff_metrics(
             [trial.metrics_by_cutoff[cutoff] for trial in trials]
         )
         for cutoff in first.metrics_by_cutoff
@@ -424,7 +424,7 @@ def build_configuration_report(
     )
 
 
-def _aggregate_cutoff_metrics(
+def aggregate_cutoff_metrics(
     metrics: Sequence[BaselineCutoffMetrics],
 ) -> BaselineCutoffMetricDistribution:
     if not metrics:
