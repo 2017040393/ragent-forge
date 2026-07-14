@@ -6,7 +6,7 @@ import json
 import platform
 import subprocess
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
@@ -38,6 +38,7 @@ from ragent_forge.app.services.prepared_retrieval import PreparedStateCache
 from ragent_forge.app.services.search_service import tokenize
 from ragent_forge.app.services.vector_index_service import VectorIndexService
 from ragent_forge.composition import build_retrieval_runtime
+from ragent_forge.core.retrieval.types import RetrievalMode
 from ragent_forge.infrastructure.local_workspace import LocalWorkspace
 from ragent_forge.infrastructure.storage import atomic_write_text
 
@@ -74,14 +75,19 @@ def run_baseline(
     git_state: BaselineGitState,
     runtime_environment: BaselineRuntimeEnvironment,
     workspace_build_git_commit: str | None = None,
+    resume: bool = False,
     progress: Callable[[str], None] | None = None,
 ) -> RetrievalBaselineReport:
     root = Path(repository_root).resolve()
     source_manifest_path = Path(manifest_path).resolve()
     destination = Path(output_dir).resolve()
-    if destination.exists():
+    if destination.exists() and not resume:
         raise FileExistsError(
             f"Baseline output directory already exists: {destination}"
+        )
+    if resume and not destination.is_dir():
+        raise FileNotFoundError(
+            f"Baseline resume directory does not exist: {destination}"
         )
 
     resolved_workspace_build_commit = workspace_build_git_commit or git_state.commit
@@ -91,19 +97,48 @@ def run_baseline(
         workspace,
         resolved_workspace_build_commit,
     )
-    destination.mkdir(parents=True)
-    atomic_write_text(
-        destination / "manifest.json",
-        manifest.model_dump_json(indent=2) + "\n",
-    )
+    if resume:
+        _validate_resume_manifest(destination, manifest)
+        _validate_resume_run_files(destination, manifest)
+    else:
+        destination.mkdir(parents=True)
+        atomic_write_text(
+            destination / "manifest.json",
+            manifest.model_dump_json(indent=2) + "\n",
+        )
 
     measured_at = datetime.now(UTC).isoformat()
     eval_service = RetrievalEvalService()
     configurations = []
+    trial_git_commits: set[str] = set()
     for mode in manifest.workload.retrieval_modes:
         for limit in manifest.workload.limits:
             trials = []
             for repetition in range(1, manifest.workload.repetitions + 1):
+                artifact_relative_path = Path("runs") / (
+                    f"{mode}-k{limit}-trial-{repetition:02d}.json"
+                )
+                artifact_path = destination / artifact_relative_path
+                if resume and artifact_path.is_file():
+                    artifact = _load_resume_artifact(artifact_path)
+                    _validate_resume_artifact(
+                        artifact,
+                        manifest=manifest,
+                        workspace_snapshot_id=validated.workspace.snapshot_id,
+                        workspace_build_git_commit=resolved_workspace_build_commit,
+                        mode=mode,
+                        limit=limit,
+                        repetition=repetition,
+                        artifact_relative_path=artifact_relative_path,
+                    )
+                    trials.append(artifact.trial)
+                    trial_git_commits.add(artifact.git_commit)
+                    if progress is not None:
+                        progress(
+                            f"Reused {mode} k={limit} trial {repetition} "
+                            f"from {artifact.git_commit[:7]}"
+                        )
+                    continue
                 if progress is not None:
                     progress(
                         f"Starting {mode} k={limit} trial {repetition}/"
@@ -138,9 +173,6 @@ def run_baseline(
                     semantic_weight=runtime.semantic_weight,
                     workspace=workspace,
                 )
-                artifact_relative_path = Path("runs") / (
-                    f"{mode}-k{limit}-trial-{repetition:02d}.json"
-                )
                 cache_stats = cache.stats()
                 trial = build_trial_report(
                     evaluation,
@@ -164,10 +196,11 @@ def run_baseline(
                     evaluation=evaluation,
                 )
                 atomic_write_text(
-                    destination / artifact_relative_path,
+                    artifact_path,
                     artifact.model_dump_json(indent=2) + "\n",
                 )
                 trials.append(trial)
+                trial_git_commits.add(git_state.commit)
                 if progress is not None:
                     progress(
                         f"Completed {mode} k={limit} trial {repetition}: "
@@ -193,6 +226,7 @@ def run_baseline(
         manifest_path=_display_path(source_manifest_path, root),
         manifest_sha256=sha256_file(source_manifest_path, "text_lf"),
         git=git_state,
+        trial_git_commits=sorted(trial_git_commits),
         runtime=runtime_environment,
         dataset=validated.dataset,
         corpus=validated.corpus,
@@ -212,6 +246,84 @@ def run_baseline(
     return report
 
 
+def _validate_resume_manifest(
+    output_dir: Path,
+    manifest: RetrievalBaselineManifest,
+) -> None:
+    manifest_path = output_dir / "manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError(
+            f"Baseline resume manifest is missing: {manifest_path}"
+        )
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    existing = RetrievalBaselineManifest.model_validate(payload)
+    if existing != manifest:
+        raise ValueError("Baseline resume manifest does not match requested manifest")
+
+
+def _validate_resume_run_files(
+    output_dir: Path,
+    manifest: RetrievalBaselineManifest,
+) -> None:
+    runs_dir = output_dir / "runs"
+    if not runs_dir.exists():
+        return
+    expected_names = {
+        f"{mode}-k{limit}-trial-{repetition:02d}.json"
+        for mode in manifest.workload.retrieval_modes
+        for limit in manifest.workload.limits
+        for repetition in range(1, manifest.workload.repetitions + 1)
+    }
+    actual_names = {path.name for path in runs_dir.glob("*.json")}
+    unexpected = sorted(actual_names - expected_names)
+    if unexpected:
+        raise ValueError(
+            "Baseline resume directory contains unexpected trial artifacts: "
+            f"{unexpected}"
+        )
+
+
+def _load_resume_artifact(path: Path) -> BaselineTrialArtifact:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return BaselineTrialArtifact.model_validate(payload)
+
+
+def _validate_resume_artifact(
+    artifact: BaselineTrialArtifact,
+    *,
+    manifest: RetrievalBaselineManifest,
+    workspace_snapshot_id: str,
+    workspace_build_git_commit: str,
+    mode: RetrievalMode,
+    limit: int,
+    repetition: int,
+    artifact_relative_path: Path,
+) -> None:
+    trial = artifact.trial
+    evaluation = artifact.evaluation
+    matches = (
+        artifact.benchmark == manifest.name
+        and artifact.workspace_snapshot_id == workspace_snapshot_id
+        and artifact.workspace_build_git_commit == workspace_build_git_commit
+        and trial.retrieval_mode == mode
+        and trial.limit == limit
+        and trial.repetition == repetition
+        and trial.artifact_path == artifact_relative_path.as_posix()
+        and trial.cache.snapshot_id == workspace_snapshot_id
+        and trial.cache_reuse_valid
+        and set(trial.metrics_by_cutoff) == {limit}
+        and evaluation.retrieval_mode == mode
+        and evaluation.limit == limit
+        and evaluation.case_count == manifest.dataset.case_count
+        and evaluation.cases_path == manifest.dataset.path
+    )
+    if not matches:
+        raise ValueError(
+            "Baseline resume artifact does not match requested trial: "
+            f"{artifact_relative_path.as_posix()}"
+        )
+
+
 def sha256_file(path: str | Path, hash_mode: HashMode) -> str:
     file_path = Path(path)
     if hash_mode == "binary":
@@ -222,14 +334,30 @@ def sha256_file(path: str | Path, hash_mode: HashMode) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-def collect_git_state(repository_root: str | Path) -> BaselineGitState:
+def collect_git_state(
+    repository_root: str | Path,
+    *,
+    ignored_untracked_roots: Sequence[str | Path] = (),
+) -> BaselineGitState:
     root = Path(repository_root).resolve()
     commit = _git_output(root, "rev-parse", "HEAD")
     branch = _git_output(root, "branch", "--show-current") or None
     unstaged = _git_has_diff(root, cached=False)
     staged = _git_has_diff(root, cached=True)
-    untracked = bool(
-        _git_output(root, "ls-files", "--others", "--exclude-standard")
+    ignored_roots = [Path(path).resolve() for path in ignored_untracked_roots]
+    untracked_paths = [
+        (root / line).resolve()
+        for line in _git_output(
+            root,
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+        ).splitlines()
+        if line
+    ]
+    untracked = any(
+        not any(path.is_relative_to(ignored) for ignored in ignored_roots)
+        for path in untracked_paths
     )
     return BaselineGitState(
         commit=commit,
@@ -501,6 +629,7 @@ def _package_version(package: str) -> str:
 def _print_summary(report: RetrievalBaselineReport, output_dir: Path) -> None:
     print(f"Retrieval baseline: {report.benchmark}")
     print(f"Git commit: {report.git.commit}")
+    print(f"Trial commits: {', '.join(report.trial_git_commits)}")
     print(f"Workspace snapshot: {report.workspace.snapshot_id}")
     print(f"Cases: {report.dataset.case_count}")
     print()
@@ -560,13 +689,21 @@ def main(argv: list[str] | None = None) -> int:
             "to the evaluation commit."
         ),
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Validate and reuse completed trials in an existing output directory.",
+    )
     args = parser.parse_args(argv)
 
     try:
         repository_root = Path(
             _git_output(Path.cwd(), "rev-parse", "--show-toplevel")
         )
-        git_state = collect_git_state(repository_root)
+        git_state = collect_git_state(
+            repository_root,
+            ignored_untracked_roots=([args.output_dir] if args.resume else ()),
+        )
         if git_state.dirty and not args.allow_dirty:
             raise ValueError(
                 "Formal baseline requires a clean Git tree; commit or remove "
@@ -581,6 +718,7 @@ def main(argv: list[str] | None = None) -> int:
             git_state=git_state,
             runtime_environment=collect_runtime_environment(),
             workspace_build_git_commit=args.workspace_build_commit,
+            resume=args.resume,
             progress=lambda message: print(message, flush=True),
         )
     except (

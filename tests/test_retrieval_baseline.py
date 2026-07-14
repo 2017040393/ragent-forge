@@ -208,6 +208,7 @@ def test_sparse_baseline_writes_isolated_trial_artifacts(tmp_path: Path) -> None
         item for item in report.configurations if item.limit == 1
     )
     assert report.passed is True
+    assert report.trial_git_commits == ["a" * 40]
     assert report.workspace.layout == "generation"
     assert report.workspace.build_git_commit == "b" * 40
     assert report.workspace.snapshot_id == workspace.current_snapshot_id()
@@ -221,6 +222,36 @@ def test_sparse_baseline_writes_isolated_trial_artifacts(tmp_path: Path) -> None
     assert all(trial.cache_reuse_valid for trial in configuration.trials)
     assert (output_dir / "manifest.json").is_file()
     assert (output_dir / "summary.json").is_file()
+    assert len(list((output_dir / "runs").glob("*.json"))) == 6
+
+    missing_artifact = output_dir / "runs" / "lexical-k2-trial-03.json"
+    missing_artifact.unlink()
+    (output_dir / "summary.json").unlink()
+    progress: list[str] = []
+    resumed = run_baseline(
+        manifest,
+        manifest_path=manifest_path,
+        repository_root=repository_root,
+        workspace=workspace,
+        output_dir=output_dir,
+        git_state=BaselineGitState(
+            commit="c" * 40,
+            branch="test",
+            dirty=False,
+        ),
+        workspace_build_git_commit="b" * 40,
+        runtime_environment=report.runtime,
+        resume=True,
+        progress=progress.append,
+    )
+
+    assert resumed.passed is True
+    assert resumed.trial_git_commits == ["a" * 40, "c" * 40]
+    assert len([message for message in progress if message.startswith("Reused")]) == 5
+    completed_messages = [
+        message for message in progress if message.startswith("Completed")
+    ]
+    assert len(completed_messages) == 1
     assert len(list((output_dir / "runs").glob("*.json"))) == 6
 
 

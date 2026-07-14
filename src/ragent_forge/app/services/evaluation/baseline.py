@@ -4,7 +4,7 @@ import hashlib
 import json
 import math
 from collections.abc import Sequence
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -22,6 +22,7 @@ from ragent_forge.app.services.evaluation.metrics import (
 from ragent_forge.core.retrieval.types import RetrievalMode
 
 HashMode = Literal["binary", "text_lf"]
+GitCommit = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
 
 
 class BaselineFileSpec(BaseModel):
@@ -212,7 +213,7 @@ class BaselineConfigurationReport(BaseModel):
 
 
 class BaselineGitState(BaseModel):
-    commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    commit: GitCommit
     branch: str | None = None
     dirty: bool
 
@@ -257,7 +258,7 @@ class BaselineWorkspaceState(BaseModel):
     root: str
     layout: Literal["generation"] = "generation"
     schema_version: int = Field(gt=0)
-    build_git_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    build_git_commit: GitCommit
     snapshot_id: str
     source_path: str
     document_count: int = Field(gt=0)
@@ -296,6 +297,7 @@ class RetrievalBaselineReport(BaseModel):
     manifest_path: str
     manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     git: BaselineGitState
+    trial_git_commits: list[GitCommit] = Field(min_length=1)
     runtime: BaselineRuntimeEnvironment
     dataset: BaselineResolvedDataset
     corpus: list[BaselineResolvedFile]
@@ -308,8 +310,8 @@ class RetrievalBaselineReport(BaseModel):
 class BaselineTrialArtifact(BaseModel):
     schema_version: Literal[1] = 1
     benchmark: str
-    git_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
-    workspace_build_git_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    git_commit: GitCommit
+    workspace_build_git_commit: GitCommit
     workspace_snapshot_id: str
     trial: BaselineTrialReport
     evaluation: RetrievalEvalReport

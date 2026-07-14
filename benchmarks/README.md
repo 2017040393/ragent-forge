@@ -39,6 +39,14 @@ each fingerprint and report per-metric average, minimum, maximum, and spread.
 The checked-in manifest freezes the maximum accepted quality-metric spread;
 ranking variability is never hidden by the aggregate.
 
+If an external provider interrupts a long matrix, rerun the same command with
+`--resume`. The harness ignores that output directory when checking for
+untracked files, then validates the copied manifest and every existing trial's
+benchmark name, workspace snapshot, workspace build commit, mode, limit,
+repetition, case count, and cache state before reusing it. Unexpected or
+mismatched artifacts stop the resume; completed trials are never overwritten.
+The final summary lists every Git commit that produced a trial.
+
 The output contains a resolved `summary.json`, a copy of the manifest, and one
 full machine-readable report per trial under `runs/`. It records the Git
 evaluation commit, workspace build commit, clean/dirty state, dataset and
