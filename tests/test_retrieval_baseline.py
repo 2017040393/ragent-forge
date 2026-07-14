@@ -107,7 +107,9 @@ def test_sparse_baseline_writes_isolated_trial_artifacts(tmp_path: Path) -> None
         "Agent memory retrieval keeps project facts inspectable.",
         encoding="utf-8",
     )
-    cases_path = repository_root / "cases.jsonl"
+    eval_root = repository_root / "eval"
+    eval_root.mkdir()
+    cases_path = eval_root / "cases.jsonl"
     cases_path.write_text(
         "".join(
             json.dumps(case) + "\n"
@@ -126,7 +128,7 @@ def test_sparse_baseline_writes_isolated_trial_artifacts(tmp_path: Path) -> None
         ),
         encoding="utf-8",
     )
-    dataset_manifest_path = repository_root / "cases.manifest.json"
+    dataset_manifest_path = eval_root / "cases.manifest.json"
     dataset_manifest_path.write_text("{}\n", encoding="utf-8")
 
     workspace = LocalWorkspace(tmp_path / ".ragent")
@@ -139,12 +141,12 @@ def test_sparse_baseline_writes_isolated_trial_artifacts(tmp_path: Path) -> None
         name="test-post-architecture-baseline",
         description="Small deterministic sparse baseline.",
         dataset=BaselineDatasetSpec(
-            path="cases.jsonl",
+            path="eval/cases.jsonl",
             sha256=sha256_file(cases_path, "text_lf"),
             hash_mode="text_lf",
             case_count=2,
             manifest=BaselineFileSpec(
-                path="cases.manifest.json",
+                path="eval/cases.manifest.json",
                 sha256=sha256_file(dataset_manifest_path, "text_lf"),
                 hash_mode="text_lf",
             ),

@@ -315,13 +315,18 @@ def _validate_resume_artifact(
         and evaluation.retrieval_mode == mode
         and evaluation.limit == limit
         and evaluation.case_count == manifest.dataset.case_count
-        and evaluation.cases_path == manifest.dataset.path
+        and _normalized_path(evaluation.cases_path)
+        == _normalized_path(manifest.dataset.path)
     )
     if not matches:
         raise ValueError(
             "Baseline resume artifact does not match requested trial: "
             f"{artifact_relative_path.as_posix()}"
         )
+
+
+def _normalized_path(value: str) -> str:
+    return value.strip().replace("\\", "/")
 
 
 def sha256_file(path: str | Path, hash_mode: HashMode) -> str:
