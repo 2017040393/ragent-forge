@@ -98,6 +98,7 @@ def compact_top_results(
             "chunk_id": result.chunk_id,
             "source_path": result.source_path,
             "score": result.score,
+            "text_chars": len(result.text),
         }
         for rank, result in enumerate(search_results, start=1)
     ]

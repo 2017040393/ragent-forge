@@ -81,6 +81,21 @@ uv run ragent eval compare \
 如果在 vector index 不存在时请求 semantic 或 hybrid run，compare report 会把该 run
 记录为 failed，并继续执行，除非使用 `--fail-fast`。
 
+### 正式 Baseline 运行
+
+日常 `eval compare` 可能在 requested modes 和 limits 之间共享 prepared state。需要为
+v0.3 quality 或 efficiency 门槛提供结果时，应使用 checked-in baseline harness：
+
+```powershell
+uv run --extra dev python -m benchmarks.retrieval_baseline `
+  --workspace .ragent/baselines/pre-v0.3 `
+  --output-dir benchmarks/results/pre-v0.3-<commit>
+```
+
+Harness 会校验冻结 dataset 与 corpus hashes，要求 generation-layout workspace 和匹配
+的 vector index，隔离每个 trial，并分别报告 cold 与 warm latency。完整的 workspace
+准备步骤和 artifact contract 见 `benchmarks/README.md`。
+
 ## Retrieval Modes
 
 - `lexical`：简单 token-overlap baseline。

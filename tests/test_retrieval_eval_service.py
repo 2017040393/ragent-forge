@@ -1082,6 +1082,9 @@ def test_report_excludes_full_text_api_keys_and_embeddings() -> None:
     assert report.embedding_provider == "openai_embeddings"
     assert report.embedding_model == "text-embedding-3-small"
     assert report.index_path == str(Path(".ragent/index/vector_index.jsonl"))
+    assert report.results[0].top_results[0]["text_chars"] == len(
+        "full chunk text must stay out"
+    )
 
 
 def test_hybrid_report_records_fusion_metadata() -> None:

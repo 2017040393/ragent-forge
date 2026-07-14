@@ -159,6 +159,32 @@ def test_composition_reuses_cache_across_runtime_builds_and_snapshots(
     assert refreshed.prepared_state_cache.stats().invalidations == 1
 
 
+def test_composition_uses_explicit_isolated_cache() -> None:
+    workspace = CountingWorkspace()
+    shared_cache = PreparedStateCache(tokenize)
+    isolated_cache = PreparedStateCache(tokenize)
+
+    shared = build_retrieval_runtime(
+        cast(ApplicationWorkspace, workspace),
+        "bm25",
+        limit=2,
+        prepared_state_cache=shared_cache,
+    )
+    isolated = build_retrieval_runtime(
+        cast(ApplicationWorkspace, workspace),
+        "bm25",
+        limit=2,
+        prepared_state_cache=isolated_cache,
+    )
+
+    shared.retrieval_engine.run("agent", 2)
+    isolated.retrieval_engine.run("agent", 2)
+
+    assert shared.prepared_state_cache is shared_cache
+    assert isolated.prepared_state_cache is isolated_cache
+    assert workspace.read_chunks_calls == 2
+
+
 def test_warm_query_avoids_cold_workspace_load_cost(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

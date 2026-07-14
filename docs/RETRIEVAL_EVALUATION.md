@@ -84,6 +84,23 @@ If a semantic or hybrid run is requested before the vector index exists, the
 compare report records that run as failed and continues unless `--fail-fast` is
 used.
 
+### Formal Baseline Runs
+
+Routine `eval compare` calls may share prepared state across requested modes
+and limits. Use the checked-in baseline harness when results must support v0.3
+quality or efficiency gates:
+
+```powershell
+uv run --extra dev python -m benchmarks.retrieval_baseline `
+  --workspace .ragent/baselines/pre-v0.3 `
+  --output-dir benchmarks/results/pre-v0.3-<commit>
+```
+
+The harness validates the frozen dataset and corpus hashes, requires a
+generation-layout workspace and matching vector index, isolates every trial,
+and reports cold and warm latency separately. See `benchmarks/README.md` for
+the complete preparation and artifact contract.
+
 ## Retrieval Modes
 
 - `lexical`: simple token-overlap baseline.
