@@ -74,9 +74,10 @@ class BaselineEmbeddingSpec(BaseModel):
 
 class BaselineWorkloadSpec(BaseModel):
     retrieval_modes: list[RetrievalMode] = Field(min_length=1)
-    max_limit: int = Field(gt=0)
-    cutoffs: list[int] = Field(min_length=1)
+    limits: list[int] = Field(min_length=1)
     repetitions: int = Field(ge=3)
+    exact_ranking_modes: list[RetrievalMode] = Field(default_factory=list)
+    max_quality_metric_spread: float = Field(ge=0, le=1)
     cold_definition: Literal["first_query_of_isolated_runtime"] = (
         "first_query_of_isolated_runtime"
     )
@@ -84,26 +85,29 @@ class BaselineWorkloadSpec(BaseModel):
         "remaining_queries_of_same_runtime"
     )
 
-    @field_validator("retrieval_modes")
+    @field_validator("retrieval_modes", "exact_ranking_modes")
     @classmethod
     def _unique_modes(cls, modes: list[RetrievalMode]) -> list[RetrievalMode]:
         if len(modes) != len(set(modes)):
             raise ValueError("retrieval_modes must be unique")
         return modes
 
-    @field_validator("cutoffs")
+    @field_validator("limits")
     @classmethod
-    def _positive_unique_cutoffs(cls, cutoffs: list[int]) -> list[int]:
-        if any(cutoff < 1 for cutoff in cutoffs):
-            raise ValueError("cutoffs must be positive integers")
-        if len(cutoffs) != len(set(cutoffs)):
-            raise ValueError("cutoffs must be unique")
-        return sorted(cutoffs)
+    def _positive_unique_limits(cls, limits: list[int]) -> list[int]:
+        if any(limit < 1 for limit in limits):
+            raise ValueError("limits must be positive integers")
+        if len(limits) != len(set(limits)):
+            raise ValueError("limits must be unique")
+        return sorted(limits)
 
     @model_validator(mode="after")
-    def _cutoffs_fit_retrieval_limit(self) -> Self:
-        if self.cutoffs[-1] > self.max_limit:
-            raise ValueError("cutoffs must not exceed max_limit")
+    def _exact_modes_are_in_workload(self) -> Self:
+        unknown_modes = set(self.exact_ranking_modes) - set(self.retrieval_modes)
+        if unknown_modes:
+            raise ValueError(
+                "exact_ranking_modes must be included in retrieval_modes"
+            )
         return self
 
 
@@ -147,6 +151,26 @@ class BaselineCutoffMetrics(BaseModel):
     avg_selected_context_tokens: float = Field(ge=0)
 
 
+class BaselineMetricDistribution(BaseModel):
+    average: float = Field(ge=0)
+    minimum: float = Field(ge=0)
+    maximum: float = Field(ge=0)
+    spread: float = Field(ge=0)
+
+
+class BaselineCutoffMetricDistribution(BaseModel):
+    cutoff: int = Field(gt=0)
+    hit_rate: BaselineMetricDistribution
+    recall: BaselineMetricDistribution
+    precision: BaselineMetricDistribution
+    ndcg: BaselineMetricDistribution
+    mrr: BaselineMetricDistribution
+    passed_count: BaselineMetricDistribution
+    failed_count: BaselineMetricDistribution
+    avg_selected_context_chars: BaselineMetricDistribution
+    avg_selected_context_tokens: BaselineMetricDistribution
+
+
 class BaselineCacheState(BaseModel):
     snapshot_id: str | None = None
     chunk_loads: int = Field(ge=0)
@@ -159,7 +183,7 @@ class BaselineTrialReport(BaseModel):
     repetition: int = Field(gt=0)
     retrieval_mode: RetrievalMode
     retrieval_method: str = Field(min_length=1)
-    max_limit: int = Field(gt=0)
+    limit: int = Field(gt=0)
     artifact_path: str = Field(min_length=1)
     result_fingerprint_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     metrics_by_cutoff: dict[int, BaselineCutoffMetrics]
@@ -175,9 +199,12 @@ class BaselineTrialReport(BaseModel):
 class BaselineConfigurationReport(BaseModel):
     retrieval_mode: RetrievalMode
     retrieval_method: str = Field(min_length=1)
-    max_limit: int = Field(gt=0)
+    limit: int = Field(gt=0)
+    ranking_stable: bool
+    ranking_stability_required: bool
     quality_stable: bool
-    metrics_by_cutoff: dict[int, BaselineCutoffMetrics]
+    max_quality_metric_spread: float = Field(ge=0, le=1)
+    metrics_by_cutoff: dict[int, BaselineCutoffMetricDistribution]
     cold_start_latency_ms: BaselineLatencySummary
     warm_latency_ms: BaselineLatencySummary
     trials: list[BaselineTrialReport] = Field(min_length=1)
@@ -230,6 +257,7 @@ class BaselineWorkspaceState(BaseModel):
     root: str
     layout: Literal["generation"] = "generation"
     schema_version: int = Field(gt=0)
+    build_git_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
     snapshot_id: str
     source_path: str
     document_count: int = Field(gt=0)
@@ -281,6 +309,7 @@ class BaselineTrialArtifact(BaseModel):
     schema_version: Literal[1] = 1
     benchmark: str
     git_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    workspace_build_git_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
     workspace_snapshot_id: str
     trial: BaselineTrialReport
     evaluation: RetrievalEvalReport
@@ -313,7 +342,7 @@ def build_trial_report(
         repetition=repetition,
         retrieval_mode=report.retrieval_mode,
         retrieval_method=report.retrieval_method,
-        max_limit=report.limit,
+        limit=report.limit,
         artifact_path=artifact_path,
         result_fingerprint_sha256=result_fingerprint(report.results),
         metrics_by_cutoff={
@@ -332,6 +361,9 @@ def build_trial_report(
 
 def build_configuration_report(
     trials: Sequence[BaselineTrialReport],
+    *,
+    require_identical_rankings: bool,
+    max_quality_metric_spread: float,
 ) -> BaselineConfigurationReport:
     if not trials:
         raise ValueError("baseline configuration requires at least one trial")
@@ -339,14 +371,29 @@ def build_configuration_report(
     if any(
         trial.retrieval_mode != first.retrieval_mode
         or trial.retrieval_method != first.retrieval_method
-        or trial.max_limit != first.max_limit
+        or trial.limit != first.limit
+        or set(trial.metrics_by_cutoff) != set(first.metrics_by_cutoff)
         for trial in trials
     ):
         raise ValueError("baseline configuration trials must use the same retrieval")
 
-    quality_stable = (
-        len({trial.result_fingerprint_sha256 for trial in trials}) == 1
-        and all(trial.metrics_by_cutoff == first.metrics_by_cutoff for trial in trials)
+    ranking_stable = len({trial.result_fingerprint_sha256 for trial in trials}) == 1
+    metric_distributions = {
+        cutoff: _aggregate_cutoff_metrics(
+            [trial.metrics_by_cutoff[cutoff] for trial in trials]
+        )
+        for cutoff in first.metrics_by_cutoff
+    }
+    quality_stable = all(
+        spread <= max_quality_metric_spread
+        for metrics in metric_distributions.values()
+        for spread in (
+            metrics.hit_rate.spread,
+            metrics.recall.spread,
+            metrics.precision.spread,
+            metrics.ndcg.spread,
+            metrics.mrr.spread,
+        )
     )
     warm_samples = [
         latency
@@ -356,15 +403,65 @@ def build_configuration_report(
     return BaselineConfigurationReport(
         retrieval_mode=first.retrieval_mode,
         retrieval_method=first.retrieval_method,
-        max_limit=first.max_limit,
+        limit=first.limit,
+        ranking_stable=ranking_stable,
+        ranking_stability_required=require_identical_rankings,
         quality_stable=quality_stable,
-        metrics_by_cutoff=first.metrics_by_cutoff,
+        max_quality_metric_spread=max_quality_metric_spread,
+        metrics_by_cutoff=metric_distributions,
         cold_start_latency_ms=summarize_latency(
             [trial.cold_start_latency_ms for trial in trials]
         ),
         warm_latency_ms=summarize_latency(warm_samples),
         trials=list(trials),
-        passed=quality_stable and all(trial.cache_reuse_valid for trial in trials),
+        passed=(
+            quality_stable
+            and (ranking_stable or not require_identical_rankings)
+            and all(trial.cache_reuse_valid for trial in trials)
+        ),
+    )
+
+
+def _aggregate_cutoff_metrics(
+    metrics: Sequence[BaselineCutoffMetrics],
+) -> BaselineCutoffMetricDistribution:
+    if not metrics:
+        raise ValueError("cutoff metric aggregation requires at least one trial")
+    cutoff = metrics[0].cutoff
+    if any(item.cutoff != cutoff for item in metrics):
+        raise ValueError("cutoff metric aggregation requires matching cutoffs")
+    return BaselineCutoffMetricDistribution(
+        cutoff=cutoff,
+        hit_rate=_metric_distribution([item.hit_rate for item in metrics]),
+        recall=_metric_distribution([item.recall for item in metrics]),
+        precision=_metric_distribution([item.precision for item in metrics]),
+        ndcg=_metric_distribution([item.ndcg for item in metrics]),
+        mrr=_metric_distribution([item.mrr for item in metrics]),
+        passed_count=_metric_distribution(
+            [float(item.passed_count) for item in metrics]
+        ),
+        failed_count=_metric_distribution(
+            [float(item.failed_count) for item in metrics]
+        ),
+        avg_selected_context_chars=_metric_distribution(
+            [item.avg_selected_context_chars for item in metrics]
+        ),
+        avg_selected_context_tokens=_metric_distribution(
+            [item.avg_selected_context_tokens for item in metrics]
+        ),
+    )
+
+
+def _metric_distribution(values: Sequence[float]) -> BaselineMetricDistribution:
+    if not values:
+        raise ValueError("metric distribution requires at least one value")
+    minimum = min(values)
+    maximum = max(values)
+    return BaselineMetricDistribution(
+        average=round_metric(sum(values) / len(values)),
+        minimum=round_metric(minimum),
+        maximum=round_metric(maximum),
+        spread=round_metric(maximum - minimum),
     )
 
 

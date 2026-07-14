@@ -58,13 +58,17 @@
       "semantic",
       "hybrid"
     ],
-    "max_limit": 20,
-    "cutoffs": [
+    "limits": [
       5,
       10,
       20
     ],
     "repetitions": 3,
+    "exact_ranking_modes": [
+      "lexical",
+      "bm25"
+    ],
+    "max_quality_metric_spread": 0.05,
     "cold_definition": "first_query_of_isolated_runtime",
     "warm_definition": "remaining_queries_of_same_runtime"
   }

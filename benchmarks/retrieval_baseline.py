@@ -73,6 +73,7 @@ def run_baseline(
     output_dir: str | Path,
     git_state: BaselineGitState,
     runtime_environment: BaselineRuntimeEnvironment,
+    workspace_build_git_commit: str | None = None,
     progress: Callable[[str], None] | None = None,
 ) -> RetrievalBaselineReport:
     root = Path(repository_root).resolve()
@@ -83,7 +84,13 @@ def run_baseline(
             f"Baseline output directory already exists: {destination}"
         )
 
-    validated = _validate_inputs(manifest, root, workspace)
+    resolved_workspace_build_commit = workspace_build_git_commit or git_state.commit
+    validated = _validate_inputs(
+        manifest,
+        root,
+        workspace,
+        resolved_workspace_build_commit,
+    )
     destination.mkdir(parents=True)
     atomic_write_text(
         destination / "manifest.json",
@@ -94,79 +101,90 @@ def run_baseline(
     eval_service = RetrievalEvalService()
     configurations = []
     for mode in manifest.workload.retrieval_modes:
-        trials = []
-        for repetition in range(1, manifest.workload.repetitions + 1):
-            if progress is not None:
-                progress(
-                    f"Starting {mode} trial {repetition}/"
-                    f"{manifest.workload.repetitions}"
+        for limit in manifest.workload.limits:
+            trials = []
+            for repetition in range(1, manifest.workload.repetitions + 1):
+                if progress is not None:
+                    progress(
+                        f"Starting {mode} k={limit} trial {repetition}/"
+                        f"{manifest.workload.repetitions}"
+                    )
+                cache = PreparedStateCache(tokenize)
+                runtime = build_retrieval_runtime(
+                    workspace,
+                    mode,
+                    limit=limit,
+                    config=validated.config,
+                    prepared_state_cache=cache,
                 )
-            cache = PreparedStateCache(tokenize)
-            runtime = build_retrieval_runtime(
-                workspace,
-                mode,
-                limit=manifest.workload.max_limit,
-                config=validated.config,
-                prepared_state_cache=cache,
-            )
-            evaluation = eval_service.evaluate(
-                cases=validated.cases,
-                search_service=runtime.retrieval_engine,
-                limit=manifest.workload.max_limit,
-                retrieval_mode=mode,
-                retrieval_method=runtime.retrieval_method,
-                cases_path=manifest.dataset.path,
-                workspace_path=workspace.root_path,
-                embedding_provider=runtime.embedding_provider,
-                embedding_model=runtime.embedding_model,
-                index_path=runtime.index_path,
-                fusion_method=runtime.fusion_method,
-                rrf_k=runtime.rrf_k,
-                sparse_method=runtime.sparse_method,
-                dense_method=runtime.dense_method,
-                sparse_weight=runtime.sparse_weight,
-                dense_weight=runtime.dense_weight,
-                lexical_weight=runtime.lexical_weight,
-                semantic_weight=runtime.semantic_weight,
-                workspace=workspace,
-            )
-            artifact_relative_path = Path("runs") / (
-                f"{mode}-k{manifest.workload.max_limit}-"
-                f"trial-{repetition:02d}.json"
-            )
-            cache_stats = cache.stats()
-            trial = build_trial_report(
-                evaluation,
-                repetition=repetition,
-                cutoffs=manifest.workload.cutoffs,
-                artifact_path=artifact_relative_path.as_posix(),
-                cache=BaselineCacheState(
-                    snapshot_id=cache_stats.snapshot_id,
-                    chunk_loads=cache_stats.chunk_loads,
-                    vector_loads=cache_stats.vector_loads,
-                    warm_hits=cache_stats.warm_hits,
-                    invalidations=cache_stats.invalidations,
-                ),
-            )
-            artifact = BaselineTrialArtifact(
-                benchmark=manifest.name,
-                git_commit=git_state.commit,
-                workspace_snapshot_id=validated.workspace.snapshot_id,
-                trial=trial,
-                evaluation=evaluation,
-            )
-            atomic_write_text(
-                destination / artifact_relative_path,
-                artifact.model_dump_json(indent=2) + "\n",
-            )
-            trials.append(trial)
-            if progress is not None:
-                progress(
-                    f"Completed {mode} trial {repetition}: "
-                    f"cold={trial.cold_start_latency_ms:.4f} ms, "
-                    f"warm-p95={trial.warm_latency_ms.p95_ms:.4f} ms"
+                evaluation = eval_service.evaluate(
+                    cases=validated.cases,
+                    search_service=runtime.retrieval_engine,
+                    limit=limit,
+                    retrieval_mode=mode,
+                    retrieval_method=runtime.retrieval_method,
+                    cases_path=manifest.dataset.path,
+                    workspace_path=workspace.root_path,
+                    embedding_provider=runtime.embedding_provider,
+                    embedding_model=runtime.embedding_model,
+                    index_path=runtime.index_path,
+                    fusion_method=runtime.fusion_method,
+                    rrf_k=runtime.rrf_k,
+                    sparse_method=runtime.sparse_method,
+                    dense_method=runtime.dense_method,
+                    sparse_weight=runtime.sparse_weight,
+                    dense_weight=runtime.dense_weight,
+                    lexical_weight=runtime.lexical_weight,
+                    semantic_weight=runtime.semantic_weight,
+                    workspace=workspace,
                 )
-        configurations.append(build_configuration_report(trials))
+                artifact_relative_path = Path("runs") / (
+                    f"{mode}-k{limit}-trial-{repetition:02d}.json"
+                )
+                cache_stats = cache.stats()
+                trial = build_trial_report(
+                    evaluation,
+                    repetition=repetition,
+                    cutoffs=[limit],
+                    artifact_path=artifact_relative_path.as_posix(),
+                    cache=BaselineCacheState(
+                        snapshot_id=cache_stats.snapshot_id,
+                        chunk_loads=cache_stats.chunk_loads,
+                        vector_loads=cache_stats.vector_loads,
+                        warm_hits=cache_stats.warm_hits,
+                        invalidations=cache_stats.invalidations,
+                    ),
+                )
+                artifact = BaselineTrialArtifact(
+                    benchmark=manifest.name,
+                    git_commit=git_state.commit,
+                    workspace_build_git_commit=resolved_workspace_build_commit,
+                    workspace_snapshot_id=validated.workspace.snapshot_id,
+                    trial=trial,
+                    evaluation=evaluation,
+                )
+                atomic_write_text(
+                    destination / artifact_relative_path,
+                    artifact.model_dump_json(indent=2) + "\n",
+                )
+                trials.append(trial)
+                if progress is not None:
+                    progress(
+                        f"Completed {mode} k={limit} trial {repetition}: "
+                        f"cold={trial.cold_start_latency_ms:.4f} ms, "
+                        f"warm-p95={trial.warm_latency_ms.p95_ms:.4f} ms"
+                    )
+            configurations.append(
+                build_configuration_report(
+                    trials,
+                    require_identical_rankings=(
+                        mode in manifest.workload.exact_ranking_modes
+                    ),
+                    max_quality_metric_spread=(
+                        manifest.workload.max_quality_metric_spread
+                    ),
+                )
+            )
 
     report = RetrievalBaselineReport(
         benchmark=manifest.name,
@@ -240,6 +258,7 @@ def _validate_inputs(
     manifest: RetrievalBaselineManifest,
     repository_root: Path,
     workspace: LocalWorkspace,
+    workspace_build_git_commit: str,
 ) -> ValidatedBaselineInputs:
     eval_service = RetrievalEvalService()
     dataset_file = _validate_file(manifest.dataset, repository_root)
@@ -362,6 +381,7 @@ def _validate_inputs(
     workspace_state = BaselineWorkspaceState(
         root=str(workspace.root_path.resolve()),
         schema_version=snapshot_manifest.schema_version,
+        build_git_commit=workspace_build_git_commit,
         snapshot_id=snapshot_id,
         source_path=str(source_root),
         document_count=document_count,
@@ -484,20 +504,24 @@ def _print_summary(report: RetrievalBaselineReport, output_dir: Path) -> None:
     print(f"Workspace snapshot: {report.workspace.snapshot_id}")
     print(f"Cases: {report.dataset.case_count}")
     print()
-    print("mode      stable  cold-p95-ms  warm-p95-ms")
+    print("mode      k   rank-stable  quality-stable  cold-p95-ms  warm-p95-ms")
     for configuration in report.configurations:
         print(
             f"{configuration.retrieval_mode:<9} "
-            f"{str(configuration.quality_stable):<7} "
+            f"{configuration.limit:<3} "
+            f"{str(configuration.ranking_stable):<12} "
+            f"{str(configuration.quality_stable):<15} "
             f"{configuration.cold_start_latency_ms.p95_ms:<12.4f} "
             f"{configuration.warm_latency_ms.p95_ms:.4f}"
         )
         for cutoff, metrics in configuration.metrics_by_cutoff.items():
             print(
-                f"  @{cutoff:<2} hit={metrics.hit_rate:.4f} "
-                f"recall={metrics.recall:.4f} "
-                f"precision={metrics.precision:.4f} "
-                f"nDCG={metrics.ndcg:.4f} MRR={metrics.mrr:.4f}"
+                f"  {configuration.retrieval_mode}@{cutoff:<2} "
+                f"hit={metrics.hit_rate.average:.4f} "
+                f"recall={metrics.recall.average:.4f} "
+                f"precision={metrics.precision.average:.4f} "
+                f"nDCG={metrics.ndcg.average:.4f} "
+                f"MRR={metrics.mrr.average:.4f}"
             )
     print()
     print(f"Summary: {output_dir / 'summary.json'}")
@@ -528,6 +552,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Allow a diagnostic run from a Git tree with content changes.",
     )
+    parser.add_argument(
+        "--workspace-build-commit",
+        default=None,
+        help=(
+            "Full Git commit used to ingest and index the workspace; defaults "
+            "to the evaluation commit."
+        ),
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -548,6 +580,7 @@ def main(argv: list[str] | None = None) -> int:
             output_dir=args.output_dir,
             git_state=git_state,
             runtime_environment=collect_runtime_environment(),
+            workspace_build_git_commit=args.workspace_build_commit,
             progress=lambda message: print(message, flush=True),
         )
     except (

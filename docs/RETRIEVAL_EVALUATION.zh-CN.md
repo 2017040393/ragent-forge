@@ -89,12 +89,14 @@ v0.3 quality 或 efficiency 门槛提供结果时，应使用 checked-in baselin
 ```powershell
 uv run --extra dev python -m benchmarks.retrieval_baseline `
   --workspace .ragent/baselines/pre-v0.3 `
+  --workspace-build-commit <workspace-commit> `
   --output-dir benchmarks/results/pre-v0.3-<commit>
 ```
 
 Harness 会校验冻结 dataset 与 corpus hashes，要求 generation-layout workspace 和匹配
-的 vector index，隔离每个 trial，并分别报告 cold 与 warm latency。完整的 workspace
-准备步骤和 artifact contract 见 `benchmarks/README.md`。
+的 vector index，隔离每个 trial，并按 requested mode 和 limit 分别报告 cold 与 warm
+latency。完整的 workspace 准备步骤、dense variability policy 和 artifact contract 见
+`benchmarks/README.md`。
 
 ## Retrieval Modes
 

@@ -93,13 +93,15 @@ quality or efficiency gates:
 ```powershell
 uv run --extra dev python -m benchmarks.retrieval_baseline `
   --workspace .ragent/baselines/pre-v0.3 `
+  --workspace-build-commit <workspace-commit> `
   --output-dir benchmarks/results/pre-v0.3-<commit>
 ```
 
 The harness validates the frozen dataset and corpus hashes, requires a
 generation-layout workspace and matching vector index, isolates every trial,
-and reports cold and warm latency separately. See `benchmarks/README.md` for
-the complete preparation and artifact contract.
+and reports cold and warm latency separately for each requested mode and
+limit. See `benchmarks/README.md` for the complete preparation, dense
+variability policy, and artifact contract.
 
 ## Retrieval Modes
 
