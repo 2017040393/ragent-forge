@@ -1,3 +1,4 @@
+import httpx
 import pytest
 
 from ragent_forge.app.services.embedding_service import OpenAIEmbeddingsProvider
@@ -31,6 +32,25 @@ class FakeHttpClient:
         )
         if self.error is not None:
             raise self.error
+        return FakeResponse(self.payload)
+
+
+class FlakyHttpClient(FakeHttpClient):
+    def __init__(self, failures: list[Exception]) -> None:
+        super().__init__()
+        self.failures = list(failures)
+
+    def post(self, url: str, *, headers: dict[str, str], json, timeout: int):
+        self.calls.append(
+            {
+                "url": url,
+                "headers": headers,
+                "json": json,
+                "timeout": timeout,
+            }
+        )
+        if self.failures:
+            raise self.failures.pop(0)
         return FakeResponse(self.payload)
 
 
@@ -202,6 +222,59 @@ def test_openai_embeddings_provider_sanitizes_api_key_from_errors() -> None:
         provider.embed_texts(["hello"])
 
     assert "sk-test-secret" not in str(exc_info.value)
+
+
+def test_openai_embeddings_provider_retries_transport_errors() -> None:
+    fake_client = FlakyHttpClient(
+        [
+            httpx.ReadTimeout("first timeout"),
+            httpx.ConnectError("temporary connection failure"),
+        ]
+    )
+    provider = OpenAIEmbeddingsProvider(
+        base_url="https://api.openai.com/v1",
+        model="text-embedding-3-small",
+        api_key="sk-test-secret",
+        http_client=fake_client,
+    )
+
+    result = provider.embed_texts(["hello"])
+
+    assert len(fake_client.calls) == 3
+    assert result.embeddings == [[0.1, 0.2, 0.3]]
+    assert result.metadata["max_transport_attempts"] == 3
+
+
+def test_openai_embeddings_provider_stops_after_transport_attempt_limit() -> None:
+    fake_client = FlakyHttpClient(
+        [
+            httpx.ReadTimeout("timeout 1"),
+            httpx.ReadTimeout("timeout 2"),
+            httpx.ReadTimeout("timeout 3"),
+        ]
+    )
+    provider = OpenAIEmbeddingsProvider(
+        base_url="https://api.openai.com/v1",
+        model="text-embedding-3-small",
+        api_key="sk-test-secret",
+        http_client=fake_client,
+    )
+
+    with pytest.raises(RuntimeError, match="Embedding provider failed: timeout 3"):
+        provider.embed_texts(["hello"])
+
+    assert len(fake_client.calls) == 3
+
+
+def test_openai_embeddings_provider_rejects_invalid_transport_attempts() -> None:
+    with pytest.raises(ValueError, match="must be greater than 0"):
+        OpenAIEmbeddingsProvider(
+            base_url="https://api.openai.com/v1",
+            model="text-embedding-3-small",
+            api_key="sk-test-secret",
+            http_client=FakeHttpClient(),
+            max_transport_attempts=0,
+        )
 
 
 def test_openai_embeddings_provider_metadata_does_not_include_api_key() -> None:

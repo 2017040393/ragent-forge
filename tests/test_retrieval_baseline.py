@@ -44,6 +44,8 @@ def test_checked_in_baseline_manifest_and_input_hashes_are_valid() -> None:
     assert manifest.workload.repetitions == 3
     assert manifest.workload.max_limit == 20
     assert manifest.workload.cutoffs == [5, 10, 20]
+    assert manifest.embedding is not None
+    assert manifest.embedding.timeout_seconds == 60
     assert sha256_file(
         repository_root / manifest.dataset.path,
         manifest.dataset.hash_mode,

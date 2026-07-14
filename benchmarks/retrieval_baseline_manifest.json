@@ -48,7 +48,8 @@
     "provider": "openai_embeddings",
     "model": "Qwen/Qwen3-VL-Embedding-8B",
     "dimensions": 4096,
-    "batch_size": 8
+    "batch_size": 8,
+    "timeout_seconds": 60
   },
   "workload": {
     "retrieval_modes": [

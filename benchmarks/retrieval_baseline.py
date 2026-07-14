@@ -316,6 +316,7 @@ def _validate_inputs(
             config.embedding.provider != manifest.embedding.provider
             or config.embedding.model != manifest.embedding.model
             or config.embedding.batch_size != manifest.embedding.batch_size
+            or config.embedding.timeout_seconds != manifest.embedding.timeout_seconds
         ):
             raise ValueError("Baseline embedding configuration mismatch")
         index_manifest = VectorIndexService(workspace).read_manifest()
@@ -371,6 +372,9 @@ def _validate_inputs(
         embedding_model=(config.embedding.model if dense_requested else None),
         embedding_batch_size=(
             config.embedding.batch_size if dense_requested else None
+        ),
+        embedding_timeout_seconds=(
+            config.embedding.timeout_seconds if dense_requested else None
         ),
         index=index_state,
     )

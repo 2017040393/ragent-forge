@@ -69,6 +69,7 @@ class BaselineEmbeddingSpec(BaseModel):
     model: str = Field(min_length=1)
     dimensions: int = Field(gt=0)
     batch_size: int = Field(gt=0)
+    timeout_seconds: int = Field(gt=0)
 
 
 class BaselineWorkloadSpec(BaseModel):
@@ -238,6 +239,7 @@ class BaselineWorkspaceState(BaseModel):
     embedding_provider: str | None = None
     embedding_model: str | None = None
     embedding_batch_size: int | None = None
+    embedding_timeout_seconds: int | None = None
     index: BaselineIndexState | None = None
 
 

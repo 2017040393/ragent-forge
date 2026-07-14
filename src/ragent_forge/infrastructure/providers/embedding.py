@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Protocol, cast
 
+import httpx as _httpx
+
 from ragent_forge.app.models import AppConfig, EmbeddingResult
 from ragent_forge.app.ports import HttpPostClient, HttpResponse
 
@@ -33,38 +35,19 @@ class OpenAIEmbeddingsProvider:
         api_key: str,
         timeout_seconds: int = 60,
         http_client: HttpPostClient | None = None,
+        max_transport_attempts: int = 3,
     ) -> None:
+        if max_transport_attempts < 1:
+            raise ValueError("max_transport_attempts must be greater than 0")
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.api_key = api_key
         self.timeout_seconds = timeout_seconds
         self.http_client = http_client
+        self.max_transport_attempts = max_transport_attempts
 
     def embed_texts(self, texts: list[str]) -> EmbeddingResult:
-        try:
-            if self.http_client is None:
-                raise RuntimeError("HTTP client is not configured")
-            response = cast(
-                HttpResponse,
-                self.http_client.post(
-                f"{self.base_url}/embeddings",
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": self.model,
-                    "input": texts,
-                },
-                timeout=self.timeout_seconds,
-                ),
-            )
-            raise_for_status = getattr(response, "raise_for_status", None)
-            if callable(raise_for_status):
-                raise_for_status()
-            payload = response.json()
-        except Exception as exc:  # pragma: no cover - wrapped consistently
-            raise self._wrap_error(str(exc)) from exc
+        payload = self._request_embeddings(texts)
 
         embeddings = self._parse_embeddings(payload, expected_count=len(texts))
         usage = payload.get("usage", {}) if isinstance(payload, dict) else {}
@@ -76,8 +59,40 @@ class OpenAIEmbeddingsProvider:
             metadata={
                 "base_url": self.base_url,
                 "endpoint": "/embeddings",
+                "max_transport_attempts": self.max_transport_attempts,
             },
         )
+
+    def _request_embeddings(self, texts: list[str]) -> object:
+        if self.http_client is None:
+            raise self._wrap_error("HTTP client is not configured")
+        for attempt in range(1, self.max_transport_attempts + 1):
+            try:
+                response = cast(
+                    HttpResponse,
+                    self.http_client.post(
+                        f"{self.base_url}/embeddings",
+                        headers={
+                            "Authorization": f"Bearer {self.api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={
+                            "model": self.model,
+                            "input": texts,
+                        },
+                        timeout=self.timeout_seconds,
+                    ),
+                )
+                raise_for_status = getattr(response, "raise_for_status", None)
+                if callable(raise_for_status):
+                    raise_for_status()
+                return response.json()
+            except _httpx.TransportError as exc:
+                if attempt == self.max_transport_attempts:
+                    raise self._wrap_error(str(exc)) from exc
+            except Exception as exc:  # pragma: no cover - wrapped consistently
+                raise self._wrap_error(str(exc)) from exc
+        raise RuntimeError("embedding transport retry loop ended unexpectedly")
 
     def _parse_embeddings(
         self,
