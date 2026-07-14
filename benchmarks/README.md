@@ -2,6 +2,13 @@
 
 ## Formal Pre-v0.3 Baseline
 
+The frozen post-architecture result is checked in at
+[`results/pre-v0.3-20260714-c410e2e`](results/pre-v0.3-20260714-c410e2e).
+See the
+[`baseline report`](../ideas/2026-07-14-pre-v0-3-post-architecture-baseline.md)
+for the resolved quality, cold/warm latency, dense-provider variability, and
+absolute v0.3 release-gate values.
+
 `retrieval_baseline_manifest.json` freezes the v0.2 50-case dataset, corpus
 hashes, ingest parameters, embedding configuration, retrieval modes, limits,
 and repetition count used for the post-architecture-convergence baseline.

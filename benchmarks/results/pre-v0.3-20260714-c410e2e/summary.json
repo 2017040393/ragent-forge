@@ -1,0 +1,6571 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-post-architecture-convergence",
+  "description": "Frozen retrieval quality and cold/warm efficiency baseline after architecture convergence and before v0.3 retrieval experiments.",
+  "measured_at": "2026-07-14T03:59:06.220051+00:00",
+  "manifest_path": "benchmarks/retrieval_baseline_manifest.json",
+  "manifest_sha256": "2424aceffb22b95a702160de1dc3048200cf7646b1d90b4c826d32c86863f769",
+  "git": {
+    "commit": "ca3900619573498b2cc5bff627c36092787f398a",
+    "branch": "main",
+    "dirty": false
+  },
+  "trial_git_commits": [
+    "c410e2e2629f0009edbee811312ac6122bc2c978",
+    "ca3900619573498b2cc5bff627c36092787f398a"
+  ],
+  "runtime": {
+    "python": "3.12.11",
+    "implementation": "CPython",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+    "packages": {
+      "ragent_forge": "0.2.0",
+      "pydantic": "2.13.4",
+      "httpx": "0.28.1",
+      "pdfplumber": "0.11.10"
+    }
+  },
+  "dataset": {
+    "cases": {
+      "path": "examples/eval/v0_2_retrieval_baseline.generated.jsonl",
+      "sha256": "b92b9b0c7fc57c45f1ef09d8c9132c2606261734c536db2ba18bb247333ae525",
+      "hash_mode": "text_lf"
+    },
+    "manifest": {
+      "path": "examples/eval/v0_2_retrieval_baseline.generated.manifest.json",
+      "sha256": "ba5018520c1ddb6c76c0d89f73603ff78d135aaef97a9b04b912c01a44397ea5",
+      "hash_mode": "text_lf"
+    },
+    "case_count": 50
+  },
+  "corpus": [
+    {
+      "path": "examples/knowledge/agentic_rag.md",
+      "sha256": "f005c66151c5aeaab0460024c2db81809f6e1bb2e813b3e9ea9177b5a4b34b43",
+      "hash_mode": "text_lf"
+    },
+    {
+      "path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+      "sha256": "76cd30d85f11abae269ec4865ea1802f68366085763f1bc37786f11f4efc6ae1",
+      "hash_mode": "binary"
+    },
+    {
+      "path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+      "sha256": "0cbc06df32a0d54964a53e6c6c8640f47b41cf6ce9834fdb6c81d538f9de6e9b",
+      "hash_mode": "binary"
+    },
+    {
+      "path": "examples/knowledge/rag_basics.md",
+      "sha256": "0959b471eba8b4171ac6a8199225e8388369ab9c45c0ad11bca78c4218684470",
+      "hash_mode": "text_lf"
+    }
+  ],
+  "workspace": {
+    "root": "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\.ragent\\baselines\\pre-v0.3-ca029f9",
+    "layout": "generation",
+    "schema_version": 2,
+    "build_git_commit": "ca029f912190bbf1dd41f0b0905bdfef592fb459",
+    "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+    "source_path": "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge",
+    "document_count": 4,
+    "chunk_count": 1744,
+    "chunk_size": 1000,
+    "chunk_overlap": 0,
+    "embedding_provider": "openai_embeddings",
+    "embedding_model": "Qwen/Qwen3-VL-Embedding-8B",
+    "embedding_batch_size": 8,
+    "embedding_timeout_seconds": 60,
+    "index": {
+      "embedding_provider": "openai_embeddings",
+      "embedding_model": "Qwen/Qwen3-VL-Embedding-8B",
+      "embedding_dim": 4096,
+      "chunk_count": 1744,
+      "snapshot_id": "snapshot-20260714T024249Z-60c124c1"
+    }
+  },
+  "input_checks": {
+    "dataset_hash": true,
+    "dataset_manifest_hash": true,
+    "source_hashes": true,
+    "case_count": true,
+    "generation_layout": true,
+    "snapshot_manifest": true,
+    "ingest_configuration": true,
+    "workspace_counts": true,
+    "embedding_configuration": true,
+    "vector_index": true
+  },
+  "configurations": [
+    {
+      "retrieval_mode": "lexical",
+      "retrieval_method": "lexical_token_overlap",
+      "limit": 5,
+      "ranking_stable": true,
+      "ranking_stability_required": true,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "5": {
+          "cutoff": 5,
+          "hit_rate": {
+            "average": 0.18,
+            "minimum": 0.18,
+            "maximum": 0.18,
+            "spread": 0.0
+          },
+          "recall": {
+            "average": 0.1,
+            "minimum": 0.1,
+            "maximum": 0.1,
+            "spread": 0.0
+          },
+          "precision": {
+            "average": 0.044,
+            "minimum": 0.044,
+            "maximum": 0.044,
+            "spread": 0.0
+          },
+          "ndcg": {
+            "average": 0.1086,
+            "minimum": 0.1086,
+            "maximum": 0.1086,
+            "spread": 0.0
+          },
+          "mrr": {
+            "average": 0.155,
+            "minimum": 0.155,
+            "maximum": 0.155,
+            "spread": 0.0
+          },
+          "passed_count": {
+            "average": 9.0,
+            "minimum": 9.0,
+            "maximum": 9.0,
+            "spread": 0.0
+          },
+          "failed_count": {
+            "average": 41.0,
+            "minimum": 41.0,
+            "maximum": 41.0,
+            "spread": 0.0
+          },
+          "avg_selected_context_chars": {
+            "average": 4960.34,
+            "minimum": 4960.34,
+            "maximum": 4960.34,
+            "spread": 0.0
+          },
+          "avg_selected_context_tokens": {
+            "average": 1240.2,
+            "minimum": 1240.2,
+            "maximum": 1240.2,
+            "spread": 0.0
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 156.7705,
+        "p50_ms": 156.9361,
+        "p95_ms": 160.8572
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 47.1006,
+        "p50_ms": 45.1296,
+        "p95_ms": 65.0857
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "lexical",
+          "retrieval_method": "lexical_token_overlap",
+          "limit": 5,
+          "artifact_path": "runs/lexical-k5-trial-01.json",
+          "result_fingerprint_sha256": "ab291d203e12085998088ac582d3e5d1545fa760d53a611df0854affad3e5d30",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.18,
+              "recall": 0.1,
+              "precision": 0.044,
+              "ndcg": 0.1086,
+              "mrr": 0.155,
+              "passed_count": 9,
+              "failed_count": 41,
+              "avg_selected_context_chars": 4960.34,
+              "avg_selected_context_tokens": 1240.2
+            }
+          },
+          "cold_start_latency_ms": 161.2929,
+          "warm_latency_samples_ms": [
+            43.2824,
+            45.74,
+            43.5379,
+            44.2961,
+            52.4062,
+            65.1486,
+            44.0479,
+            46.5179,
+            43.8408,
+            44.529,
+            44.6204,
+            42.9415,
+            40.7065,
+            61.2083,
+            43.6549,
+            42.9428,
+            41.7065,
+            43.7266,
+            39.3606,
+            43.7549,
+            63.6171,
+            45.3389,
+            43.9194,
+            44.1855,
+            44.5304,
+            45.1296,
+            46.2063,
+            45.6848,
+            45.6305,
+            45.0933,
+            45.2985,
+            47.1836,
+            45.8681,
+            42.665,
+            56.6401,
+            64.9389,
+            47.5227,
+            44.5877,
+            45.266,
+            46.6895,
+            46.0035,
+            44.1911,
+            60.0882,
+            44.393,
+            44.2397,
+            43.3395,
+            43.8733,
+            43.3397,
+            43.2597
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 46.6672,
+            "p50_ms": 44.5304,
+            "p95_ms": 62.6536
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 161.122,
+              "p50_ms": 161.122,
+              "p95_ms": 161.122
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.008,
+              "p50_ms": 0.008,
+              "p95_ms": 0.008
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 46.5647,
+              "p50_ms": 44.438,
+              "p95_ms": 62.5618
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0017,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0046,
+              "p50_ms": 0.004,
+              "p95_ms": 0.006
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0009,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "lexical",
+          "retrieval_method": "lexical_token_overlap",
+          "limit": 5,
+          "artifact_path": "runs/lexical-k5-trial-02.json",
+          "result_fingerprint_sha256": "ab291d203e12085998088ac582d3e5d1545fa760d53a611df0854affad3e5d30",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.18,
+              "recall": 0.1,
+              "precision": 0.044,
+              "ndcg": 0.1086,
+              "mrr": 0.155,
+              "passed_count": 9,
+              "failed_count": 41,
+              "avg_selected_context_chars": 4960.34,
+              "avg_selected_context_tokens": 1240.2
+            }
+          },
+          "cold_start_latency_ms": 152.0826,
+          "warm_latency_samples_ms": [
+            48.9051,
+            44.9758,
+            44.6008,
+            46.0434,
+            45.9391,
+            68.954,
+            44.1275,
+            45.5603,
+            44.3982,
+            44.6585,
+            41.8995,
+            43.6687,
+            69.1436,
+            46.7298,
+            47.8065,
+            46.7728,
+            46.3893,
+            45.2893,
+            39.9122,
+            44.9759,
+            60.9885,
+            42.8211,
+            41.3156,
+            44.9309,
+            43.7117,
+            44.3288,
+            42.6586,
+            63.3237,
+            47.2443,
+            46.1995,
+            45.3892,
+            47.5227,
+            43.8626,
+            42.5587,
+            45.8163,
+            47.2952,
+            46.4098,
+            43.011,
+            45.8758,
+            46.6994,
+            46.4366,
+            45.0469,
+            66.6412,
+            47.0488,
+            45.0123,
+            46.0,
+            45.4204,
+            46.4479,
+            50.0176
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 47.363,
+            "p50_ms": 45.8163,
+            "p95_ms": 65.3142
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 151.942,
+              "p50_ms": 151.942,
+              "p95_ms": 151.942
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.004,
+              "p50_ms": 0.004,
+              "p95_ms": 0.004
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 47.2613,
+              "p50_ms": 45.726,
+              "p95_ms": 65.206
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0017,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0046,
+              "p50_ms": 0.004,
+              "p95_ms": 0.006
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "lexical",
+          "retrieval_method": "lexical_token_overlap",
+          "limit": 5,
+          "artifact_path": "runs/lexical-k5-trial-03.json",
+          "result_fingerprint_sha256": "ab291d203e12085998088ac582d3e5d1545fa760d53a611df0854affad3e5d30",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.18,
+              "recall": 0.1,
+              "precision": 0.044,
+              "ndcg": 0.1086,
+              "mrr": 0.155,
+              "passed_count": 9,
+              "failed_count": 41,
+              "avg_selected_context_chars": 4960.34,
+              "avg_selected_context_tokens": 1240.2
+            }
+          },
+          "cold_start_latency_ms": 156.9361,
+          "warm_latency_samples_ms": [
+            43.5913,
+            45.1886,
+            45.2894,
+            44.4872,
+            44.8052,
+            68.2569,
+            46.3183,
+            49.9025,
+            46.9075,
+            47.48,
+            44.1397,
+            44.6468,
+            68.1987,
+            44.3796,
+            50.5747,
+            45.7646,
+            42.4117,
+            42.6941,
+            38.6662,
+            45.6263,
+            57.3096,
+            42.3216,
+            44.0615,
+            44.8157,
+            47.0011,
+            48.0202,
+            47.0181,
+            71.634,
+            45.8303,
+            45.0221,
+            44.918,
+            44.6268,
+            47.1082,
+            45.1702,
+            66.2572,
+            46.623,
+            46.7053,
+            44.9144,
+            44.3254,
+            43.2401,
+            44.1685,
+            43.6189,
+            43.9941,
+            43.7365,
+            45.3588,
+            43.9609,
+            42.6877,
+            44.2092,
+            48.3258
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 47.2717,
+            "p50_ms": 45.0221,
+            "p95_ms": 67.4221
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 156.833,
+              "p50_ms": 156.833,
+              "p95_ms": 156.833
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.004,
+              "p50_ms": 0.004,
+              "p95_ms": 0.004
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 47.1671,
+              "p50_ms": 44.915,
+              "p95_ms": 67.3066
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0017,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0048,
+              "p50_ms": 0.005,
+              "p95_ms": 0.0066
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "lexical",
+      "retrieval_method": "lexical_token_overlap",
+      "limit": 10,
+      "ranking_stable": true,
+      "ranking_stability_required": true,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "10": {
+          "cutoff": 10,
+          "hit_rate": {
+            "average": 0.28,
+            "minimum": 0.28,
+            "maximum": 0.28,
+            "spread": 0.0
+          },
+          "recall": {
+            "average": 0.1533,
+            "minimum": 0.1533,
+            "maximum": 0.1533,
+            "spread": 0.0
+          },
+          "precision": {
+            "average": 0.034,
+            "minimum": 0.034,
+            "maximum": 0.034,
+            "spread": 0.0
+          },
+          "ndcg": {
+            "average": 0.1295,
+            "minimum": 0.1295,
+            "maximum": 0.1295,
+            "spread": 0.0
+          },
+          "mrr": {
+            "average": 0.1673,
+            "minimum": 0.1673,
+            "maximum": 0.1673,
+            "spread": 0.0
+          },
+          "passed_count": {
+            "average": 14.0,
+            "minimum": 14.0,
+            "maximum": 14.0,
+            "spread": 0.0
+          },
+          "failed_count": {
+            "average": 36.0,
+            "minimum": 36.0,
+            "maximum": 36.0,
+            "spread": 0.0
+          },
+          "avg_selected_context_chars": {
+            "average": 9896.94,
+            "minimum": 9896.94,
+            "maximum": 9896.94,
+            "spread": 0.0
+          },
+          "avg_selected_context_tokens": {
+            "average": 2474.44,
+            "minimum": 2474.44,
+            "maximum": 2474.44,
+            "spread": 0.0
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 149.0753,
+        "p50_ms": 148.1853,
+        "p95_ms": 157.1533
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 47.8295,
+        "p50_ms": 46.0159,
+        "p95_ms": 65.6047
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "lexical",
+          "retrieval_method": "lexical_token_overlap",
+          "limit": 10,
+          "artifact_path": "runs/lexical-k10-trial-01.json",
+          "result_fingerprint_sha256": "dad9b386b07b4a27b0019266e2c4fab979c2f3f75e5267d2ff62d1f1c129208a",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.28,
+              "recall": 0.1533,
+              "precision": 0.034,
+              "ndcg": 0.1295,
+              "mrr": 0.1673,
+              "passed_count": 14,
+              "failed_count": 36,
+              "avg_selected_context_chars": 9896.94,
+              "avg_selected_context_tokens": 2474.44
+            }
+          },
+          "cold_start_latency_ms": 148.1853,
+          "warm_latency_samples_ms": [
+            44.6513,
+            45.602,
+            44.7092,
+            45.6226,
+            47.3327,
+            64.8642,
+            41.751,
+            45.9708,
+            42.1503,
+            41.9151,
+            40.8403,
+            42.7262,
+            57.9258,
+            43.5403,
+            47.0081,
+            47.6994,
+            45.5486,
+            44.7965,
+            40.475,
+            48.2178,
+            45.9586,
+            46.5494,
+            45.3439,
+            46.0833,
+            45.5532,
+            46.0632,
+            45.4578,
+            74.9575,
+            46.0159,
+            46.1667,
+            46.047,
+            46.1059,
+            46.5132,
+            46.7672,
+            64.9137,
+            46.1185,
+            45.5123,
+            43.5346,
+            43.6917,
+            45.3567,
+            44.111,
+            62.8326,
+            46.3366,
+            45.963,
+            45.7748,
+            46.0553,
+            46.1514,
+            47.3101,
+            44.6625
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 47.2501,
+            "p50_ms": 45.963,
+            "p95_ms": 64.0516
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 148.077,
+              "p50_ms": 148.077,
+              "p95_ms": 148.077
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 47.1427,
+              "p50_ms": 45.849,
+              "p95_ms": 63.9496
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0021,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0057,
+              "p50_ms": 0.005,
+              "p95_ms": 0.007
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "lexical",
+          "retrieval_method": "lexical_token_overlap",
+          "limit": 10,
+          "artifact_path": "runs/lexical-k10-trial-02.json",
+          "result_fingerprint_sha256": "dad9b386b07b4a27b0019266e2c4fab979c2f3f75e5267d2ff62d1f1c129208a",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.28,
+              "recall": 0.1533,
+              "precision": 0.034,
+              "ndcg": 0.1295,
+              "mrr": 0.1673,
+              "passed_count": 14,
+              "failed_count": 36,
+              "avg_selected_context_chars": 9896.94,
+              "avg_selected_context_tokens": 2474.44
+            }
+          },
+          "cold_start_latency_ms": 158.1498,
+          "warm_latency_samples_ms": [
+            44.7668,
+            46.501,
+            46.4509,
+            47.224,
+            46.5462,
+            47.3355,
+            47.1951,
+            49.082,
+            46.2167,
+            46.4149,
+            46.4985,
+            45.2035,
+            64.7196,
+            46.2262,
+            46.0959,
+            43.9004,
+            43.3192,
+            42.8249,
+            39.7499,
+            70.6459,
+            46.3457,
+            47.4958,
+            45.4936,
+            47.5712,
+            45.4635,
+            44.0517,
+            42.4316,
+            58.1548,
+            44.6772,
+            45.5011,
+            49.7948,
+            46.8824,
+            45.7642,
+            46.1265,
+            67.1412,
+            47.8501,
+            47.1898,
+            45.2193,
+            46.7142,
+            47.1062,
+            47.4396,
+            69.3105,
+            47.0276,
+            44.6573,
+            44.9567,
+            45.4536,
+            45.1876,
+            44.0579,
+            66.1857
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 48.33,
+            "p50_ms": 46.4149,
+            "p95_ms": 66.759
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 158.024,
+              "p50_ms": 158.024,
+              "p95_ms": 158.024
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 48.2185,
+              "p50_ms": 46.301,
+              "p95_ms": 66.6444
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0019,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.006,
+              "p50_ms": 0.006,
+              "p95_ms": 0.009
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "lexical",
+          "retrieval_method": "lexical_token_overlap",
+          "limit": 10,
+          "artifact_path": "runs/lexical-k10-trial-03.json",
+          "result_fingerprint_sha256": "dad9b386b07b4a27b0019266e2c4fab979c2f3f75e5267d2ff62d1f1c129208a",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.28,
+              "recall": 0.1533,
+              "precision": 0.034,
+              "ndcg": 0.1295,
+              "mrr": 0.1673,
+              "passed_count": 14,
+              "failed_count": 36,
+              "avg_selected_context_chars": 9896.94,
+              "avg_selected_context_tokens": 2474.44
+            }
+          },
+          "cold_start_latency_ms": 140.8908,
+          "warm_latency_samples_ms": [
+            45.3049,
+            44.1314,
+            44.1765,
+            46.1456,
+            65.2582,
+            43.6038,
+            43.8698,
+            44.8163,
+            44.0208,
+            42.8534,
+            43.617,
+            43.4631,
+            58.0355,
+            43.6142,
+            45.2756,
+            45.9383,
+            45.7386,
+            45.2164,
+            40.5613,
+            68.479,
+            46.0465,
+            46.3427,
+            43.8908,
+            45.5069,
+            47.5125,
+            46.7831,
+            65.7532,
+            44.9167,
+            46.5136,
+            45.5607,
+            47.5144,
+            45.052,
+            45.9427,
+            42.8471,
+            56.7562,
+            43.3642,
+            45.611,
+            44.4191,
+            44.1691,
+            46.1776,
+            46.3584,
+            64.2903,
+            48.9585,
+            47.0908,
+            47.5327,
+            46.5897,
+            45.2463,
+            46.2256,
+            70.4219
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 47.9084,
+            "p50_ms": 45.611,
+            "p95_ms": 65.5552
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 140.789,
+              "p50_ms": 140.789,
+              "p95_ms": 140.789
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 47.8002,
+              "p50_ms": 45.508,
+              "p95_ms": 65.45
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0059,
+              "p50_ms": 0.006,
+              "p95_ms": 0.008
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.0016
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "lexical",
+      "retrieval_method": "lexical_token_overlap",
+      "limit": 20,
+      "ranking_stable": true,
+      "ranking_stability_required": true,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "20": {
+          "cutoff": 20,
+          "hit_rate": {
+            "average": 0.4,
+            "minimum": 0.4,
+            "maximum": 0.4,
+            "spread": 0.0
+          },
+          "recall": {
+            "average": 0.2,
+            "minimum": 0.2,
+            "maximum": 0.2,
+            "spread": 0.0
+          },
+          "precision": {
+            "average": 0.023,
+            "minimum": 0.023,
+            "maximum": 0.023,
+            "spread": 0.0
+          },
+          "ndcg": {
+            "average": 0.1444,
+            "minimum": 0.1444,
+            "maximum": 0.1444,
+            "spread": 0.0
+          },
+          "mrr": {
+            "average": 0.1743,
+            "minimum": 0.1743,
+            "maximum": 0.1743,
+            "spread": 0.0
+          },
+          "passed_count": {
+            "average": 20.0,
+            "minimum": 20.0,
+            "maximum": 20.0,
+            "spread": 0.0
+          },
+          "failed_count": {
+            "average": 30.0,
+            "minimum": 30.0,
+            "maximum": 30.0,
+            "spread": 0.0
+          },
+          "avg_selected_context_chars": {
+            "average": 19766.2,
+            "minimum": 19766.2,
+            "maximum": 19766.2,
+            "spread": 0.0
+          },
+          "avg_selected_context_tokens": {
+            "average": 4941.88,
+            "minimum": 4941.88,
+            "maximum": 4941.88,
+            "spread": 0.0
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 150.7001,
+        "p50_ms": 148.9032,
+        "p95_ms": 153.8779
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 48.6037,
+        "p50_ms": 46.2604,
+        "p95_ms": 67.6939
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "lexical",
+          "retrieval_method": "lexical_token_overlap",
+          "limit": 20,
+          "artifact_path": "runs/lexical-k20-trial-01.json",
+          "result_fingerprint_sha256": "3e03d219b8b33dd21bf3d82f1ad27fed5818be17ff8a8e21eaa09064f8742ef4",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.4,
+              "recall": 0.2,
+              "precision": 0.023,
+              "ndcg": 0.1444,
+              "mrr": 0.1743,
+              "passed_count": 20,
+              "failed_count": 30,
+              "avg_selected_context_chars": 19766.2,
+              "avg_selected_context_tokens": 4941.88
+            }
+          },
+          "cold_start_latency_ms": 148.7666,
+          "warm_latency_samples_ms": [
+            43.342,
+            45.3141,
+            45.77,
+            47.9415,
+            74.5704,
+            45.0905,
+            47.3918,
+            49.005,
+            47.4884,
+            47.8949,
+            46.5959,
+            74.2088,
+            44.6862,
+            47.6296,
+            46.623,
+            45.1471,
+            49.2336,
+            46.7763,
+            42.7736,
+            69.1004,
+            46.6139,
+            47.09,
+            47.0259,
+            46.9279,
+            42.3824,
+            43.0912,
+            63.0769,
+            43.9866,
+            43.865,
+            42.6347,
+            43.7832,
+            47.9061,
+            45.4212,
+            69.549,
+            46.1969,
+            54.2334,
+            44.9423,
+            43.4215,
+            46.3465,
+            47.9315,
+            46.6918,
+            67.6145,
+            49.0573,
+            46.4297,
+            46.5755,
+            46.3349,
+            47.1187,
+            48.253,
+            67.9779
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 49.5727,
+            "p50_ms": 46.6918,
+            "p95_ms": 69.3696
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 148.658,
+              "p50_ms": 148.658,
+              "p95_ms": 148.658
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.008,
+              "p50_ms": 0.008,
+              "p95_ms": 0.008
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 49.4438,
+              "p50_ms": 46.566,
+              "p95_ms": 69.2384
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0023,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0097,
+              "p50_ms": 0.009,
+              "p95_ms": 0.013
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "lexical",
+          "retrieval_method": "lexical_token_overlap",
+          "limit": 20,
+          "artifact_path": "runs/lexical-k20-trial-02.json",
+          "result_fingerprint_sha256": "3e03d219b8b33dd21bf3d82f1ad27fed5818be17ff8a8e21eaa09064f8742ef4",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.4,
+              "recall": 0.2,
+              "precision": 0.023,
+              "ndcg": 0.1444,
+              "mrr": 0.1743,
+              "passed_count": 20,
+              "failed_count": 30,
+              "avg_selected_context_chars": 19766.2,
+              "avg_selected_context_tokens": 4941.88
+            }
+          },
+          "cold_start_latency_ms": 148.9032,
+          "warm_latency_samples_ms": [
+            41.5998,
+            43.2193,
+            43.4956,
+            42.9703,
+            59.8316,
+            41.7967,
+            41.9738,
+            52.0022,
+            45.5895,
+            45.0608,
+            41.4534,
+            63.8437,
+            46.1227,
+            45.477,
+            46.1356,
+            44.7171,
+            44.3794,
+            44.8538,
+            45.0473,
+            69.729,
+            45.3365,
+            45.5716,
+            47.826,
+            46.479,
+            43.1071,
+            48.6696,
+            66.506,
+            46.5198,
+            46.872,
+            45.2475,
+            46.4921,
+            45.4965,
+            44.9008,
+            59.8523,
+            42.5321,
+            44.2235,
+            44.8277,
+            42.723,
+            42.6313,
+            43.6802,
+            66.4095,
+            44.1646,
+            46.9016,
+            44.41,
+            47.2638,
+            45.9219,
+            45.6888,
+            44.0486,
+            62.8894
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 47.6835,
+            "p50_ms": 45.3365,
+            "p95_ms": 65.3832
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 148.782,
+              "p50_ms": 148.782,
+              "p95_ms": 148.782
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.007,
+              "p50_ms": 0.007,
+              "p95_ms": 0.007
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 47.561,
+              "p50_ms": 45.22,
+              "p95_ms": 65.2588
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0021,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0092,
+              "p50_ms": 0.009,
+              "p95_ms": 0.012
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "lexical",
+          "retrieval_method": "lexical_token_overlap",
+          "limit": 20,
+          "artifact_path": "runs/lexical-k20-trial-03.json",
+          "result_fingerprint_sha256": "3e03d219b8b33dd21bf3d82f1ad27fed5818be17ff8a8e21eaa09064f8742ef4",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.4,
+              "recall": 0.2,
+              "precision": 0.023,
+              "ndcg": 0.1444,
+              "mrr": 0.1743,
+              "passed_count": 20,
+              "failed_count": 30,
+              "avg_selected_context_chars": 19766.2,
+              "avg_selected_context_tokens": 4941.88
+            }
+          },
+          "cold_start_latency_ms": 154.4306,
+          "warm_latency_samples_ms": [
+            43.2537,
+            46.0801,
+            45.8524,
+            48.9002,
+            47.5667,
+            53.1487,
+            47.5132,
+            49.9837,
+            46.7157,
+            46.4951,
+            45.193,
+            74.847,
+            47.6043,
+            46.7239,
+            46.9046,
+            46.2604,
+            46.0311,
+            43.6297,
+            57.6795,
+            45.8812,
+            45.903,
+            44.8493,
+            43.8986,
+            46.5542,
+            44.7719,
+            46.0585,
+            67.7279,
+            44.9495,
+            48.1093,
+            47.4725,
+            47.9805,
+            47.5502,
+            46.5375,
+            65.332,
+            44.1854,
+            43.5249,
+            43.9039,
+            43.6382,
+            44.0324,
+            43.6284,
+            60.8937,
+            44.0189,
+            46.4305,
+            46.0248,
+            45.5782,
+            44.9927,
+            50.1361,
+            67.1919,
+            47.0492
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 48.5549,
+            "p50_ms": 46.4305,
+            "p95_ms": 66.4479
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 154.319,
+              "p50_ms": 154.319,
+              "p95_ms": 154.319
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.006,
+              "p50_ms": 0.006,
+              "p95_ms": 0.006
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 48.4226,
+              "p50_ms": 46.29,
+              "p95_ms": 66.3134
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0023,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0101,
+              "p50_ms": 0.01,
+              "p95_ms": 0.013
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0012,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "bm25",
+      "retrieval_method": "bm25",
+      "limit": 5,
+      "ranking_stable": true,
+      "ranking_stability_required": true,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "5": {
+          "cutoff": 5,
+          "hit_rate": {
+            "average": 0.72,
+            "minimum": 0.72,
+            "maximum": 0.72,
+            "spread": 0.0
+          },
+          "recall": {
+            "average": 0.42,
+            "minimum": 0.42,
+            "maximum": 0.42,
+            "spread": 0.0
+          },
+          "precision": {
+            "average": 0.184,
+            "minimum": 0.184,
+            "maximum": 0.184,
+            "spread": 0.0
+          },
+          "ndcg": {
+            "average": 0.4121,
+            "minimum": 0.4121,
+            "maximum": 0.4121,
+            "spread": 0.0
+          },
+          "mrr": {
+            "average": 0.5557,
+            "minimum": 0.5557,
+            "maximum": 0.5557,
+            "spread": 0.0
+          },
+          "passed_count": {
+            "average": 36.0,
+            "minimum": 36.0,
+            "maximum": 36.0,
+            "spread": 0.0
+          },
+          "failed_count": {
+            "average": 14.0,
+            "minimum": 14.0,
+            "maximum": 14.0,
+            "spread": 0.0
+          },
+          "avg_selected_context_chars": {
+            "average": 4511.24,
+            "minimum": 4511.24,
+            "maximum": 4511.24,
+            "spread": 0.0
+          },
+          "avg_selected_context_tokens": {
+            "average": 1128.06,
+            "minimum": 1128.06,
+            "maximum": 1128.06,
+            "spread": 0.0
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 154.0273,
+        "p50_ms": 151.4895,
+        "p95_ms": 163.8622
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 47.2385,
+        "p50_ms": 44.7165,
+        "p95_ms": 64.5898
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "bm25",
+          "retrieval_method": "bm25",
+          "limit": 5,
+          "artifact_path": "runs/bm25-k5-trial-01.json",
+          "result_fingerprint_sha256": "fdcda0c5bbf6075c7b75405bafec073c964df34dac5b5c26e33bace8c8028426",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.72,
+              "recall": 0.42,
+              "precision": 0.184,
+              "ndcg": 0.4121,
+              "mrr": 0.5557,
+              "passed_count": 36,
+              "failed_count": 14,
+              "avg_selected_context_chars": 4511.24,
+              "avg_selected_context_tokens": 1128.06
+            }
+          },
+          "cold_start_latency_ms": 145.3553,
+          "warm_latency_samples_ms": [
+            39.319,
+            43.6077,
+            41.9478,
+            66.6532,
+            42.2569,
+            42.0359,
+            44.0882,
+            45.2463,
+            41.1266,
+            42.1911,
+            42.2862,
+            53.8695,
+            42.3838,
+            45.1238,
+            44.2359,
+            41.9803,
+            40.571,
+            39.5933,
+            55.9287,
+            44.0294,
+            40.9574,
+            44.0725,
+            40.4164,
+            42.8892,
+            43.7497,
+            61.0277,
+            41.8556,
+            45.1133,
+            46.7069,
+            42.4131,
+            45.9856,
+            44.1155,
+            46.1862,
+            75.5512,
+            48.4644,
+            48.3102,
+            48.6142,
+            42.0776,
+            43.2266,
+            44.8965,
+            64.054,
+            43.6775,
+            42.6448,
+            42.0761,
+            42.1853,
+            41.2438,
+            40.1109,
+            58.0774,
+            42.3873
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 45.9502,
+            "p50_ms": 43.6077,
+            "p95_ms": 62.8435
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 145.252,
+              "p50_ms": 145.252,
+              "p95_ms": 145.252
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 45.8458,
+              "p50_ms": 43.497,
+              "p95_ms": 62.7312
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0017,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0055,
+              "p50_ms": 0.005,
+              "p95_ms": 0.007
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0012,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "bm25",
+          "retrieval_method": "bm25",
+          "limit": 5,
+          "artifact_path": "runs/bm25-k5-trial-02.json",
+          "result_fingerprint_sha256": "fdcda0c5bbf6075c7b75405bafec073c964df34dac5b5c26e33bace8c8028426",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.72,
+              "recall": 0.42,
+              "precision": 0.184,
+              "ndcg": 0.4121,
+              "mrr": 0.5557,
+              "passed_count": 36,
+              "failed_count": 14,
+              "avg_selected_context_chars": 4511.24,
+              "avg_selected_context_tokens": 1128.06
+            }
+          },
+          "cold_start_latency_ms": 165.237,
+          "warm_latency_samples_ms": [
+            55.8868,
+            50.0075,
+            45.1339,
+            70.4681,
+            41.2637,
+            42.3194,
+            47.9745,
+            46.6637,
+            46.0076,
+            44.6637,
+            69.9515,
+            41.9823,
+            45.4056,
+            49.5217,
+            44.3487,
+            43.5054,
+            43.6182,
+            47.7905,
+            73.8635,
+            50.6044,
+            45.712,
+            48.0567,
+            45.8901,
+            47.7945,
+            45.2529,
+            76.2351,
+            46.8097,
+            47.8116,
+            48.1533,
+            44.7537,
+            46.3812,
+            45.2786,
+            75.8446,
+            47.0605,
+            47.5924,
+            46.9379,
+            45.5257,
+            42.2399,
+            42.2976,
+            43.5164,
+            58.1313,
+            44.1423,
+            44.9798,
+            44.8407,
+            43.6121,
+            43.8828,
+            44.6412,
+            64.8195,
+            46.4166
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 49.2978,
+            "p50_ms": 46.0076,
+            "p95_ms": 72.5053
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 165.124,
+              "p50_ms": 165.124,
+              "p95_ms": 165.124
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 49.1793,
+              "p50_ms": 45.865,
+              "p95_ms": 72.3906
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0022,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0059,
+              "p50_ms": 0.006,
+              "p95_ms": 0.007
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0014,
+              "p50_ms": 0.001,
+              "p95_ms": 0.0026
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "bm25",
+          "retrieval_method": "bm25",
+          "limit": 5,
+          "artifact_path": "runs/bm25-k5-trial-03.json",
+          "result_fingerprint_sha256": "fdcda0c5bbf6075c7b75405bafec073c964df34dac5b5c26e33bace8c8028426",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.72,
+              "recall": 0.42,
+              "precision": 0.184,
+              "ndcg": 0.4121,
+              "mrr": 0.5557,
+              "passed_count": 36,
+              "failed_count": 14,
+              "avg_selected_context_chars": 4511.24,
+              "avg_selected_context_tokens": 1128.06
+            }
+          },
+          "cold_start_latency_ms": 151.4895,
+          "warm_latency_samples_ms": [
+            42.1667,
+            46.2244,
+            43.8411,
+            62.7924,
+            43.353,
+            42.0928,
+            44.7098,
+            44.8706,
+            42.0882,
+            41.209,
+            61.8768,
+            40.9194,
+            44.8046,
+            51.2154,
+            44.8182,
+            42.069,
+            43.1048,
+            40.2084,
+            56.734,
+            47.0609,
+            46.0117,
+            44.0543,
+            44.7165,
+            45.6439,
+            43.3169,
+            63.6307,
+            43.5741,
+            44.8532,
+            42.8671,
+            40.4184,
+            43.4458,
+            43.2082,
+            64.0152,
+            45.198,
+            45.955,
+            42.9253,
+            43.7292,
+            40.82,
+            44.3527,
+            43.1407,
+            61.446,
+            45.2666,
+            46.6125,
+            44.0138,
+            44.4714,
+            42.3779,
+            42.1657,
+            62.711,
+            45.8059
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 46.4675,
+            "p50_ms": 44.3527,
+            "p95_ms": 62.7598
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 151.368,
+              "p50_ms": 151.368,
+              "p95_ms": 151.368
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 46.3584,
+              "p50_ms": 44.242,
+              "p95_ms": 62.6514
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0022,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0054,
+              "p50_ms": 0.005,
+              "p95_ms": 0.007
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "bm25",
+      "retrieval_method": "bm25",
+      "limit": 10,
+      "ranking_stable": true,
+      "ranking_stability_required": true,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "10": {
+          "cutoff": 10,
+          "hit_rate": {
+            "average": 0.72,
+            "minimum": 0.72,
+            "maximum": 0.72,
+            "spread": 0.0
+          },
+          "recall": {
+            "average": 0.46,
+            "minimum": 0.46,
+            "maximum": 0.46,
+            "spread": 0.0
+          },
+          "precision": {
+            "average": 0.102,
+            "minimum": 0.102,
+            "maximum": 0.102,
+            "spread": 0.0
+          },
+          "ndcg": {
+            "average": 0.4288,
+            "minimum": 0.4288,
+            "maximum": 0.4288,
+            "spread": 0.0
+          },
+          "mrr": {
+            "average": 0.5557,
+            "minimum": 0.5557,
+            "maximum": 0.5557,
+            "spread": 0.0
+          },
+          "passed_count": {
+            "average": 36.0,
+            "minimum": 36.0,
+            "maximum": 36.0,
+            "spread": 0.0
+          },
+          "failed_count": {
+            "average": 14.0,
+            "minimum": 14.0,
+            "maximum": 14.0,
+            "spread": 0.0
+          },
+          "avg_selected_context_chars": {
+            "average": 9174.98,
+            "minimum": 9174.98,
+            "maximum": 9174.98,
+            "spread": 0.0
+          },
+          "avg_selected_context_tokens": {
+            "average": 2294.1,
+            "minimum": 2294.1,
+            "maximum": 2294.1,
+            "spread": 0.0
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 149.0287,
+        "p50_ms": 147.2496,
+        "p95_ms": 155.2512
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 47.2247,
+        "p50_ms": 44.5221,
+        "p95_ms": 67.5694
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "bm25",
+          "retrieval_method": "bm25",
+          "limit": 10,
+          "artifact_path": "runs/bm25-k10-trial-01.json",
+          "result_fingerprint_sha256": "ba58cbca30139985f4e01e7ae87bde3e1c6bf27000c8d83e1e417a398d359605",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.72,
+              "recall": 0.46,
+              "precision": 0.102,
+              "ndcg": 0.4288,
+              "mrr": 0.5557,
+              "passed_count": 36,
+              "failed_count": 14,
+              "avg_selected_context_chars": 9174.98,
+              "avg_selected_context_tokens": 2294.1
+            }
+          },
+          "cold_start_latency_ms": 147.2496,
+          "warm_latency_samples_ms": [
+            41.9916,
+            46.6736,
+            44.8772,
+            66.7988,
+            42.653,
+            39.8931,
+            42.8936,
+            43.4558,
+            40.5171,
+            41.9993,
+            60.2656,
+            41.9627,
+            42.0605,
+            48.5814,
+            46.0528,
+            45.2684,
+            42.7947,
+            41.3617,
+            55.1999,
+            44.9371,
+            41.2116,
+            45.6373,
+            43.4383,
+            42.4667,
+            43.4101,
+            70.1625,
+            44.1626,
+            43.0475,
+            44.5221,
+            41.6413,
+            46.7684,
+            45.9423,
+            65.8715,
+            45.9267,
+            47.051,
+            46.4903,
+            43.7317,
+            39.7755,
+            43.9543,
+            43.9415,
+            42.5463,
+            44.6077,
+            46.2384,
+            42.1705,
+            43.8908,
+            44.7759,
+            42.776,
+            62.4893,
+            45.5147
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 46.2123,
+            "p50_ms": 43.9543,
+            "p95_ms": 64.5186
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 147.129,
+              "p50_ms": 147.129,
+              "p95_ms": 147.129
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.006,
+              "p50_ms": 0.006,
+              "p95_ms": 0.006
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 46.1014,
+              "p50_ms": 43.841,
+              "p95_ms": 64.4088
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0066,
+              "p50_ms": 0.006,
+              "p95_ms": 0.008
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "bm25",
+          "retrieval_method": "bm25",
+          "limit": 10,
+          "artifact_path": "runs/bm25-k10-trial-02.json",
+          "result_fingerprint_sha256": "ba58cbca30139985f4e01e7ae87bde3e1c6bf27000c8d83e1e417a398d359605",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.72,
+              "recall": 0.46,
+              "precision": 0.102,
+              "ndcg": 0.4288,
+              "mrr": 0.5557,
+              "passed_count": 36,
+              "failed_count": 14,
+              "avg_selected_context_chars": 9174.98,
+              "avg_selected_context_tokens": 2294.1
+            }
+          },
+          "cold_start_latency_ms": 143.6961,
+          "warm_latency_samples_ms": [
+            37.067,
+            44.6217,
+            45.1138,
+            64.9227,
+            42.2114,
+            41.7924,
+            44.467,
+            46.6492,
+            40.7028,
+            42.3798,
+            65.0613,
+            44.7246,
+            58.7731,
+            52.4636,
+            45.1483,
+            43.3181,
+            41.4304,
+            57.5518,
+            37.8315,
+            45.9893,
+            41.126,
+            43.5735,
+            41.3624,
+            42.5014,
+            40.9359,
+            62.3942,
+            43.828,
+            42.9723,
+            41.8565,
+            42.1437,
+            47.5791,
+            45.4874,
+            60.7746,
+            45.2336,
+            44.566,
+            47.927,
+            45.8272,
+            40.0297,
+            40.9246,
+            61.9619,
+            45.2266,
+            43.9781,
+            43.5347,
+            43.5907,
+            47.3242,
+            43.3929,
+            42.0297,
+            66.1904,
+            44.7976
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 46.6386,
+            "p50_ms": 44.467,
+            "p95_ms": 63.9113
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 143.594,
+              "p50_ms": 143.594,
+              "p95_ms": 143.594
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.006,
+              "p50_ms": 0.006,
+              "p95_ms": 0.006
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 46.5295,
+              "p50_ms": 44.356,
+              "p95_ms": 63.8082
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.0026
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0064,
+              "p50_ms": 0.006,
+              "p95_ms": 0.008
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0012,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0009,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "bm25",
+          "retrieval_method": "bm25",
+          "limit": 10,
+          "artifact_path": "runs/bm25-k10-trial-03.json",
+          "result_fingerprint_sha256": "ba58cbca30139985f4e01e7ae87bde3e1c6bf27000c8d83e1e417a398d359605",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.72,
+              "recall": 0.46,
+              "precision": 0.102,
+              "ndcg": 0.4288,
+              "mrr": 0.5557,
+              "passed_count": 36,
+              "failed_count": 14,
+              "avg_selected_context_chars": 9174.98,
+              "avg_selected_context_tokens": 2294.1
+            }
+          },
+          "cold_start_latency_ms": 156.1403,
+          "warm_latency_samples_ms": [
+            43.2167,
+            50.0584,
+            47.1457,
+            76.4629,
+            42.6015,
+            43.0272,
+            44.3579,
+            47.8606,
+            43.7887,
+            43.335,
+            64.508,
+            43.2661,
+            44.7456,
+            49.3289,
+            46.1581,
+            45.2305,
+            42.0358,
+            70.2796,
+            40.2089,
+            47.733,
+            43.6084,
+            45.4355,
+            43.3445,
+            45.0957,
+            43.4969,
+            67.8996,
+            42.5593,
+            70.988,
+            42.2098,
+            41.5479,
+            43.2249,
+            42.6189,
+            72.8581,
+            46.9455,
+            47.4744,
+            47.3313,
+            48.758,
+            45.5912,
+            43.5739,
+            68.6735,
+            46.8211,
+            45.8839,
+            45.5217,
+            42.4784,
+            42.8095,
+            43.1273,
+            42.5335,
+            68.8461,
+            45.7394
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 48.8234,
+            "p50_ms": 45.2305,
+            "p95_ms": 70.7046
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 156.022,
+              "p50_ms": 156.022,
+              "p95_ms": 156.022
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.006,
+              "p50_ms": 0.006,
+              "p95_ms": 0.006
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 48.7009,
+              "p50_ms": 45.109,
+              "p95_ms": 70.5266
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0024,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0077,
+              "p50_ms": 0.007,
+              "p95_ms": 0.0124
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "bm25",
+      "retrieval_method": "bm25",
+      "limit": 20,
+      "ranking_stable": true,
+      "ranking_stability_required": true,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "20": {
+          "cutoff": 20,
+          "hit_rate": {
+            "average": 0.8,
+            "minimum": 0.8,
+            "maximum": 0.8,
+            "spread": 0.0
+          },
+          "recall": {
+            "average": 0.52,
+            "minimum": 0.52,
+            "maximum": 0.52,
+            "spread": 0.0
+          },
+          "precision": {
+            "average": 0.058,
+            "minimum": 0.058,
+            "maximum": 0.058,
+            "spread": 0.0
+          },
+          "ndcg": {
+            "average": 0.4484,
+            "minimum": 0.4484,
+            "maximum": 0.4484,
+            "spread": 0.0
+          },
+          "mrr": {
+            "average": 0.5613,
+            "minimum": 0.5613,
+            "maximum": 0.5613,
+            "spread": 0.0
+          },
+          "passed_count": {
+            "average": 40.0,
+            "minimum": 40.0,
+            "maximum": 40.0,
+            "spread": 0.0
+          },
+          "failed_count": {
+            "average": 10.0,
+            "minimum": 10.0,
+            "maximum": 10.0,
+            "spread": 0.0
+          },
+          "avg_selected_context_chars": {
+            "average": 18269.68,
+            "minimum": 18269.68,
+            "maximum": 18269.68,
+            "spread": 0.0
+          },
+          "avg_selected_context_tokens": {
+            "average": 4567.78,
+            "minimum": 4567.78,
+            "maximum": 4567.78,
+            "spread": 0.0
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 149.8857,
+        "p50_ms": 146.1771,
+        "p95_ms": 159.175
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 47.169,
+        "p50_ms": 44.3735,
+        "p95_ms": 68.6892
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "bm25",
+          "retrieval_method": "bm25",
+          "limit": 20,
+          "artifact_path": "runs/bm25-k20-trial-01.json",
+          "result_fingerprint_sha256": "a8e6938e276e72a54a4d8b0647beb10e25fc7424bfc7eff92224ef077751f018",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.8,
+              "recall": 0.52,
+              "precision": 0.058,
+              "ndcg": 0.4484,
+              "mrr": 0.5613,
+              "passed_count": 40,
+              "failed_count": 10,
+              "avg_selected_context_chars": 18269.68,
+              "avg_selected_context_tokens": 4567.78
+            }
+          },
+          "cold_start_latency_ms": 146.1771,
+          "warm_latency_samples_ms": [
+            37.802,
+            43.9147,
+            42.2122,
+            43.6029,
+            42.0154,
+            39.7464,
+            43.9712,
+            44.0014,
+            42.2717,
+            42.9878,
+            68.7446,
+            40.9299,
+            43.9343,
+            51.2508,
+            45.5928,
+            46.1525,
+            45.4319,
+            61.4564,
+            40.1067,
+            48.2232,
+            42.3642,
+            42.6119,
+            42.6299,
+            44.1818,
+            44.6152,
+            66.7106,
+            43.7899,
+            44.3735,
+            42.3023,
+            43.7311,
+            44.0735,
+            41.7675,
+            58.9617,
+            45.8884,
+            45.691,
+            44.058,
+            44.126,
+            41.6336,
+            43.3904,
+            75.2605,
+            43.2639,
+            43.4583,
+            45.592,
+            42.5371,
+            44.2588,
+            43.1605,
+            60.3061,
+            44.143,
+            44.3789
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 46.2777,
+            "p50_ms": 43.9712,
+            "p95_ms": 64.6089
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 146.056,
+              "p50_ms": 146.056,
+              "p95_ms": 146.056
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.007,
+              "p50_ms": 0.007,
+              "p95_ms": 0.007
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 46.1524,
+              "p50_ms": 43.859,
+              "p95_ms": 64.4802
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0023,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0103,
+              "p50_ms": 0.01,
+              "p95_ms": 0.0132
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0012,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "bm25",
+          "retrieval_method": "bm25",
+          "limit": 20,
+          "artifact_path": "runs/bm25-k20-trial-02.json",
+          "result_fingerprint_sha256": "a8e6938e276e72a54a4d8b0647beb10e25fc7424bfc7eff92224ef077751f018",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.8,
+              "recall": 0.52,
+              "precision": 0.058,
+              "ndcg": 0.4484,
+              "mrr": 0.5613,
+              "passed_count": 40,
+              "failed_count": 10,
+              "avg_selected_context_chars": 18269.68,
+              "avg_selected_context_tokens": 4567.78
+            }
+          },
+          "cold_start_latency_ms": 160.6192,
+          "warm_latency_samples_ms": [
+            44.3511,
+            47.7642,
+            71.731,
+            47.324,
+            46.2785,
+            45.4423,
+            47.8072,
+            47.3358,
+            44.9711,
+            45.6255,
+            70.8398,
+            41.71,
+            44.9368,
+            46.7094,
+            48.0474,
+            41.3545,
+            39.9516,
+            60.8891,
+            36.9443,
+            47.4679,
+            43.394,
+            45.096,
+            43.4215,
+            45.9205,
+            43.8357,
+            83.3513,
+            40.7567,
+            42.0944,
+            42.5348,
+            44.3644,
+            45.5476,
+            43.2036,
+            60.671,
+            45.7345,
+            45.3271,
+            45.8789,
+            46.4605,
+            42.7998,
+            44.4636,
+            70.1068,
+            45.2689,
+            43.9607,
+            45.3584,
+            43.2989,
+            46.7401,
+            44.4487,
+            66.6523,
+            43.8012,
+            49.1818
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 48.1868,
+            "p50_ms": 45.3584,
+            "p95_ms": 70.5466
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 160.494,
+              "p50_ms": 160.494,
+              "p95_ms": 160.494
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.01,
+              "p50_ms": 0.01,
+              "p95_ms": 0.01
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 48.0536,
+              "p50_ms": 45.239,
+              "p95_ms": 70.4136
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0024,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0112,
+              "p50_ms": 0.011,
+              "p95_ms": 0.015
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0013,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "bm25",
+          "retrieval_method": "bm25",
+          "limit": 20,
+          "artifact_path": "runs/bm25-k20-trial-03.json",
+          "result_fingerprint_sha256": "a8e6938e276e72a54a4d8b0647beb10e25fc7424bfc7eff92224ef077751f018",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.8,
+              "recall": 0.52,
+              "precision": 0.058,
+              "ndcg": 0.4484,
+              "mrr": 0.5613,
+              "passed_count": 40,
+              "failed_count": 10,
+              "avg_selected_context_chars": 18269.68,
+              "avg_selected_context_tokens": 4567.78
+            }
+          },
+          "cold_start_latency_ms": 142.8607,
+          "warm_latency_samples_ms": [
+            39.6656,
+            43.3117,
+            58.7708,
+            42.8781,
+            42.4336,
+            43.0376,
+            46.8924,
+            46.1668,
+            42.2,
+            44.2464,
+            68.56,
+            42.2741,
+            46.3317,
+            49.7148,
+            45.7383,
+            42.9886,
+            41.6849,
+            58.7831,
+            37.0508,
+            43.7343,
+            41.0241,
+            42.5266,
+            41.1214,
+            45.1881,
+            44.6271,
+            44.9812,
+            43.4191,
+            49.3632,
+            47.0943,
+            43.9532,
+            46.6134,
+            45.5041,
+            68.7982,
+            49.2193,
+            46.064,
+            45.4411,
+            49.3727,
+            44.3716,
+            43.5249,
+            64.0929,
+            45.3632,
+            45.7989,
+            42.1334,
+            40.8741,
+            44.0103,
+            41.5705,
+            83.1556,
+            45.2521,
+            44.1603
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 47.0425,
+            "p50_ms": 44.6271,
+            "p95_ms": 66.7732
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 142.759,
+              "p50_ms": 142.759,
+              "p95_ms": 142.759
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.007,
+              "p50_ms": 0.007,
+              "p95_ms": 0.007
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 46.9119,
+              "p50_ms": 44.476,
+              "p95_ms": 66.6514
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0023,
+              "p50_ms": 0.002,
+              "p95_ms": 0.0036
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0108,
+              "p50_ms": 0.011,
+              "p95_ms": 0.0146
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0012,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 0,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "semantic",
+      "retrieval_method": "semantic_cosine_similarity",
+      "limit": 5,
+      "ranking_stable": false,
+      "ranking_stability_required": false,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "5": {
+          "cutoff": 5,
+          "hit_rate": {
+            "average": 0.26,
+            "minimum": 0.26,
+            "maximum": 0.26,
+            "spread": 0.0
+          },
+          "recall": {
+            "average": 0.1567,
+            "minimum": 0.1567,
+            "maximum": 0.1567,
+            "spread": 0.0
+          },
+          "precision": {
+            "average": 0.052,
+            "minimum": 0.052,
+            "maximum": 0.052,
+            "spread": 0.0
+          },
+          "ndcg": {
+            "average": 0.1533,
+            "minimum": 0.1506,
+            "maximum": 0.1565,
+            "spread": 0.0059
+          },
+          "mrr": {
+            "average": 0.1987,
+            "minimum": 0.193,
+            "maximum": 0.2057,
+            "spread": 0.0127
+          },
+          "passed_count": {
+            "average": 13.0,
+            "minimum": 13.0,
+            "maximum": 13.0,
+            "spread": 0.0
+          },
+          "failed_count": {
+            "average": 37.0,
+            "minimum": 37.0,
+            "maximum": 37.0,
+            "spread": 0.0
+          },
+          "avg_selected_context_chars": {
+            "average": 1267.2733,
+            "minimum": 1259.78,
+            "maximum": 1282.1,
+            "spread": 22.32
+          },
+          "avg_selected_context_tokens": {
+            "average": 317.22,
+            "minimum": 315.34,
+            "maximum": 320.92,
+            "spread": 5.58
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 5203.4468,
+        "p50_ms": 5193.7623,
+        "p95_ms": 5488.4505
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 2007.7209,
+        "p50_ms": 1730.2739,
+        "p95_ms": 3208.2257
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "semantic",
+          "retrieval_method": "semantic_cosine_similarity",
+          "limit": 5,
+          "artifact_path": "runs/semantic-k5-trial-01.json",
+          "result_fingerprint_sha256": "18404dcf24fe145cc4242fb5b6ea138c8aa0bf06aefa20239265b0898f69e2bc",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.26,
+              "recall": 0.1567,
+              "precision": 0.052,
+              "ndcg": 0.1528,
+              "mrr": 0.1973,
+              "passed_count": 13,
+              "failed_count": 37,
+              "avg_selected_context_chars": 1259.94,
+              "avg_selected_context_tokens": 315.4
+            }
+          },
+          "cold_start_latency_ms": 5193.7623,
+          "warm_latency_samples_ms": [
+            1451.4788,
+            1470.8838,
+            1424.2482,
+            1407.8747,
+            1932.0672,
+            2827.268,
+            2604.3816,
+            1538.6549,
+            1716.1521,
+            1806.9579,
+            3133.0459,
+            1418.6016,
+            1633.3074,
+            1722.5498,
+            1606.8313,
+            1522.8401,
+            1736.0888,
+            1839.4741,
+            2474.8534,
+            1700.5372,
+            2182.3255,
+            2682.5872,
+            2413.964,
+            1803.7171,
+            1412.4266,
+            1417.9246,
+            2284.0367,
+            1602.4237,
+            1546.8153,
+            1455.1601,
+            1809.7818,
+            1450.6709,
+            1696.9601,
+            2442.1049,
+            1866.233,
+            2628.6968,
+            1699.1421,
+            1802.3413,
+            2868.5539,
+            1490.4481,
+            1908.3401,
+            1524.2027,
+            1666.8255,
+            2101.6108,
+            1432.2953,
+            2251.8744,
+            3372.5231,
+            1843.7246,
+            2719.4214
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1925.4128,
+            "p50_ms": 1736.0888,
+            "p95_ms": 2852.0395
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 5193.616,
+              "p50_ms": 5193.616,
+              "p95_ms": 5193.616
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1925.3118,
+              "p50_ms": 1735.98,
+              "p95_ms": 2851.94
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0019,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0046,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0008,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "semantic",
+          "retrieval_method": "semantic_cosine_similarity",
+          "limit": 5,
+          "artifact_path": "runs/semantic-k5-trial-02.json",
+          "result_fingerprint_sha256": "a23294ab31800a5f17d8e259c1dc957086d7ed8af0799c683501a8690d4c208e",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.26,
+              "recall": 0.1567,
+              "precision": 0.052,
+              "ndcg": 0.1506,
+              "mrr": 0.193,
+              "passed_count": 13,
+              "failed_count": 37,
+              "avg_selected_context_chars": 1259.78,
+              "avg_selected_context_tokens": 315.34
+            }
+          },
+          "cold_start_latency_ms": 4895.3845,
+          "warm_latency_samples_ms": [
+            3559.6139,
+            1464.933,
+            1730.2739,
+            1497.4896,
+            2435.7761,
+            2338.5553,
+            1757.375,
+            1493.7309,
+            1549.4352,
+            2691.4408,
+            2498.099,
+            1636.2109,
+            1427.8849,
+            1403.2475,
+            1562.5029,
+            2745.0406,
+            1543.3877,
+            2016.2232,
+            1551.187,
+            1441.8341,
+            1510.8268,
+            1772.878,
+            2443.3871,
+            1448.0538,
+            1442.507,
+            1616.2073,
+            1688.8321,
+            1534.6487,
+            1767.8913,
+            1595.9411,
+            1420.1646,
+            2481.6434,
+            1574.1101,
+            1422.4752,
+            1629.414,
+            1697.1612,
+            1536.9295,
+            2603.2939,
+            1693.1906,
+            1651.9791,
+            1873.2056,
+            1714.7822,
+            1918.013,
+            1829.4302,
+            2900.3247,
+            2772.8266,
+            1700.2859,
+            1805.5112,
+            1963.3697
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1864.3577,
+            "p50_ms": 1693.1906,
+            "p95_ms": 2761.7122
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4895.268,
+              "p50_ms": 4895.268,
+              "p95_ms": 4895.268
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1864.2474,
+              "p50_ms": 1693.096,
+              "p95_ms": 2761.4786
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0021,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0047,
+              "p50_ms": 0.004,
+              "p95_ms": 0.006
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.0016
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "semantic",
+          "retrieval_method": "semantic_cosine_similarity",
+          "limit": 5,
+          "artifact_path": "runs/semantic-k5-trial-03.json",
+          "result_fingerprint_sha256": "97e77b5418abc3d96b3bcfb819cb28da9a0236a350412422847544d07025e0c3",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.26,
+              "recall": 0.1567,
+              "precision": 0.052,
+              "ndcg": 0.1565,
+              "mrr": 0.2057,
+              "passed_count": 13,
+              "failed_count": 37,
+              "avg_selected_context_chars": 1282.1,
+              "avg_selected_context_tokens": 320.92
+            }
+          },
+          "cold_start_latency_ms": 5521.1936,
+          "warm_latency_samples_ms": [
+            2720.6949,
+            2839.1325,
+            3680.7864,
+            3139.2898,
+            2802.521,
+            3021.2136,
+            2847.8159,
+            4592.0982,
+            3593.2826,
+            3237.7697,
+            3310.4485,
+            2971.7349,
+            2553.9268,
+            2762.76,
+            1773.2409,
+            1563.3825,
+            1588.2911,
+            1629.486,
+            3404.0082,
+            1405.9218,
+            1910.2304,
+            2635.22,
+            2616.5325,
+            2831.1521,
+            1871.0114,
+            1488.0378,
+            2541.8591,
+            1754.898,
+            1420.5046,
+            2994.6266,
+            1516.2839,
+            1484.5618,
+            1424.9639,
+            1633.0056,
+            1474.9552,
+            2456.0932,
+            1764.979,
+            2475.7107,
+            1643.5872,
+            1496.1667,
+            1790.9697,
+            1561.6843,
+            1620.6905,
+            1575.7979,
+            1700.6805,
+            1636.0791,
+            1573.89,
+            1527.9951,
+            1576.2432
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 2233.3921,
+            "p50_ms": 1790.9697,
+            "p95_ms": 3517.5728
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 5520.984,
+              "p50_ms": 5520.984,
+              "p95_ms": 5520.984
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.009,
+              "p50_ms": 0.009,
+              "p95_ms": 0.009
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 2233.2682,
+              "p50_ms": 1790.878,
+              "p95_ms": 3517.4298
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0027,
+              "p50_ms": 0.002,
+              "p95_ms": 0.004
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0062,
+              "p50_ms": 0.005,
+              "p95_ms": 0.0082
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0013,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0009,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "semantic",
+      "retrieval_method": "semantic_cosine_similarity",
+      "limit": 10,
+      "ranking_stable": false,
+      "ranking_stability_required": false,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "10": {
+          "cutoff": 10,
+          "hit_rate": {
+            "average": 0.3067,
+            "minimum": 0.3,
+            "maximum": 0.32,
+            "spread": 0.02
+          },
+          "recall": {
+            "average": 0.1722,
+            "minimum": 0.17,
+            "maximum": 0.1767,
+            "spread": 0.0067
+          },
+          "precision": {
+            "average": 0.0307,
+            "minimum": 0.03,
+            "maximum": 0.032,
+            "spread": 0.002
+          },
+          "ndcg": {
+            "average": 0.1602,
+            "minimum": 0.1571,
+            "maximum": 0.1654,
+            "spread": 0.0083
+          },
+          "mrr": {
+            "average": 0.2045,
+            "minimum": 0.1992,
+            "maximum": 0.2132,
+            "spread": 0.014
+          },
+          "passed_count": {
+            "average": 15.3333,
+            "minimum": 15.0,
+            "maximum": 16.0,
+            "spread": 1.0
+          },
+          "failed_count": {
+            "average": 34.6667,
+            "minimum": 34.0,
+            "maximum": 35.0,
+            "spread": 1.0
+          },
+          "avg_selected_context_chars": {
+            "average": 2387.7067,
+            "minimum": 2349.62,
+            "maximum": 2415.84,
+            "spread": 66.22
+          },
+          "avg_selected_context_tokens": {
+            "average": 597.2667,
+            "minimum": 587.74,
+            "maximum": 604.3,
+            "spread": 16.56
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 4626.1687,
+        "p50_ms": 4533.4396,
+        "p95_ms": 4814.5357
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 1546.1947,
+        "p50_ms": 1505.1944,
+        "p95_ms": 1698.5046
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "semantic",
+          "retrieval_method": "semantic_cosine_similarity",
+          "limit": 10,
+          "artifact_path": "runs/semantic-k10-trial-01.json",
+          "result_fingerprint_sha256": "17c3b877ccf3f686f1e276f2a657706f1608ca0125ed5043b086c70ec6e6cf22",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.32,
+              "recall": 0.1767,
+              "precision": 0.032,
+              "ndcg": 0.1654,
+              "mrr": 0.2132,
+              "passed_count": 16,
+              "failed_count": 34,
+              "avg_selected_context_chars": 2397.66,
+              "avg_selected_context_tokens": 599.76
+            }
+          },
+          "cold_start_latency_ms": 4845.7686,
+          "warm_latency_samples_ms": [
+            1666.6873,
+            1579.957,
+            1563.0459,
+            1586.8519,
+            1617.6974,
+            1564.2228,
+            1638.388,
+            1577.0425,
+            1610.1965,
+            1581.3575,
+            1635.956,
+            1607.327,
+            1635.333,
+            1815.7793,
+            1605.9697,
+            1575.6055,
+            1530.1187,
+            1578.2403,
+            1587.2716,
+            1631.1772,
+            1613.8465,
+            1563.4817,
+            1562.3573,
+            1628.2212,
+            1586.1344,
+            1555.4704,
+            1617.6469,
+            1599.8579,
+            1472.1094,
+            1493.2679,
+            1463.6877,
+            1497.7026,
+            1690.8326,
+            1918.4305,
+            1640.3519,
+            1489.6323,
+            1474.1189,
+            2536.7526,
+            1425.0557,
+            1985.068,
+            1480.7249,
+            1556.4935,
+            1597.4916,
+            1505.1873,
+            1411.6208,
+            1423.5534,
+            1470.1616,
+            1487.7828,
+            1504.9001
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1600.8197,
+            "p50_ms": 1579.957,
+            "p95_ms": 1877.37
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4845.648,
+              "p50_ms": 4845.648,
+              "p95_ms": 4845.648
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.007,
+              "p50_ms": 0.007,
+              "p95_ms": 0.007
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1600.7097,
+              "p50_ms": 1579.856,
+              "p95_ms": 1877.241
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0021,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0061,
+              "p50_ms": 0.006,
+              "p95_ms": 0.0076
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0009,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "semantic",
+          "retrieval_method": "semantic_cosine_similarity",
+          "limit": 10,
+          "artifact_path": "runs/semantic-k10-trial-02.json",
+          "result_fingerprint_sha256": "c5d9d82bf05b004d204f2472bb5c03d4033d41a4d9d19fce17074d44c14f6154",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.3,
+              "recall": 0.17,
+              "precision": 0.03,
+              "ndcg": 0.1581,
+              "mrr": 0.201,
+              "passed_count": 15,
+              "failed_count": 35,
+              "avg_selected_context_chars": 2415.84,
+              "avg_selected_context_tokens": 604.3
+            }
+          },
+          "cold_start_latency_ms": 4533.4396,
+          "warm_latency_samples_ms": [
+            1637.7773,
+            1562.8081,
+            1484.8688,
+            1533.1215,
+            1490.5985,
+            1505.9445,
+            1435.4723,
+            1506.5088,
+            1484.1183,
+            1677.6879,
+            1502.0163,
+            1505.1944,
+            1574.8709,
+            1671.0382,
+            1565.3826,
+            1620.9511,
+            1526.1042,
+            1479.289,
+            1481.5852,
+            1527.3952,
+            1462.9847,
+            1495.1625,
+            1701.7926,
+            1496.149,
+            1453.9179,
+            1537.4665,
+            1563.2442,
+            1517.4627,
+            1408.0662,
+            1557.5682,
+            1445.4829,
+            2178.4065,
+            1475.1809,
+            1487.0131,
+            1419.5776,
+            1568.2594,
+            1499.5593,
+            1460.2773,
+            1492.5807,
+            1509.4878,
+            1681.1381,
+            1547.0846,
+            1473.8673,
+            1590.8593,
+            1433.2847,
+            1438.2692,
+            1451.8993,
+            1460.4507,
+            1532.7238
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1532.8969,
+            "p50_ms": 1505.1944,
+            "p95_ms": 1679.758
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4533.329,
+              "p50_ms": 4533.329,
+              "p95_ms": 4533.329
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.006,
+              "p50_ms": 0.006,
+              "p95_ms": 0.006
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1532.7863,
+              "p50_ms": 1505.078,
+              "p95_ms": 1679.647
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0022,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0064,
+              "p50_ms": 0.006,
+              "p95_ms": 0.0076
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0008,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "semantic",
+          "retrieval_method": "semantic_cosine_similarity",
+          "limit": 10,
+          "artifact_path": "runs/semantic-k10-trial-03.json",
+          "result_fingerprint_sha256": "9358da4631672b1339d952a0e4cf5e5a89937c57bc34cffa40efefda8e7124fe",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.3,
+              "recall": 0.17,
+              "precision": 0.03,
+              "ndcg": 0.1571,
+              "mrr": 0.1992,
+              "passed_count": 15,
+              "failed_count": 35,
+              "avg_selected_context_chars": 2349.62,
+              "avg_selected_context_tokens": 587.74
+            }
+          },
+          "cold_start_latency_ms": 4499.2979,
+          "warm_latency_samples_ms": [
+            1449.7209,
+            1443.3618,
+            1620.9378,
+            1674.596,
+            2351.1233,
+            1550.152,
+            1537.2507,
+            1446.5904,
+            1464.9414,
+            1477.1464,
+            1571.9156,
+            1470.8791,
+            1424.428,
+            1484.9133,
+            1408.3255,
+            1544.2429,
+            1469.58,
+            1552.6505,
+            1442.7873,
+            1405.6507,
+            1494.9926,
+            1426.491,
+            1416.4122,
+            1487.542,
+            1526.3749,
+            1430.1607,
+            1492.1542,
+            1435.8951,
+            1452.5878,
+            1550.6262,
+            1450.1264,
+            1458.807,
+            1427.526,
+            1418.0657,
+            1441.7332,
+            1431.2167,
+            1486.6139,
+            1473.9796,
+            1706.7898,
+            1430.485,
+            1498.8569,
+            1446.0856,
+            1450.2731,
+            1652.0075,
+            1423.7435,
+            1546.856,
+            1529.8768,
+            1475.1668,
+            1485.8687
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1504.8675,
+            "p50_ms": 1470.8791,
+            "p95_ms": 1665.5606
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4499.189,
+              "p50_ms": 4499.189,
+              "p95_ms": 4499.189
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1504.7637,
+              "p50_ms": 1470.777,
+              "p95_ms": 1665.4492
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0058,
+              "p50_ms": 0.006,
+              "p95_ms": 0.007
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0009,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "semantic",
+      "retrieval_method": "semantic_cosine_similarity",
+      "limit": 20,
+      "ranking_stable": false,
+      "ranking_stability_required": false,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "20": {
+          "cutoff": 20,
+          "hit_rate": {
+            "average": 0.38,
+            "minimum": 0.38,
+            "maximum": 0.38,
+            "spread": 0.0
+          },
+          "recall": {
+            "average": 0.22,
+            "minimum": 0.22,
+            "maximum": 0.22,
+            "spread": 0.0
+          },
+          "precision": {
+            "average": 0.021,
+            "minimum": 0.021,
+            "maximum": 0.021,
+            "spread": 0.0
+          },
+          "ndcg": {
+            "average": 0.1766,
+            "minimum": 0.1745,
+            "maximum": 0.1802,
+            "spread": 0.0057
+          },
+          "mrr": {
+            "average": 0.2103,
+            "minimum": 0.206,
+            "maximum": 0.2181,
+            "spread": 0.0121
+          },
+          "passed_count": {
+            "average": 19.0,
+            "minimum": 19.0,
+            "maximum": 19.0,
+            "spread": 0.0
+          },
+          "failed_count": {
+            "average": 31.0,
+            "minimum": 31.0,
+            "maximum": 31.0,
+            "spread": 0.0
+          },
+          "avg_selected_context_chars": {
+            "average": 5854.24,
+            "minimum": 5789.76,
+            "maximum": 5928.7,
+            "spread": 138.94
+          },
+          "avg_selected_context_tokens": {
+            "average": 1463.9533,
+            "minimum": 1447.86,
+            "maximum": 1482.52,
+            "spread": 34.66
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 4552.8262,
+        "p50_ms": 4530.3886,
+        "p95_ms": 4636.6055
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 1511.3457,
+        "p50_ms": 1498.2277,
+        "p95_ms": 1660.8513
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "semantic",
+          "retrieval_method": "semantic_cosine_similarity",
+          "limit": 20,
+          "artifact_path": "runs/semantic-k20-trial-01.json",
+          "result_fingerprint_sha256": "edf4911376e7ea1128d985046ef2e48c4a8af2747960734c3f0ba0670c2569a1",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.38,
+              "recall": 0.22,
+              "precision": 0.021,
+              "ndcg": 0.1745,
+              "mrr": 0.206,
+              "passed_count": 19,
+              "failed_count": 31,
+              "avg_selected_context_chars": 5844.26,
+              "avg_selected_context_tokens": 1461.48
+            }
+          },
+          "cold_start_latency_ms": 4530.3886,
+          "warm_latency_samples_ms": [
+            1454.0347,
+            1509.392,
+            1498.8543,
+            1460.929,
+            1483.1658,
+            1673.6472,
+            1508.7339,
+            1465.2401,
+            1452.2936,
+            1439.4958,
+            1524.0349,
+            1427.1266,
+            1508.1974,
+            1429.0806,
+            1476.9948,
+            1476.613,
+            1429.8071,
+            1426.9037,
+            1399.2259,
+            1635.4043,
+            1467.8714,
+            1435.1896,
+            1553.0942,
+            1453.0941,
+            1414.8194,
+            1479.0214,
+            1563.6575,
+            1453.1697,
+            1439.8896,
+            1477.2315,
+            1510.8193,
+            1433.6057,
+            1444.14,
+            1655.7195,
+            1675.2319,
+            1514.5156,
+            1528.8191,
+            1537.2096,
+            1533.162,
+            1545.637,
+            1550.6228,
+            1430.8864,
+            1447.8044,
+            1567.4789,
+            1501.3296,
+            1564.2288,
+            1461.8091,
+            1672.3303,
+            1457.148
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1498.9533,
+            "p50_ms": 1477.2315,
+            "p95_ms": 1665.686
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4530.261,
+              "p50_ms": 4530.261,
+              "p95_ms": 4530.261
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.01,
+              "p50_ms": 0.01,
+              "p95_ms": 0.01
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1498.8349,
+              "p50_ms": 1477.103,
+              "p95_ms": 1665.5732
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0024,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0093,
+              "p50_ms": 0.009,
+              "p95_ms": 0.011
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0009,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "semantic",
+          "retrieval_method": "semantic_cosine_similarity",
+          "limit": 20,
+          "artifact_path": "runs/semantic-k20-trial-02.json",
+          "result_fingerprint_sha256": "2698c4471cf6b07f434263300e3dc8577974037eb4a7c9f904698820a71498f1",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.38,
+              "recall": 0.22,
+              "precision": 0.021,
+              "ndcg": 0.175,
+              "mrr": 0.2069,
+              "passed_count": 19,
+              "failed_count": 31,
+              "avg_selected_context_chars": 5789.76,
+              "avg_selected_context_tokens": 1447.86
+            }
+          },
+          "cold_start_latency_ms": 4479.6826,
+          "warm_latency_samples_ms": [
+            1446.8135,
+            1562.7924,
+            1584.5645,
+            1444.7781,
+            1643.7943,
+            1495.4127,
+            1442.1503,
+            1436.8025,
+            1482.4874,
+            1605.8731,
+            1523.8154,
+            1447.5545,
+            1458.0266,
+            1490.2398,
+            1599.1983,
+            1467.9584,
+            1530.1679,
+            1489.2458,
+            1445.6657,
+            1498.2277,
+            1515.9972,
+            1561.4227,
+            1588.6709,
+            1635.1314,
+            1530.0855,
+            1467.8772,
+            1502.6884,
+            1726.1971,
+            1475.1926,
+            1469.3916,
+            1483.102,
+            1590.3926,
+            1477.6131,
+            1469.4742,
+            1466.9794,
+            1488.8412,
+            1455.9656,
+            1615.7956,
+            1443.3982,
+            1446.8765,
+            1499.6506,
+            1442.4827,
+            1546.5181,
+            1543.5697,
+            1492.9608,
+            1504.6236,
+            1601.624,
+            1588.2907,
+            1436.3888
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1513.5259,
+            "p50_ms": 1492.9608,
+            "p95_ms": 1627.3971
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4479.551,
+              "p50_ms": 4479.551,
+              "p95_ms": 4479.551
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.011,
+              "p50_ms": 0.011,
+              "p95_ms": 0.011
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1513.3966,
+              "p50_ms": 1492.771,
+              "p95_ms": 1627.2806
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0027,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0102,
+              "p50_ms": 0.01,
+              "p95_ms": 0.012
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0009,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "semantic",
+          "retrieval_method": "semantic_cosine_similarity",
+          "limit": 20,
+          "artifact_path": "runs/semantic-k20-trial-03.json",
+          "result_fingerprint_sha256": "d75581e9d2611b29540edd786121884c199d99f928c0cfc9ae6a7aa71f2ef81b",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.38,
+              "recall": 0.22,
+              "precision": 0.021,
+              "ndcg": 0.1802,
+              "mrr": 0.2181,
+              "passed_count": 19,
+              "failed_count": 31,
+              "avg_selected_context_chars": 5928.7,
+              "avg_selected_context_tokens": 1482.52
+            }
+          },
+          "cold_start_latency_ms": 4648.4074,
+          "warm_latency_samples_ms": [
+            1427.295,
+            1518.1077,
+            1481.6267,
+            1502.5937,
+            1450.5567,
+            1390.1922,
+            1611.6069,
+            1617.0447,
+            1587.0289,
+            1610.7597,
+            1663.0506,
+            1692.7044,
+            1608.2907,
+            1696.3432,
+            1505.9056,
+            1511.3024,
+            1704.5952,
+            1522.9799,
+            1541.8251,
+            1580.6532,
+            1654.1176,
+            1541.1854,
+            1542.5993,
+            1648.2454,
+            1458.0806,
+            1600.8441,
+            1557.8528,
+            1457.8004,
+            1459.0511,
+            1402.3011,
+            1597.8669,
+            1421.852,
+            1456.9419,
+            1418.0102,
+            1409.1871,
+            1447.2153,
+            1425.2664,
+            1530.4269,
+            1431.3292,
+            1538.5566,
+            1416.2045,
+            1441.8247,
+            1447.6642,
+            1435.2887,
+            1491.4647,
+            1527.325,
+            1523.2651,
+            1524.5652,
+            1525.5417
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1521.5579,
+            "p50_ms": 1522.9799,
+            "p95_ms": 1680.8429
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4648.279,
+              "p50_ms": 4648.279,
+              "p95_ms": 4648.279
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.004,
+              "p50_ms": 0.004,
+              "p95_ms": 0.004
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.009,
+              "p50_ms": 0.009,
+              "p95_ms": 0.009
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1521.4325,
+              "p50_ms": 1522.864,
+              "p95_ms": 1680.6772
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0023,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0104,
+              "p50_ms": 0.01,
+              "p95_ms": 0.013
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0009,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 49,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "hybrid",
+      "retrieval_method": "hybrid_rrf",
+      "limit": 5,
+      "ranking_stable": false,
+      "ranking_stability_required": false,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "5": {
+          "cutoff": 5,
+          "hit_rate": {
+            "average": 0.64,
+            "minimum": 0.62,
+            "maximum": 0.66,
+            "spread": 0.04
+          },
+          "recall": {
+            "average": 0.3589,
+            "minimum": 0.35,
+            "maximum": 0.3667,
+            "spread": 0.0167
+          },
+          "precision": {
+            "average": 0.152,
+            "minimum": 0.148,
+            "maximum": 0.156,
+            "spread": 0.008
+          },
+          "ndcg": {
+            "average": 0.3292,
+            "minimum": 0.3253,
+            "maximum": 0.3343,
+            "spread": 0.009
+          },
+          "mrr": {
+            "average": 0.4348,
+            "minimum": 0.4287,
+            "maximum": 0.4427,
+            "spread": 0.014
+          },
+          "passed_count": {
+            "average": 32.0,
+            "minimum": 31.0,
+            "maximum": 33.0,
+            "spread": 2.0
+          },
+          "failed_count": {
+            "average": 18.0,
+            "minimum": 17.0,
+            "maximum": 19.0,
+            "spread": 2.0
+          },
+          "avg_selected_context_chars": {
+            "average": 2896.7533,
+            "minimum": 2862.38,
+            "maximum": 2924.14,
+            "spread": 61.76
+          },
+          "avg_selected_context_tokens": {
+            "average": 724.5,
+            "minimum": 715.9,
+            "maximum": 731.36,
+            "spread": 15.46
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 4766.378,
+        "p50_ms": 4773.2438,
+        "p95_ms": 5070.6988
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 1625.9119,
+        "p50_ms": 1610.6164,
+        "p95_ms": 1827.6952
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "hybrid",
+          "retrieval_method": "hybrid_rrf",
+          "limit": 5,
+          "artifact_path": "runs/hybrid-k5-trial-01.json",
+          "result_fingerprint_sha256": "45a98e5bc7de1ab21915f84aa65d020590978ad33e7b0e11d7279dbc55d75bb3",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.66,
+              "recall": 0.3667,
+              "precision": 0.156,
+              "ndcg": 0.3343,
+              "mrr": 0.4427,
+              "passed_count": 33,
+              "failed_count": 17,
+              "avg_selected_context_chars": 2924.14,
+              "avg_selected_context_tokens": 731.36
+            }
+          },
+          "cold_start_latency_ms": 4422.1408,
+          "warm_latency_samples_ms": [
+            1490.2928,
+            1713.5773,
+            1654.2404,
+            1534.7518,
+            1561.221,
+            1422.7562,
+            1610.6164,
+            1546.124,
+            1575.9402,
+            1508.1858,
+            1587.9914,
+            1497.712,
+            1504.5232,
+            1579.1179,
+            1670.3598,
+            1601.252,
+            1547.9122,
+            1587.7222,
+            1491.5432,
+            1497.9481,
+            1600.7481,
+            1741.7658,
+            1603.3099,
+            1689.6497,
+            1577.4106,
+            1564.2023,
+            1588.6073,
+            1749.3731,
+            1638.1444,
+            1574.5124,
+            1515.7859,
+            1570.6426,
+            1611.8481,
+            1542.9231,
+            1535.6942,
+            1636.0581,
+            1487.6924,
+            1514.6992,
+            1533.6149,
+            1606.0047,
+            1609.0901,
+            1597.8585,
+            1577.0212,
+            1617.7618,
+            1561.2496,
+            1532.1028,
+            1582.6584,
+            1607.062,
+            1549.4992
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1577.5669,
+            "p50_ms": 1577.0212,
+            "p95_ms": 1704.0063
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4422.043,
+              "p50_ms": 4422.043,
+              "p95_ms": 4422.043
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.0,
+              "p50_ms": 0.0,
+              "p95_ms": 0.0
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1577.4751,
+              "p50_ms": 1576.935,
+              "p95_ms": 1703.9156
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0008,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 99,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "hybrid",
+          "retrieval_method": "hybrid_rrf",
+          "limit": 5,
+          "artifact_path": "runs/hybrid-k5-trial-02.json",
+          "result_fingerprint_sha256": "c204e7f6ffb01642fc2432d01858b6d8ffa95bd3e3fdba6615d7f0a43295b88a",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.62,
+              "recall": 0.35,
+              "precision": 0.148,
+              "ndcg": 0.3253,
+              "mrr": 0.433,
+              "passed_count": 31,
+              "failed_count": 19,
+              "avg_selected_context_chars": 2903.74,
+              "avg_selected_context_tokens": 726.24
+            }
+          },
+          "cold_start_latency_ms": 4773.2438,
+          "warm_latency_samples_ms": [
+            1457.6587,
+            1700.271,
+            1587.4235,
+            1603.6491,
+            1619.9447,
+            1670.2925,
+            1673.8225,
+            1685.2934,
+            1663.3687,
+            1665.2441,
+            1855.5631,
+            1694.5541,
+            1797.1386,
+            1788.1194,
+            1728.3982,
+            1924.6665,
+            1775.6862,
+            1697.3735,
+            1672.6506,
+            1616.7301,
+            1669.2217,
+            1629.2647,
+            1558.4184,
+            1533.9068,
+            1610.7071,
+            1669.9854,
+            1588.5404,
+            1463.9648,
+            1592.0138,
+            1517.0228,
+            1442.5207,
+            1637.99,
+            1543.2186,
+            1575.6861,
+            1823.9745,
+            1759.2073,
+            1640.0597,
+            1641.0461,
+            1595.2829,
+            1642.0306,
+            1569.8431,
+            1630.1052,
+            1627.3103,
+            1544.5877,
+            1638.9817,
+            1547.7269,
+            1634.4323,
+            1624.0181,
+            1612.2375
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1641.6562,
+            "p50_ms": 1634.4323,
+            "p95_ms": 1813.2401
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4773.113,
+              "p50_ms": 4773.113,
+              "p95_ms": 4773.113
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1641.5531,
+              "p50_ms": 1634.333,
+              "p95_ms": 1813.1274
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.0036
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0012,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0008,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 99,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "hybrid",
+          "retrieval_method": "hybrid_rrf",
+          "limit": 5,
+          "artifact_path": "runs/hybrid-k5-trial-03.json",
+          "result_fingerprint_sha256": "3c2971af54357c1c488880488bcb482ced7ac8e2332e7f687dbfc55428dc95ca",
+          "metrics_by_cutoff": {
+            "5": {
+              "cutoff": 5,
+              "hit_rate": 0.64,
+              "recall": 0.36,
+              "precision": 0.152,
+              "ndcg": 0.3279,
+              "mrr": 0.4287,
+              "passed_count": 32,
+              "failed_count": 18,
+              "avg_selected_context_chars": 2862.38,
+              "avg_selected_context_tokens": 715.9
+            }
+          },
+          "cold_start_latency_ms": 5103.7494,
+          "warm_latency_samples_ms": [
+            1672.6344,
+            1711.4301,
+            1578.3641,
+            1582.1425,
+            1646.9293,
+            1649.2535,
+            1656.0546,
+            1612.3423,
+            1756.7457,
+            1767.6108,
+            1685.6605,
+            1718.1282,
+            1722.2783,
+            1657.7535,
+            1611.9686,
+            1510.6046,
+            1654.9797,
+            1680.7949,
+            1709.8605,
+            2056.9904,
+            1775.4784,
+            1608.3612,
+            1885.2821,
+            1897.7943,
+            1688.0946,
+            1552.2687,
+            1544.7683,
+            1829.2898,
+            1578.932,
+            1532.3593,
+            1464.3438,
+            1572.755,
+            1497.7467,
+            1535.7025,
+            1488.9776,
+            1567.4792,
+            1552.5581,
+            1894.6142,
+            1605.7757,
+            1714.3256,
+            1669.7864,
+            1582.3198,
+            1831.5938,
+            1666.9722,
+            1593.5763,
+            1546.0887,
+            1632.4586,
+            1700.4802,
+            1614.4104
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1658.5127,
+            "p50_ms": 1649.2535,
+            "p95_ms": 1890.8814
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 5103.646,
+              "p50_ms": 5103.646,
+              "p95_ms": 5103.646
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1658.4096,
+              "p50_ms": 1649.14,
+              "p95_ms": 1890.7302
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0012,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0032,
+              "p50_ms": 0.003,
+              "p95_ms": 0.004
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0012,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0008,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 99,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "hybrid",
+      "retrieval_method": "hybrid_rrf",
+      "limit": 10,
+      "ranking_stable": false,
+      "ranking_stability_required": false,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "10": {
+          "cutoff": 10,
+          "hit_rate": {
+            "average": 0.7467,
+            "minimum": 0.74,
+            "maximum": 0.76,
+            "spread": 0.02
+          },
+          "recall": {
+            "average": 0.45,
+            "minimum": 0.4467,
+            "maximum": 0.4567,
+            "spread": 0.01
+          },
+          "precision": {
+            "average": 0.0987,
+            "minimum": 0.098,
+            "maximum": 0.1,
+            "spread": 0.002
+          },
+          "ndcg": {
+            "average": 0.3433,
+            "minimum": 0.3409,
+            "maximum": 0.3447,
+            "spread": 0.0038
+          },
+          "mrr": {
+            "average": 0.3948,
+            "minimum": 0.3903,
+            "maximum": 0.4027,
+            "spread": 0.0124
+          },
+          "passed_count": {
+            "average": 37.3333,
+            "minimum": 37.0,
+            "maximum": 38.0,
+            "spread": 1.0
+          },
+          "failed_count": {
+            "average": 12.6667,
+            "minimum": 12.0,
+            "maximum": 13.0,
+            "spread": 1.0
+          },
+          "avg_selected_context_chars": {
+            "average": 5868.1933,
+            "minimum": 5855.04,
+            "maximum": 5879.42,
+            "spread": 24.38
+          },
+          "avg_selected_context_tokens": {
+            "average": 1467.4267,
+            "minimum": 1464.16,
+            "maximum": 1470.22,
+            "spread": 6.06
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 5897.9779,
+        "p50_ms": 5365.0723,
+        "p95_ms": 7466.0534
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 1734.1269,
+        "p50_ms": 1626.3762,
+        "p95_ms": 2712.6527
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "hybrid",
+          "retrieval_method": "hybrid_rrf",
+          "limit": 10,
+          "artifact_path": "runs/hybrid-k10-trial-01.json",
+          "result_fingerprint_sha256": "224f6e757a5d653e394b11001b69fb5a6c41960d5d6e3bc0c47c0237bda58a1e",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.74,
+              "recall": 0.4467,
+              "precision": 0.098,
+              "ndcg": 0.3409,
+              "mrr": 0.3903,
+              "passed_count": 37,
+              "failed_count": 13,
+              "avg_selected_context_chars": 5855.04,
+              "avg_selected_context_tokens": 1464.16
+            }
+          },
+          "cold_start_latency_ms": 5365.0723,
+          "warm_latency_samples_ms": [
+            1608.4009,
+            1565.433,
+            1705.0149,
+            1923.5402,
+            1594.2681,
+            1570.9253,
+            1758.0025,
+            1560.3111,
+            1582.1451,
+            1676.0132,
+            1618.6049,
+            1593.8857,
+            1584.7189,
+            1665.3127,
+            1568.1996,
+            1664.8659,
+            1511.1878,
+            1586.9835,
+            1524.0871,
+            1666.4286,
+            1691.118,
+            1741.1243,
+            1810.3449,
+            1678.5533,
+            1611.1327,
+            1587.7209,
+            1792.9736,
+            1805.5945,
+            1697.5594,
+            1599.1641,
+            1688.7691,
+            1803.2847,
+            1728.3553,
+            1652.0757,
+            1831.4909,
+            1643.2259,
+            1687.6004,
+            1672.8182,
+            1657.3574,
+            1710.0729,
+            1633.5974,
+            1767.1295,
+            1805.7834,
+            1727.749,
+            1618.9513,
+            2511.8107,
+            2939.8053,
+            2723.3574,
+            2687.675
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1755.8066,
+            "p50_ms": 1672.8182,
+            "p95_ms": 2617.3293
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 5364.967,
+              "p50_ms": 5364.967,
+              "p95_ms": 5364.967
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1755.6958,
+              "p50_ms": 1672.707,
+              "p95_ms": 2617.1686
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0018,
+              "p50_ms": 0.002,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0042,
+              "p50_ms": 0.004,
+              "p95_ms": 0.006
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0008,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 99,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "hybrid",
+          "retrieval_method": "hybrid_rrf",
+          "limit": 10,
+          "artifact_path": "runs/hybrid-k10-trial-02.json",
+          "result_fingerprint_sha256": "777e136308422ddcfb9b4106d202a4bcc0809ef8539f8be2fca4d1138a057eda",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.74,
+              "recall": 0.4467,
+              "precision": 0.098,
+              "ndcg": 0.3447,
+              "mrr": 0.4027,
+              "passed_count": 37,
+              "failed_count": 13,
+              "avg_selected_context_chars": 5870.12,
+              "avg_selected_context_tokens": 1467.9
+            }
+          },
+          "cold_start_latency_ms": 7699.4957,
+          "warm_latency_samples_ms": [
+            2930.1486,
+            2968.2615,
+            2900.7919,
+            3537.243,
+            3155.645,
+            3190.4437,
+            2000.099,
+            1594.7205,
+            1467.2357,
+            1751.363,
+            1588.4249,
+            1506.5828,
+            1465.1948,
+            1508.5195,
+            1867.961,
+            1803.59,
+            1532.9634,
+            1754.2825,
+            1527.1127,
+            1487.9039,
+            1768.3209,
+            1705.6741,
+            1458.4703,
+            1482.6869,
+            1481.2025,
+            1541.7398,
+            1740.2931,
+            1447.9027,
+            1672.4577,
+            1922.919,
+            1547.3341,
+            1486.7535,
+            1634.9864,
+            1575.7362,
+            1583.4231,
+            1516.7445,
+            1734.7969,
+            1511.7077,
+            1577.5306,
+            1566.686,
+            1586.6327,
+            1626.3762,
+            1524.1247,
+            1574.0013,
+            1870.5601,
+            1557.4164,
+            1553.7433,
+            1864.8165,
+            1516.225
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1799.3826,
+            "p50_ms": 1583.4231,
+            "p95_ms": 3080.6916
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 7699.226,
+              "p50_ms": 7699.226,
+              "p95_ms": 7699.226
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.01,
+              "p50_ms": 0.01,
+              "p95_ms": 0.01
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1799.2742,
+              "p50_ms": 1583.334,
+              "p95_ms": 3080.4498
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0017,
+              "p50_ms": 0.001,
+              "p95_ms": 0.0042
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0041,
+              "p50_ms": 0.004,
+              "p95_ms": 0.006
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0013,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0006,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 99,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "hybrid",
+          "retrieval_method": "hybrid_rrf",
+          "limit": 10,
+          "artifact_path": "runs/hybrid-k10-trial-03.json",
+          "result_fingerprint_sha256": "13f454d604401ba35a6b0bcb621f3b6665f2cb8d3174f7044bf10d043a64a60d",
+          "metrics_by_cutoff": {
+            "10": {
+              "cutoff": 10,
+              "hit_rate": 0.76,
+              "recall": 0.4567,
+              "precision": 0.1,
+              "ndcg": 0.3442,
+              "mrr": 0.3915,
+              "passed_count": 38,
+              "failed_count": 12,
+              "avg_selected_context_chars": 5879.42,
+              "avg_selected_context_tokens": 1470.22
+            }
+          },
+          "cold_start_latency_ms": 4629.3656,
+          "warm_latency_samples_ms": [
+            1704.8389,
+            1971.2044,
+            1813.3606,
+            1569.0394,
+            1511.0771,
+            1482.3501,
+            1701.5857,
+            1537.7785,
+            1513.2215,
+            1512.6686,
+            1597.4699,
+            1848.167,
+            1793.9285,
+            1507.715,
+            1952.0506,
+            1646.9244,
+            1523.2469,
+            1507.4542,
+            1794.3976,
+            1513.7986,
+            1567.1786,
+            1516.1254,
+            1510.2576,
+            1496.7656,
+            1686.4543,
+            1563.7242,
+            1481.6066,
+            1497.0391,
+            1635.1869,
+            1604.207,
+            1907.3565,
+            1664.8818,
+            1560.6071,
+            1673.8935,
+            1495.8635,
+            1510.3688,
+            1643.3478,
+            1441.8423,
+            1814.7341,
+            1774.6495,
+            1475.7352,
+            1618.7817,
+            1490.1544,
+            1623.6765,
+            2520.5188,
+            1665.1463,
+            1709.3427,
+            1601.635,
+            1959.0242
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1647.1915,
+            "p50_ms": 1601.635,
+            "p95_ms": 1956.2348
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4629.262,
+              "p50_ms": 4629.262,
+              "p95_ms": 4629.262
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.0,
+              "p50_ms": 0.0,
+              "p95_ms": 0.0
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1647.0966,
+              "p50_ms": 1601.544,
+              "p95_ms": 1956.1412
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0013,
+              "p50_ms": 0.001,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0036,
+              "p50_ms": 0.004,
+              "p95_ms": 0.004
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0004,
+              "p50_ms": 0.0,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 99,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "retrieval_mode": "hybrid",
+      "retrieval_method": "hybrid_rrf",
+      "limit": 20,
+      "ranking_stable": false,
+      "ranking_stability_required": false,
+      "quality_stable": true,
+      "max_quality_metric_spread": 0.05,
+      "metrics_by_cutoff": {
+        "20": {
+          "cutoff": 20,
+          "hit_rate": {
+            "average": 0.7867,
+            "minimum": 0.78,
+            "maximum": 0.8,
+            "spread": 0.02
+          },
+          "recall": {
+            "average": 0.5222,
+            "minimum": 0.52,
+            "maximum": 0.5267,
+            "spread": 0.0067
+          },
+          "precision": {
+            "average": 0.0583,
+            "minimum": 0.058,
+            "maximum": 0.059,
+            "spread": 0.001
+          },
+          "ndcg": {
+            "average": 0.365,
+            "minimum": 0.3632,
+            "maximum": 0.3686,
+            "spread": 0.0054
+          },
+          "mrr": {
+            "average": 0.3952,
+            "minimum": 0.3916,
+            "maximum": 0.402,
+            "spread": 0.0104
+          },
+          "passed_count": {
+            "average": 39.3333,
+            "minimum": 39.0,
+            "maximum": 40.0,
+            "spread": 1.0
+          },
+          "failed_count": {
+            "average": 10.6667,
+            "minimum": 10.0,
+            "maximum": 11.0,
+            "spread": 1.0
+          },
+          "avg_selected_context_chars": {
+            "average": 12302.88,
+            "minimum": 12281.24,
+            "maximum": 12323.1,
+            "spread": 41.86
+          },
+          "avg_selected_context_tokens": {
+            "average": 3076.1667,
+            "minimum": 3070.74,
+            "maximum": 3081.22,
+            "spread": 10.48
+          }
+        }
+      },
+      "cold_start_latency_ms": {
+        "sample_count": 3,
+        "average_ms": 4619.0634,
+        "p50_ms": 4508.9695,
+        "p95_ms": 4981.9995
+      },
+      "warm_latency_ms": {
+        "sample_count": 147,
+        "average_ms": 1638.7912,
+        "p50_ms": 1400.2757,
+        "p95_ms": 1978.6076
+      },
+      "trials": [
+        {
+          "repetition": 1,
+          "retrieval_mode": "hybrid",
+          "retrieval_method": "hybrid_rrf",
+          "limit": 20,
+          "artifact_path": "runs/hybrid-k20-trial-01.json",
+          "result_fingerprint_sha256": "ac132cfb41b021352085167277743c5fc9446facc717eecfc38b24e19c78831a",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.78,
+              "recall": 0.52,
+              "precision": 0.058,
+              "ndcg": 0.3632,
+              "mrr": 0.3916,
+              "passed_count": 39,
+              "failed_count": 11,
+              "avg_selected_context_chars": 12304.3,
+              "avg_selected_context_tokens": 3076.54
+            }
+          },
+          "cold_start_latency_ms": 5034.5584,
+          "warm_latency_samples_ms": [
+            1974.7442,
+            1858.8269,
+            1590.5723,
+            2045.1825,
+            1540.6287,
+            1757.3497,
+            1571.5633,
+            1654.0965,
+            1927.5757,
+            1567.7573,
+            1662.4642,
+            1643.8077,
+            1476.8459,
+            1844.7352,
+            1645.7494,
+            1494.8518,
+            1699.4525,
+            1481.4013,
+            1850.2129,
+            1535.7482,
+            1564.9917,
+            1640.1584,
+            1660.2541,
+            1526.8254,
+            1910.3973,
+            1947.5082,
+            1753.1363,
+            2107.5345,
+            1498.555,
+            1770.4325,
+            1499.1749,
+            1528.7396,
+            1750.9218,
+            1688.5147,
+            1491.0444,
+            1620.633,
+            1626.0257,
+            1980.2634,
+            1813.6501,
+            1677.9731,
+            1634.4897,
+            1515.9694,
+            1953.3635,
+            1723.2916,
+            1569.4138,
+            1793.7047,
+            1633.9314,
+            7099.3794,
+            1283.0202
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1797.6911,
+            "p50_ms": 1654.0965,
+            "p95_ms": 2019.2149
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 5034.388,
+              "p50_ms": 5034.388,
+              "p95_ms": 5034.388
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.008,
+              "p50_ms": 0.008,
+              "p95_ms": 0.008
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1797.5833,
+              "p50_ms": 1653.996,
+              "p95_ms": 2019.0958
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0063,
+              "p50_ms": 0.006,
+              "p95_ms": 0.0076
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.0011,
+              "p50_ms": 0.001,
+              "p95_ms": 0.0016
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0004,
+              "p50_ms": 0.0,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 99,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 2,
+          "retrieval_mode": "hybrid",
+          "retrieval_method": "hybrid_rrf",
+          "limit": 20,
+          "artifact_path": "runs/hybrid-k20-trial-02.json",
+          "result_fingerprint_sha256": "30f5d3c9f6102c30cbea0c02bfcd160b9b6e316860a7a67b64c78d3fd6ec6476",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.78,
+              "recall": 0.52,
+              "precision": 0.058,
+              "ndcg": 0.3632,
+              "mrr": 0.3921,
+              "passed_count": 39,
+              "failed_count": 11,
+              "avg_selected_context_chars": 12281.24,
+              "avg_selected_context_tokens": 3070.74
+            }
+          },
+          "cold_start_latency_ms": 4508.9695,
+          "warm_latency_samples_ms": [
+            1482.0868,
+            7044.4534,
+            11206.8072,
+            6433.1832,
+            6327.6141,
+            1696.8933,
+            1362.6666,
+            1624.7432,
+            1574.8202,
+            1382.2877,
+            1335.0287,
+            1436.5399,
+            1400.6122,
+            1302.6932,
+            1412.6177,
+            1209.365,
+            1418.1236,
+            1341.3844,
+            1317.4217,
+            1322.0238,
+            1208.9609,
+            1416.3452,
+            1537.2615,
+            1248.7693,
+            1455.0915,
+            1469.9584,
+            1352.9854,
+            1242.344,
+            1206.5243,
+            1568.6786,
+            1287.2969,
+            1575.52,
+            1405.9747,
+            1288.5545,
+            1308.9115,
+            1400.2757,
+            1500.4389,
+            1490.4104,
+            1347.3172,
+            1196.0292,
+            1583.8478,
+            1279.7574,
+            1287.7425,
+            1281.1312,
+            1191.4496,
+            1466.9724,
+            1275.1405,
+            1430.8335,
+            1312.109
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1903.0204,
+            "p50_ms": 1400.2757,
+            "p95_ms": 6390.9556
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4508.821,
+              "p50_ms": 4508.821,
+              "p95_ms": 4508.821
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.003,
+              "p50_ms": 0.003,
+              "p95_ms": 0.003
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.008,
+              "p50_ms": 0.008,
+              "p95_ms": 0.008
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1902.9131,
+              "p50_ms": 1400.123,
+              "p95_ms": 6390.8526
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.0019,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0062,
+              "p50_ms": 0.006,
+              "p95_ms": 0.007
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0005,
+              "p50_ms": 0.0,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 99,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        },
+        {
+          "repetition": 3,
+          "retrieval_mode": "hybrid",
+          "retrieval_method": "hybrid_rrf",
+          "limit": 20,
+          "artifact_path": "runs/hybrid-k20-trial-03.json",
+          "result_fingerprint_sha256": "f99b506b60230e9925f452def75a9773310748c1ad2525ad930eb66060faf5c2",
+          "metrics_by_cutoff": {
+            "20": {
+              "cutoff": 20,
+              "hit_rate": 0.8,
+              "recall": 0.5267,
+              "precision": 0.059,
+              "ndcg": 0.3686,
+              "mrr": 0.402,
+              "passed_count": 40,
+              "failed_count": 10,
+              "avg_selected_context_chars": 12323.1,
+              "avg_selected_context_tokens": 3081.22
+            }
+          },
+          "cold_start_latency_ms": 4313.6624,
+          "warm_latency_samples_ms": [
+            1330.2078,
+            1044.8758,
+            1138.1748,
+            1109.8128,
+            1392.9245,
+            1395.2939,
+            1377.419,
+            1442.4948,
+            1242.2075,
+            1146.5773,
+            1207.4529,
+            1205.0808,
+            1254.3765,
+            1307.5353,
+            1147.564,
+            1110.1291,
+            1332.3658,
+            1191.9097,
+            1287.0178,
+            1251.0608,
+            1281.4047,
+            1195.0927,
+            1275.2253,
+            1188.9715,
+            1273.7404,
+            1230.2347,
+            1153.6998,
+            1197.0226,
+            1132.4962,
+            1286.6497,
+            1141.4376,
+            1251.2891,
+            1268.1971,
+            1262.3638,
+            1124.9927,
+            1307.1748,
+            1229.2641,
+            1121.8419,
+            1172.6311,
+            1219.5455,
+            1109.0727,
+            1156.7892,
+            1086.8174,
+            1330.5894,
+            1154.8486,
+            1189.1776,
+            1055.4028,
+            1156.6313,
+            1100.3549
+          ],
+          "warm_latency_ms": {
+            "sample_count": 49,
+            "average_ms": 1215.662,
+            "p50_ms": 1205.0808,
+            "p95_ms": 1386.7223
+          },
+          "cold_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 1,
+              "average_ms": 4313.549,
+              "p50_ms": 4313.549,
+              "p95_ms": 4313.549
+            },
+            "context_selection": {
+              "sample_count": 1,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 1,
+              "average_ms": 0.005,
+              "p50_ms": 0.005,
+              "p95_ms": 0.005
+            },
+            "normalize_query": {
+              "sample_count": 1,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 1,
+              "average_ms": 0.0,
+              "p50_ms": 0.0,
+              "p95_ms": 0.0
+            }
+          },
+          "warm_stage_latency_ms": {
+            "candidate_retrieval": {
+              "sample_count": 49,
+              "average_ms": 1215.5514,
+              "p50_ms": 1204.976,
+              "p95_ms": 1386.6102
+            },
+            "context_selection": {
+              "sample_count": 49,
+              "average_ms": 0.002,
+              "p50_ms": 0.002,
+              "p95_ms": 0.002
+            },
+            "deduplicate": {
+              "sample_count": 49,
+              "average_ms": 0.0064,
+              "p50_ms": 0.006,
+              "p95_ms": 0.008
+            },
+            "normalize_query": {
+              "sample_count": 49,
+              "average_ms": 0.001,
+              "p50_ms": 0.001,
+              "p95_ms": 0.001
+            },
+            "rerank": {
+              "sample_count": 49,
+              "average_ms": 0.0004,
+              "p50_ms": 0.0,
+              "p95_ms": 0.001
+            }
+          },
+          "cache": {
+            "snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+            "chunk_loads": 1,
+            "vector_loads": 1,
+            "warm_hits": 99,
+            "invalidations": 0
+          },
+          "cache_reuse_valid": true
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "passed": true
+}

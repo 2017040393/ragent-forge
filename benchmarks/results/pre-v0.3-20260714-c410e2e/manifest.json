@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "name": "pre-v0.3-post-architecture-convergence",
+  "description": "Frozen retrieval quality and cold/warm efficiency baseline after architecture convergence and before v0.3 retrieval experiments.",
+  "dataset": {
+    "path": "examples/eval/v0_2_retrieval_baseline.generated.jsonl",
+    "sha256": "b92b9b0c7fc57c45f1ef09d8c9132c2606261734c536db2ba18bb247333ae525",
+    "hash_mode": "text_lf",
+    "case_count": 50,
+    "manifest": {
+      "path": "examples/eval/v0_2_retrieval_baseline.generated.manifest.json",
+      "sha256": "ba5018520c1ddb6c76c0d89f73603ff78d135aaef97a9b04b912c01a44397ea5",
+      "hash_mode": "text_lf"
+    }
+  },
+  "corpus": {
+    "root": "examples/knowledge",
+    "files": [
+      {
+        "path": "examples/knowledge/agentic_rag.md",
+        "sha256": "f005c66151c5aeaab0460024c2db81809f6e1bb2e813b3e9ea9177b5a4b34b43",
+        "hash_mode": "text_lf"
+      },
+      {
+        "path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+        "sha256": "76cd30d85f11abae269ec4865ea1802f68366085763f1bc37786f11f4efc6ae1",
+        "hash_mode": "binary"
+      },
+      {
+        "path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+        "sha256": "0cbc06df32a0d54964a53e6c6c8640f47b41cf6ce9834fdb6c81d538f9de6e9b",
+        "hash_mode": "binary"
+      },
+      {
+        "path": "examples/knowledge/rag_basics.md",
+        "sha256": "0959b471eba8b4171ac6a8199225e8388369ab9c45c0ad11bca78c4218684470",
+        "hash_mode": "text_lf"
+      }
+    ]
+  },
+  "ingest": {
+    "chunk_size": 1000,
+    "chunk_overlap": 0,
+    "expected_document_count": 4,
+    "expected_chunk_count": 1744
+  },
+  "embedding": {
+    "provider": "openai_embeddings",
+    "model": "Qwen/Qwen3-VL-Embedding-8B",
+    "dimensions": 4096,
+    "batch_size": 8,
+    "timeout_seconds": 60
+  },
+  "workload": {
+    "retrieval_modes": [
+      "lexical",
+      "bm25",
+      "semantic",
+      "hybrid"
+    ],
+    "limits": [
+      5,
+      10,
+      20
+    ],
+    "repetitions": 3,
+    "exact_ranking_modes": [
+      "lexical",
+      "bm25"
+    ],
+    "max_quality_metric_spread": 0.05,
+    "cold_definition": "first_query_of_isolated_runtime",
+    "warm_definition": "remaining_queries_of_same_runtime"
+  }
+}
