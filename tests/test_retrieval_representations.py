@@ -173,3 +173,73 @@ def test_cleaned_pdf_section_v1_keeps_markdown_representation_unchanged() -> Non
     assert build_embedding_text(
         chunk, "cleaned_pdf_section_text_v1"
     ) == build_structured_document_text_v1(chunk)
+
+
+def test_cleaned_pdf_formula_v1_adds_only_high_confidence_evidence() -> None:
+    chunk = cast(
+        ChunkRecord,
+        {
+            **make_chunk(
+                {
+                    "media_type": "application/pdf",
+                    "page_start": 238,
+                    "block_types": ["paragraph"],
+                    "possible_formula": True,
+                    "possible_formula_lines": [
+                        "(cid:2)",
+                        "\u222b |sin x \u2212 u(x)|2 dx \u2265 0.",
+                        "This is ordinary prose without math.",
+                        "The proof continues in Section 2.",
+                        "MRR is the reciprocal rank mean.",
+                        "x \u2208 R2",
+                    ],
+                }
+            ),
+            "chunk_id": "docs/book.pdf::chunk-0003",
+            "document_id": "docs/book.pdf",
+            "source_path": "docs/book.pdf",
+            "text": "6.63 example: using linear algebra to approximate sine",
+        },
+    )
+
+    text = build_embedding_text(chunk, "cleaned_pdf_formula_text_v1")
+
+    assert (
+        "Formula evidence: integral |sin x - u(x)|2 dx >= 0. | "
+        "x element_of R2"
+    ) in text
+    formula_line = text.split("Formula evidence: ", 1)[1].splitlines()[0]
+    assert "ordinary prose" not in formula_line
+    assert "continues in Section" not in formula_line
+    assert "reciprocal rank mean" not in formula_line
+
+
+def test_cleaned_pdf_formula_v1_marks_missing_evidence_explicitly() -> None:
+    chunk = cast(
+        ChunkRecord,
+        {
+            **make_chunk(
+                {
+                    "media_type": "application/pdf",
+                    "page_start": 10,
+                    "block_types": ["paragraph"],
+                }
+            ),
+            "chunk_id": "docs/book.pdf::chunk-0004",
+            "document_id": "docs/book.pdf",
+            "source_path": "docs/book.pdf",
+            "text": "Plain PDF content.",
+        },
+    )
+
+    text = build_embedding_text(chunk, "cleaned_pdf_formula_text_v1")
+
+    assert "Formula evidence: none" in text
+
+
+def test_cleaned_pdf_formula_v1_keeps_markdown_representation_unchanged() -> None:
+    chunk = make_chunk({"heading_path": ["Retrieval", "Hybrid"]})
+
+    assert build_embedding_text(
+        chunk, "cleaned_pdf_formula_text_v1"
+    ) == build_structured_document_text_v1(chunk)

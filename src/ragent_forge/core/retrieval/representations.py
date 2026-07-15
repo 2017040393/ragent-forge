@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import PurePosixPath
@@ -14,12 +15,14 @@ EmbeddingRepresentation = Literal[
     "raw_chunk_text_v1",
     "structured_document_text_v1",
     "cleaned_pdf_section_text_v1",
+    "cleaned_pdf_formula_text_v1",
 ]
 
 EMBEDDING_REPRESENTATIONS: tuple[EmbeddingRepresentation, ...] = (
     "raw_chunk_text_v1",
     "structured_document_text_v1",
     "cleaned_pdf_section_text_v1",
+    "cleaned_pdf_formula_text_v1",
 )
 
 QueryEmbeddingRepresentation = Literal[
@@ -95,6 +98,38 @@ _BIBLIOGRAPHIC_NOISE_WORDS = frozenset(
         "surveys",
     }
 )
+_FORMULA_METRIC_PATTERN = re.compile(
+    r"\b(?:RRF|MRR|Recall@|Hit@|nDCG@|Precision@)",
+    re.IGNORECASE,
+)
+_FORMULA_SIGNAL_PATTERN = re.compile(
+    r"(?:=|<=|>=|<|>|\^|\bapprox\b|\bintegral\b|\bsum\b|\bsqrt\b|"
+    r"\belement_of\b|\bsubset_of\b|\borthogonal_to\b|\bnorm\b|\|\|)",
+    re.IGNORECASE,
+)
+_FORMULA_CONSTANT_PATTERN = re.compile(
+    r"(?:\d|\bpi\b|\blambda\b|\bintegral\b|\bsum\b|\bsqrt\b)",
+    re.IGNORECASE,
+)
+_FORMULA_REPLACEMENTS: tuple[tuple[str, str], ...] = (
+    ("\u2212", "-"),
+    ("\u2013", "-"),
+    ("\u03c0", " pi "),
+    ("\U0001d70b", " pi "),
+    ("\u03bb", " lambda "),
+    ("\U0001d706", " lambda "),
+    ("\u2264", " <= "),
+    ("\u2265", " >= "),
+    ("\u2248", " approx "),
+    ("\u2208", " element_of "),
+    ("\u2286", " subset_of "),
+    ("\u27c2", " orthogonal_to "),
+    ("\u222b", " integral "),
+    ("\u2211", " sum "),
+    ("\u03a3", " sum "),
+    ("\u221a", " sqrt "),
+    ("\u2016", " || "),
+)
 
 
 @dataclass(frozen=True)
@@ -123,7 +158,9 @@ def build_embedding_texts(
     if representation == "structured_document_text_v1":
         return [build_structured_document_text_v1(chunk) for chunk in chunks]
     if representation == "cleaned_pdf_section_text_v1":
-        return _build_cleaned_pdf_section_texts_v1(chunks)
+        return _build_cleaned_pdf_texts_v1(chunks, include_formula_evidence=False)
+    if representation == "cleaned_pdf_formula_text_v1":
+        return _build_cleaned_pdf_texts_v1(chunks, include_formula_evidence=True)
     raise ValueError(f"Unsupported embedding representation: {representation!r}")
 
 
@@ -175,8 +212,10 @@ def build_structured_document_text_v1(chunk: ChunkRecord) -> str:
     )
 
 
-def _build_cleaned_pdf_section_texts_v1(
+def _build_cleaned_pdf_texts_v1(
     chunks: Sequence[ChunkRecord],
+    *,
+    include_formula_evidence: bool,
 ) -> list[str]:
     current_section_by_document: dict[str, str] = {}
     inputs: list[str] = []
@@ -201,13 +240,21 @@ def _build_cleaned_pdf_section_texts_v1(
             current_section_by_document[document_id] = (
                 heading_scan.propagated_heading
             )
-        inputs.append(_build_cleaned_pdf_section_text_v1(chunk, section))
+        inputs.append(
+            _build_cleaned_pdf_text_v1(
+                chunk,
+                section,
+                include_formula_evidence=include_formula_evidence,
+            )
+        )
     return inputs
 
 
-def _build_cleaned_pdf_section_text_v1(
+def _build_cleaned_pdf_text_v1(
     chunk: ChunkRecord,
     section: str,
+    *,
+    include_formula_evidence: bool,
 ) -> str:
     metadata = chunk.get("metadata", {})
     cleaned_content = _clean_pdf_embedding_text(chunk["text"], metadata)
@@ -228,18 +275,57 @@ def _build_cleaned_pdf_section_text_v1(
         or "unknown"
     )
     block_label = ", ".join(block_types) if block_types else "unknown"
-    return "\n".join(
-        (
-            f"Document title: {title}",
-            f"Source: {_stable_source(chunk)}",
-            f"Section: {section}",
-            f"Page: {_page_label(metadata)}",
-            f"Block types: {block_label}",
-            f"Signals: {_signals(metadata, block_types)}",
-            "Content:",
-            cleaned_content,
+    lines = [
+        f"Document title: {title}",
+        f"Source: {_stable_source(chunk)}",
+        f"Section: {section}",
+        f"Page: {_page_label(metadata)}",
+        f"Block types: {block_label}",
+        f"Signals: {_signals(metadata, block_types)}",
+    ]
+    if include_formula_evidence:
+        formula_evidence = _formula_evidence(metadata)
+        lines.append(
+            "Formula evidence: "
+            + (" | ".join(formula_evidence) if formula_evidence else "none")
         )
-    )
+    lines.extend(("Content:", cleaned_content))
+    return "\n".join(lines)
+
+
+def _formula_evidence(metadata: dict[str, object]) -> list[str]:
+    evidence: list[str] = []
+    seen: set[str] = set()
+    for candidate in _metadata_strings(metadata.get("possible_formula_lines")):
+        normalized = _normalize_formula_line(candidate)
+        key = normalized.casefold()
+        if not _is_high_confidence_formula(normalized) or key in seen:
+            continue
+        evidence.append(normalized)
+        seen.add(key)
+        if len(evidence) == 3:
+            break
+    return evidence
+
+
+def _normalize_formula_line(value: str) -> str:
+    normalized = _CID_MARKER_PATTERN.sub("", value)
+    normalized = unicodedata.normalize("NFKC", normalized)
+    for source, replacement in _FORMULA_REPLACEMENTS:
+        normalized = normalized.replace(source, replacement)
+    return " ".join(normalized.split())
+
+
+def _is_high_confidence_formula(value: str) -> bool:
+    if not 4 <= len(value) <= 240:
+        return False
+    if not any(character.isalpha() for character in value):
+        return False
+    if _FORMULA_CONSTANT_PATTERN.search(value) is None:
+        return False
+    if _FORMULA_METRIC_PATTERN.search(value) is not None:
+        return True
+    return _FORMULA_SIGNAL_PATTERN.search(value) is not None
 
 
 def _clean_pdf_embedding_text(
