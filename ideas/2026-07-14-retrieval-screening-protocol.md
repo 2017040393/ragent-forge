@@ -183,6 +183,44 @@ document/query embedding input 不对称确实是 E1 下降的一部分原因。
 相对 parent 减少 1 个 hit，selected context tokens ratio 为 `1.3378`。因此 E2 不能
 进入 50-case direction confirmation，也不能作为当前 v0.3 representation 晋级。
 
+## E3a Candidate Result
+
+E3a 保留 E2 的 `instructed_query_v1`，只把 PDF document representation 改为
+`cleaned_pdf_section_text_v1`，加入确定性 PDF layout cleaning 和跨 chunk section
+cue propagation。结果 artifacts：
+[`E3a-pdf-section-2930f68`](../benchmarks/results/screens/E3a-pdf-section-2930f68)，
+candidate manifest：
+[`retrieval_screen_manifest_e3a.json`](../benchmarks/retrieval_screen_manifest_e3a.json)。
+
+| Item | Value |
+|---|---|
+| Evaluation commit | `2930f68` |
+| Workspace build commit | `e68c6ce` |
+| Workspace snapshot | `snapshot-20260715T055327Z-4107a518` |
+| Document representation | `cleaned_pdf_section_text_v1` |
+| Query representation | `instructed_query_v1` |
+| Query cache | 16 entries, 64 hits, 0 misses |
+| Structural result | `valid: true` |
+| Promotion | rejected |
+
+Quality comparison：
+
+| Configuration | E0 full hit | E3a full hit | E0 gated hit | E3a gated hit |
+|---|---:|---:|---:|---:|
+| Semantic@5 | 0.4375 | 0.6250 | 0.4286 | 0.6429 |
+| Semantic@20 | 0.5625 | 0.8125 | 0.5714 | 0.8571 |
+| Hybrid@5 | 0.5625 | 0.6875 | 0.6429 | 0.7143 |
+| Hybrid@20 | 0.7500 | 0.8125 | 0.7143 | 0.7857 |
+
+E3a 通过 `no_new_missed_source`、`semantic_challenge_gain`、
+`hybrid_top5_net_nonnegative` 和 `complete_evidence_mapping`。它在 challenge/hard
+cases 新增 4 个 Semantic@5 hit，Hybrid@5 gated hit 相对 parent 增加 1 个，说明
+PDF section cues 是当前最有方向性的改进。
+
+但 E3a 仍有 `000016` 一个 stable Semantic@5 loss，且 selected context tokens ratio
+为 `1.4185`，超过 `1.10`。因此 E3a 不能晋级；E3b 继续完整复用 E3a，只增加
+高置信度 formula evidence。
+
 ## Reproduction
 
 ```powershell
@@ -198,8 +236,7 @@ snapshot、variant、mode、limit、case set 和已有 run artifact。
 
 ## 下一步
 
-E2 已证明 query instruction 有方向性价值，但不足以修复当前 structured document
-representation。后续不调整 Hybrid 权重，也不运行 50-case；下一轮应转到 E3，保持
-`instructed_query_v1`，只改变 PDF/formula document representation，并继续使用同一
-screen protocol。只有通过 screening 的候选才进入 50-case direction confirmation，
-最终候选再运行正式 36-trial matrix。
+E3a 已证明 PDF section representation 有明显方向性价值，但尚未通过全部 gates。
+下一轮 E3b 保留 E3a cleaning、section cues、`instructed_query_v1` 和同一 screen，
+只增加高置信度 formula evidence。不调 Hybrid 权重，也不运行 50-case，直到候选通过
+全部 promotion gates。
