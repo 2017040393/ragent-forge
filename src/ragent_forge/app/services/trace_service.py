@@ -19,6 +19,7 @@ from ragent_forge.app.services.hybrid_search_service import (
     HybridSparseMethod,
 )
 from ragent_forge.core.retrieval.contracts import RetrievalRun
+from ragent_forge.core.retrieval.representations import EmbeddingRepresentation
 
 
 class TraceService:
@@ -496,6 +497,7 @@ def build_index_build_trace(
     started_at: datetime,
     finished_at: datetime,
     snapshot_id: str | None = None,
+    embedding_representation: EmbeddingRepresentation | None = None,
 ) -> OperationTrace:
     started_at_utc = _as_utc(started_at)
     finished_at_utc = _as_utc(finished_at)
@@ -510,6 +512,8 @@ def build_index_build_trace(
     }
     if snapshot_id is not None:
         metadata["snapshot_id"] = snapshot_id
+    if embedding_representation is not None:
+        metadata["embedding_representation"] = embedding_representation
     return OperationTrace(
         trace_id=_trace_id("index-build", started_at_utc),
         operation="index_build",
@@ -530,6 +534,11 @@ def build_index_build_trace(
                     "embedding_provider": embedding_provider,
                     "embedding_model": embedding_model,
                     "batch_size": batch_size,
+                    **(
+                        {"embedding_representation": embedding_representation}
+                        if embedding_representation is not None
+                        else {}
+                    ),
                 },
                 outputs={
                     "chunk_count": chunk_count,

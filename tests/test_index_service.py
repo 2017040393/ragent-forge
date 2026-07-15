@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,7 @@ from ragent_forge.app.services.index_service import IndexBuildService
 from ragent_forge.app.services.vector_index_service import VectorIndexService
 from ragent_forge.app.workspace import LocalWorkspace
 from ragent_forge.core.chunking.simple_chunker import SimpleChunker
+from ragent_forge.core.retrieval.representations import hash_embedding_text
 
 
 class FakeEmbeddingService:
@@ -79,6 +81,47 @@ def test_index_build_service_embeds_chunks_in_batches_and_writes_index(
     assert "agent memory agent" not in records
     assert "api_key" not in records
     assert "api_key" not in manifest
+
+
+def test_index_build_service_uses_structured_representation_and_records_provenance(
+    tmp_path: Path,
+) -> None:
+    workspace = make_index_build_workspace(tmp_path)
+    embedding_service = FakeEmbeddingService()
+
+    result = IndexBuildService(
+        workspace,
+        embedding_service=embedding_service,
+    ).build(
+        embedding_provider="openai_embeddings",
+        embedding_model="text-embedding-3-small",
+        batch_size=2,
+        embedding_representation="structured_document_text_v1",
+    )
+
+    manifest = json.loads(
+        workspace.vector_index_manifest_path.read_text(encoding="utf-8")
+    )
+    records = [
+        json.loads(line)
+        for line in workspace.vector_index_path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert result.embedding_representation == "structured_document_text_v1"
+    assert result.index_input_sha256 == manifest["index_input_sha256"]
+    assert manifest["embedding_representation"] == "structured_document_text_v1"
+    assert all(
+        record["embedding_representation"] == "structured_document_text_v1"
+        for record in records
+    )
+    embedded_texts = [text for batch in embedding_service.calls for text in batch]
+    assert [record["text_hash"] for record in records] == [
+        hash_embedding_text(text) for text in embedded_texts
+    ]
+    assert all(
+        "Document title:" in text
+        for batch in embedding_service.calls
+        for text in batch
+    )
 
 
 def test_index_build_publishes_new_immutable_generation(tmp_path: Path) -> None:

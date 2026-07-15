@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -15,6 +14,12 @@ from ragent_forge.core.models import (
     SourceLifecycle,
 )
 from ragent_forge.core.retrieval.contracts import ChunkRecord, MetadataRecord
+from ragent_forge.core.retrieval.representations import (
+    EMBEDDING_REPRESENTATIONS,
+    EmbeddingRepresentation,
+    embedding_input_fingerprint,
+    hash_embedding_text,
+)
 from ragent_forge.core.schema import (
     WORKSPACE_SCHEMA_VERSION,
     add_schema_version,
@@ -35,6 +40,7 @@ class VectorIndexRecord(BaseModel):
     embedding_dim: int
     embedding: list[float]
     text_hash: str
+    embedding_representation: EmbeddingRepresentation = "raw_chunk_text_v1"
     metadata: MetadataRecord = Field(default_factory=MetadataRecord)
     source_kind: SourceKind = "document"
     provenance: str | None = None
@@ -49,8 +55,11 @@ class VectorIndexRecord(BaseModel):
         embedding_provider: str,
         embedding_model: str,
         embedding: list[float],
+        embedding_text: str | None = None,
+        embedding_representation: EmbeddingRepresentation = "raw_chunk_text_v1",
     ) -> VectorIndexRecord:
         text = str(chunk.get("text", ""))
+        input_text = text if embedding_text is None else embedding_text
         return cls(
             snapshot_id=_optional_string(chunk.get("snapshot_id")),
             chunk_id=str(chunk.get("chunk_id", "")),
@@ -62,7 +71,8 @@ class VectorIndexRecord(BaseModel):
             embedding_model=embedding_model,
             embedding_dim=len(embedding),
             embedding=embedding,
-            text_hash=hash_text(text),
+            text_hash=hash_embedding_text(input_text),
+            embedding_representation=embedding_representation,
             metadata=_metadata(chunk.get("metadata")),
             source_kind=chunk.get("source_kind", "document"),
             provenance=chunk.get("provenance"),
@@ -91,7 +101,25 @@ class VectorIndexService:
         embedding_model: str,
         chunks_path: Path,
         snapshot_id: str | None = None,
+        embedding_representation: EmbeddingRepresentation = "raw_chunk_text_v1",
+        index_input_sha256: str | None = None,
     ) -> VectorIndexWriteResult:
+        if embedding_representation not in EMBEDDING_REPRESENTATIONS:
+            raise ValueError(
+                "Unsupported embedding representation: "
+                f"{embedding_representation!r}"
+            )
+        if any(
+            record.embedding_representation != embedding_representation
+            for record in records
+        ):
+            raise ValueError(
+                "Vector index record representation does not match build "
+                "representation"
+            )
+        resolved_index_input_sha256 = index_input_sha256 or embedding_input_fingerprint(
+            [(record.chunk_id, record.text_hash) for record in records]
+        )
         lines = [
             json.dumps(record.model_dump(), ensure_ascii=False, sort_keys=True)
             for record in records
@@ -111,6 +139,8 @@ class VectorIndexService:
                 "chunks_path": str(chunks_path),
                 "index_path": str(self.workspace.vector_index_path),
                 "snapshot_id": snapshot_id,
+                "embedding_representation": embedding_representation,
+                "index_input_sha256": resolved_index_input_sha256,
             }
         )
         if (
@@ -243,7 +273,9 @@ class VectorIndexService:
 
 
 def hash_text(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    """Backward-compatible name for the index input hash helper."""
+
+    return hash_embedding_text(text)
 
 
 def _optional_int(value: object) -> int | None:

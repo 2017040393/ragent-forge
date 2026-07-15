@@ -188,7 +188,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "index":
         if args.index_command == "build":
-            return _index._handle_index_build(console, args.workspace)
+            return _index._handle_index_build(
+                console,
+                args.workspace,
+                embedding_representation=args.embedding_representation,
+            )
         if args.index_command == "status":
             return _index._handle_index_status(console, args.workspace)
         parser.print_help()

@@ -10,10 +10,16 @@ from ragent_forge.app.services.trace_service import build_index_build_trace
 from ragent_forge.app.services.vector_index_service import VectorIndexService
 from ragent_forge.cli.handlers.chunks import _print_no_chunks
 from ragent_forge.composition import build_embedding_service
+from ragent_forge.core.retrieval.representations import EmbeddingRepresentation
 from ragent_forge.infrastructure.local_workspace import LocalWorkspace
 
 
-def _handle_index_build(console: Console, workspace_path: str) -> int:
+def _handle_index_build(
+    console: Console,
+    workspace_path: str,
+    *,
+    embedding_representation: EmbeddingRepresentation = "raw_chunk_text_v1",
+) -> int:
     workspace = LocalWorkspace(workspace_path)
     if not workspace.has_chunks():
         _print_no_chunks(console)
@@ -28,6 +34,7 @@ def _handle_index_build(console: Console, workspace_path: str) -> int:
             embedding_provider=config.embedding.provider,
             embedding_model=config.embedding.model,
             batch_size=config.embedding.batch_size,
+            embedding_representation=embedding_representation,
         )
     except (OSError, RuntimeError, ValueError) as exc:
         console.print(f"Index build failed: {exc}", markup=False, soft_wrap=True)
@@ -44,12 +51,14 @@ def _handle_index_build(console: Console, workspace_path: str) -> int:
         started_at=started_at,
         finished_at=finished_at,
         snapshot_id=result.snapshot_id,
+        embedding_representation=result.embedding_representation,
     )
     trace_path = workspace.write_trace(trace)
     console.print("Semantic index build")
     console.print()
     console.print(f"Embedding provider: {result.embedding_provider}")
     console.print(f"Embedding model: {result.embedding_model}")
+    console.print(f"Embedding representation: {result.embedding_representation}")
     console.print(f"Chunks embedded: {result.chunk_count}")
     console.print(f"Embedding dim: {result.embedding_dim}")
     console.print(f"Index path: {result.index_path}")
@@ -74,5 +83,9 @@ def _handle_index_status(console: Console, workspace_path: str) -> int:
     console.print(f"Chunks indexed: {manifest.get('chunk_count', 0)}")
     console.print(f"Embedding model: {manifest.get('embedding_model', '')}")
     console.print(f"Embedding dim: {manifest.get('embedding_dim', 0)}")
+    console.print(
+        "Embedding representation: "
+        f"{manifest.get('embedding_representation', 'unknown')}"
+    )
     console.print(f"Built at: {manifest.get('built_at', '')}")
     return 0

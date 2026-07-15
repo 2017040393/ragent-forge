@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 
+from ragent_forge.core.retrieval.representations import EMBEDDING_REPRESENTATIONS
 from ragent_forge.core.retrieval.types import RETRIEVAL_MODES
 
 RETRIEVAL_CHOICES = list(RETRIEVAL_MODES)
@@ -275,6 +276,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--workspace",
         default=".ragent",
         help="Local RAGentForge workspace directory to index.",
+    )
+    index_build_parser.add_argument(
+        "--embedding-representation",
+        choices=EMBEDDING_REPRESENTATIONS,
+        default="raw_chunk_text_v1",
+        help="Document text representation sent to the embedding provider.",
     )
     index_status_parser = index_subparsers.add_parser(
         "status", help="Show local semantic vector index status."

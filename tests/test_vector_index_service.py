@@ -73,6 +73,8 @@ def test_write_vector_index_jsonl_and_manifest(tmp_path: Path) -> None:
     assert "api_key" not in record
     assert manifest["chunk_count"] == 1
     assert manifest["embedding_dim"] == 2
+    assert manifest["embedding_representation"] == "raw_chunk_text_v1"
+    assert len(manifest["index_input_sha256"]) == 64
 
 
 def test_read_vector_index_jsonl(tmp_path: Path) -> None:
