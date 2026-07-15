@@ -1,0 +1,2262 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-representation-screen",
+  "description": "Fixed diagnostic screen for retrieval representation variants before full 50-case and formal baseline evaluation.",
+  "measured_at": "2026-07-15T07:18:14.785491+00:00",
+  "manifest_path": "benchmarks/retrieval_screen_manifest_e3b.json",
+  "manifest_sha256": "823272f088c941311765eb38ffe0d928e5f3eb0db6be60c1531d59abddda18c5",
+  "git": {
+    "commit": "d21c91be55f7fdc4a4f4e860b7b5bb4a2c2c2e59",
+    "branch": "main",
+    "dirty": false
+  },
+  "runtime": {
+    "python": "3.12.11",
+    "implementation": "CPython",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+    "packages": {
+      "ragent_forge": "0.2.0",
+      "pydantic": "2.13.4",
+      "httpx": "0.28.1",
+      "pdfplumber": "0.11.10"
+    }
+  },
+  "parent_baseline": {
+    "summary": {
+      "path": "benchmarks/results/pre-v0.3-20260714-c410e2e/summary.json",
+      "sha256": "edf040291c4afac293e448c7ed2c1b452a4df425953149c120b9c428880ef094",
+      "hash_mode": "text_lf"
+    },
+    "git_commit": "ca3900619573498b2cc5bff627c36092787f398a",
+    "workspace_snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+    "required_repetitions": 3
+  },
+  "variant": {
+    "id": "E3b-pdf-formula",
+    "role": "candidate",
+    "description": "Cleaned PDF text with propagated section cues and normalized formula evidence embedded against an instructed retrieval query.",
+    "document_embedding_representation": "cleaned_pdf_formula_text_v1",
+    "query_embedding_representation": "instructed_query_v1",
+    "workspace_build_git_commit": "3e5758c7818590f3e7b22044358b2097a5e2f6f2",
+    "expected_chunk_content_sha256": "a99c38a36cf061c7406044cb33de4e9517a29c76a077b237e5639c825133278a",
+    "expected_index_input_sha256": "48b5f9be6c27854a155dbfa93cc78aaf7a67b695092953bea91389648edab9e4"
+  },
+  "dataset": {
+    "cases": {
+      "path": "examples/eval/v0_2_retrieval_baseline.generated.jsonl",
+      "sha256": "b92b9b0c7fc57c45f1ef09d8c9132c2606261734c536db2ba18bb247333ae525",
+      "hash_mode": "text_lf"
+    },
+    "manifest": {
+      "path": "examples/eval/v0_2_retrieval_baseline.generated.manifest.json",
+      "sha256": "ba5018520c1ddb6c76c0d89f73603ff78d135aaef97a9b04b912c01a44397ea5",
+      "hash_mode": "text_lf"
+    },
+    "case_count": 50
+  },
+  "corpus": [
+    {
+      "path": "examples/knowledge/agentic_rag.md",
+      "sha256": "f005c66151c5aeaab0460024c2db81809f6e1bb2e813b3e9ea9177b5a4b34b43",
+      "hash_mode": "text_lf"
+    },
+    {
+      "path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+      "sha256": "76cd30d85f11abae269ec4865ea1802f68366085763f1bc37786f11f4efc6ae1",
+      "hash_mode": "binary"
+    },
+    {
+      "path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+      "sha256": "0cbc06df32a0d54964a53e6c6c8640f47b41cf6ce9834fdb6c81d538f9de6e9b",
+      "hash_mode": "binary"
+    },
+    {
+      "path": "examples/knowledge/rag_basics.md",
+      "sha256": "0959b471eba8b4171ac6a8199225e8388369ab9c45c0ad11bca78c4218684470",
+      "hash_mode": "text_lf"
+    }
+  ],
+  "workspace": {
+    "root": "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\.ragent\\baselines\\E3b-pdf-formula-3e5758c",
+    "layout": "generation",
+    "schema_version": 2,
+    "build_git_commit": "3e5758c7818590f3e7b22044358b2097a5e2f6f2",
+    "snapshot_id": "snapshot-20260715T070507Z-e2ed57b0",
+    "source_path": "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge",
+    "document_count": 4,
+    "chunk_count": 1744,
+    "chunk_size": 1000,
+    "chunk_overlap": 0,
+    "embedding_provider": "openai_embeddings",
+    "embedding_model": "Qwen/Qwen3-VL-Embedding-8B",
+    "embedding_batch_size": 8,
+    "embedding_timeout_seconds": 60,
+    "index": {
+      "embedding_provider": "openai_embeddings",
+      "embedding_model": "Qwen/Qwen3-VL-Embedding-8B",
+      "embedding_dim": 4096,
+      "chunk_count": 1744,
+      "snapshot_id": "snapshot-20260715T070507Z-e2ed57b0"
+    }
+  },
+  "workspace_fingerprints": {
+    "chunk_content_sha256": "a99c38a36cf061c7406044cb33de4e9517a29c76a077b237e5639c825133278a",
+    "index_input_sha256": "48b5f9be6c27854a155dbfa93cc78aaf7a67b695092953bea91389648edab9e4"
+  },
+  "selected_case_ids": [
+    "v0-2-baseline-000001",
+    "v0-2-baseline-000019",
+    "v0-2-baseline-000013",
+    "v0-2-baseline-000022",
+    "v0-2-baseline-000016",
+    "v0-2-baseline-000041",
+    "v0-2-baseline-000003",
+    "v0-2-baseline-000031",
+    "v0-2-baseline-000017",
+    "v0-2-baseline-000046",
+    "v0-2-baseline-000005",
+    "v0-2-baseline-000006",
+    "v0-2-baseline-000036",
+    "v0-2-baseline-000040",
+    "v0-2-baseline-000014",
+    "v0-2-baseline-000033"
+  ],
+  "query_cache": {
+    "artifact_path": "query_embeddings.json",
+    "source_path": "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\benchmarks\\results\\screens\\E2-instructed-query-6c453bb\\query_embeddings.json",
+    "source_sha256": "d72419da9252c33adae8f178c1da3196b8234b194e1b20ed3f46fda4e0774324",
+    "sha256": "62251a386de4566cf31bc4aa3d011904b099c87395ca1ea805039fafcb8e16b8",
+    "provider": "openai_embeddings",
+    "model": "Qwen/Qwen3-VL-Embedding-8B",
+    "query_representation": "instructed_query_v1",
+    "embedding_dim": 4096,
+    "entry_count": 16,
+    "hits": 64,
+    "misses": 0
+  },
+  "configurations": [
+    {
+      "retrieval_mode": "semantic",
+      "limit": 5,
+      "artifact_path": "runs/semantic-k5.json",
+      "result_fingerprint_sha256": "b248d3e1e734762995ee02e56d3af2d00f39b5961bf5a46235f5bfc3e1a8dcc9",
+      "baseline_metrics": {
+        "cutoff": 5,
+        "hit_rate": {
+          "average": 0.4375,
+          "minimum": 0.4375,
+          "maximum": 0.4375,
+          "spread": 0.0
+        },
+        "recall": {
+          "average": 0.2604,
+          "minimum": 0.2604,
+          "maximum": 0.2604,
+          "spread": 0.0
+        },
+        "precision": {
+          "average": 0.0875,
+          "minimum": 0.0875,
+          "maximum": 0.0875,
+          "spread": 0.0
+        },
+        "ndcg": {
+          "average": 0.2368,
+          "minimum": 0.2283,
+          "maximum": 0.2468,
+          "spread": 0.0185
+        },
+        "mrr": {
+          "average": 0.2958,
+          "minimum": 0.2781,
+          "maximum": 0.3177,
+          "spread": 0.0396
+        },
+        "passed_count": {
+          "average": 7.0,
+          "minimum": 7.0,
+          "maximum": 7.0,
+          "spread": 0.0
+        },
+        "failed_count": {
+          "average": 9.0,
+          "minimum": 9.0,
+          "maximum": 9.0,
+          "spread": 0.0
+        },
+        "avg_selected_context_chars": {
+          "average": 1239.9167,
+          "minimum": 1159.375,
+          "maximum": 1327.5,
+          "spread": 168.125
+        },
+        "avg_selected_context_tokens": {
+          "average": 310.3958,
+          "minimum": 290.25,
+          "maximum": 332.3125,
+          "spread": 42.0625
+        }
+      },
+      "candidate_metrics": {
+        "cutoff": 5,
+        "hit_rate": 0.6875,
+        "recall": 0.4792,
+        "precision": 0.2125,
+        "ndcg": 0.4694,
+        "mrr": 0.5833,
+        "passed_count": 11,
+        "failed_count": 5,
+        "avg_selected_context_chars": 3596.1875,
+        "avg_selected_context_tokens": 899.4375
+      },
+      "baseline_gated_metrics": {
+        "cutoff": 5,
+        "hit_rate": {
+          "average": 0.4286,
+          "minimum": 0.4286,
+          "maximum": 0.4286,
+          "spread": 0.0
+        },
+        "recall": {
+          "average": 0.2619,
+          "minimum": 0.2619,
+          "maximum": 0.2619,
+          "spread": 0.0
+        },
+        "precision": {
+          "average": 0.0857,
+          "minimum": 0.0857,
+          "maximum": 0.0857,
+          "spread": 0.0
+        },
+        "ndcg": {
+          "average": 0.2508,
+          "minimum": 0.2421,
+          "maximum": 0.2632,
+          "spread": 0.0211
+        },
+        "mrr": {
+          "average": 0.3182,
+          "minimum": 0.3,
+          "maximum": 0.3452,
+          "spread": 0.0452
+        },
+        "passed_count": {
+          "average": 6.0,
+          "minimum": 6.0,
+          "maximum": 6.0,
+          "spread": 0.0
+        },
+        "failed_count": {
+          "average": 8.0,
+          "minimum": 8.0,
+          "maximum": 8.0,
+          "spread": 0.0
+        },
+        "avg_selected_context_chars": {
+          "average": 1313.5952,
+          "minimum": 1220.8571,
+          "maximum": 1415.0714,
+          "spread": 194.2143
+        },
+        "avg_selected_context_tokens": {
+          "average": 328.8334,
+          "minimum": 305.6429,
+          "maximum": 354.2143,
+          "spread": 48.5714
+        }
+      },
+      "candidate_gated_metrics": {
+        "cutoff": 5,
+        "hit_rate": 0.7143,
+        "recall": 0.4762,
+        "precision": 0.2143,
+        "ndcg": 0.4708,
+        "mrr": 0.5952,
+        "passed_count": 10,
+        "failed_count": 4,
+        "avg_selected_context_chars": 3509.5,
+        "avg_selected_context_tokens": 877.7143
+      },
+      "cache_reuse_valid": true,
+      "query_cache_hits": 16,
+      "query_cache_misses": 0,
+      "cases": [
+        {
+          "case_id": "v0-2-baseline-000001",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000019",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000013",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000022",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000016",
+          "group": "semantic-opportunity",
+          "role": "semantic_opportunity",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              3,
+              5,
+              3
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 3,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000041",
+          "group": "semantic-opportunity",
+          "role": "semantic_opportunity",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000003",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "gained"
+        },
+        {
+          "case_id": "v0-2-baseline-000031",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "gained"
+        },
+        {
+          "case_id": "v0-2-baseline-000017",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "gained"
+        },
+        {
+          "case_id": "v0-2-baseline-000046",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "gained"
+        },
+        {
+          "case_id": "v0-2-baseline-000005",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000006",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000036",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000040",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000014",
+          "group": "boundary-canary",
+          "role": "boundary_canary",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              3,
+              4,
+              4
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "boundary"
+        },
+        {
+          "case_id": "v0-2-baseline-000033",
+          "group": "boundary-canary",
+          "role": "boundary_canary",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "boundary"
+        }
+      ]
+    },
+    {
+      "retrieval_mode": "semantic",
+      "limit": 20,
+      "artifact_path": "runs/semantic-k20.json",
+      "result_fingerprint_sha256": "9985d42c2bd5d8e082dc5f968c71c7a3c3dc89617dc6b3517631759cf6bbb538",
+      "baseline_metrics": {
+        "cutoff": 20,
+        "hit_rate": {
+          "average": 0.5625,
+          "minimum": 0.5625,
+          "maximum": 0.5625,
+          "spread": 0.0
+        },
+        "recall": {
+          "average": 0.3021,
+          "minimum": 0.3021,
+          "maximum": 0.3021,
+          "spread": 0.0
+        },
+        "precision": {
+          "average": 0.0281,
+          "minimum": 0.0281,
+          "maximum": 0.0281,
+          "spread": 0.0
+        },
+        "ndcg": {
+          "average": 0.2536,
+          "minimum": 0.2487,
+          "maximum": 0.2632,
+          "spread": 0.0145
+        },
+        "mrr": {
+          "average": 0.3081,
+          "minimum": 0.2972,
+          "maximum": 0.3291,
+          "spread": 0.0319
+        },
+        "passed_count": {
+          "average": 9.0,
+          "minimum": 9.0,
+          "maximum": 9.0,
+          "spread": 0.0
+        },
+        "failed_count": {
+          "average": 7.0,
+          "minimum": 7.0,
+          "maximum": 7.0,
+          "spread": 0.0
+        },
+        "avg_selected_context_chars": {
+          "average": 5363.8333,
+          "minimum": 5284.8125,
+          "maximum": 5434.4375,
+          "spread": 149.625
+        },
+        "avg_selected_context_tokens": {
+          "average": 1341.3542,
+          "minimum": 1321.625,
+          "maximum": 1359.0,
+          "spread": 37.375
+        }
+      },
+      "candidate_metrics": {
+        "cutoff": 20,
+        "hit_rate": 0.8125,
+        "recall": 0.5833,
+        "precision": 0.0656,
+        "ndcg": 0.5093,
+        "mrr": 0.5953,
+        "passed_count": 13,
+        "failed_count": 3,
+        "avg_selected_context_chars": 14904.6875,
+        "avg_selected_context_tokens": 3726.5
+      },
+      "baseline_gated_metrics": {
+        "cutoff": 20,
+        "hit_rate": {
+          "average": 0.5714,
+          "minimum": 0.5714,
+          "maximum": 0.5714,
+          "spread": 0.0
+        },
+        "recall": {
+          "average": 0.3095,
+          "minimum": 0.3095,
+          "maximum": 0.3095,
+          "spread": 0.0
+        },
+        "precision": {
+          "average": 0.0286,
+          "minimum": 0.0286,
+          "maximum": 0.0286,
+          "spread": 0.0
+        },
+        "ndcg": {
+          "average": 0.271,
+          "minimum": 0.2653,
+          "maximum": 0.2819,
+          "spread": 0.0166
+        },
+        "mrr": {
+          "average": 0.3342,
+          "minimum": 0.3218,
+          "maximum": 0.3583,
+          "spread": 0.0365
+        },
+        "passed_count": {
+          "average": 8.0,
+          "minimum": 8.0,
+          "maximum": 8.0,
+          "spread": 0.0
+        },
+        "failed_count": {
+          "average": 6.0,
+          "minimum": 6.0,
+          "maximum": 6.0,
+          "spread": 0.0
+        },
+        "avg_selected_context_chars": {
+          "average": 5714.6666,
+          "minimum": 5624.3571,
+          "maximum": 5795.3571,
+          "spread": 171.0
+        },
+        "avg_selected_context_tokens": {
+          "average": 1429.0476,
+          "minimum": 1406.5,
+          "maximum": 1449.2143,
+          "spread": 42.7143
+        }
+      },
+      "candidate_gated_metrics": {
+        "cutoff": 20,
+        "hit_rate": 0.7857,
+        "recall": 0.5714,
+        "precision": 0.0643,
+        "ndcg": 0.507,
+        "mrr": 0.6024,
+        "passed_count": 11,
+        "failed_count": 3,
+        "avg_selected_context_chars": 14839.6429,
+        "avg_selected_context_tokens": 3710.2857
+      },
+      "cache_reuse_valid": true,
+      "query_cache_hits": 16,
+      "query_cache_misses": 0,
+      "cases": [
+        {
+          "case_id": "v0-2-baseline-000001",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000019",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000013",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000022",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000016",
+          "group": "semantic-opportunity",
+          "role": "semantic_opportunity",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              3,
+              3,
+              3
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 3,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000041",
+          "group": "semantic-opportunity",
+          "role": "semantic_opportunity",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000003",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              14,
+              14,
+              14
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000031",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "gained"
+        },
+        {
+          "case_id": "v0-2-baseline-000017",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              10,
+              9,
+              9
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000046",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "gained"
+        },
+        {
+          "case_id": "v0-2-baseline-000005",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 10,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "gained"
+        },
+        {
+          "case_id": "v0-2-baseline-000006",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000036",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000040",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000014",
+          "group": "boundary-canary",
+          "role": "boundary_canary",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              4,
+              4,
+              4
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "boundary"
+        },
+        {
+          "case_id": "v0-2-baseline-000033",
+          "group": "boundary-canary",
+          "role": "boundary_canary",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 11,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "boundary"
+        }
+      ]
+    },
+    {
+      "retrieval_mode": "hybrid",
+      "limit": 5,
+      "artifact_path": "runs/hybrid-k5.json",
+      "result_fingerprint_sha256": "53d22ff8dd3ff99c6e526a7c183d6870c7338f3cec5859b5d60c1dd56b142b47",
+      "baseline_metrics": {
+        "cutoff": 5,
+        "hit_rate": {
+          "average": 0.625,
+          "minimum": 0.5625,
+          "maximum": 0.6875,
+          "spread": 0.125
+        },
+        "recall": {
+          "average": 0.3715,
+          "minimum": 0.3438,
+          "maximum": 0.3958,
+          "spread": 0.052
+        },
+        "precision": {
+          "average": 0.1625,
+          "minimum": 0.15,
+          "maximum": 0.175,
+          "spread": 0.025
+        },
+        "ndcg": {
+          "average": 0.3503,
+          "minimum": 0.3359,
+          "maximum": 0.3621,
+          "spread": 0.0262
+        },
+        "mrr": {
+          "average": 0.45,
+          "minimum": 0.4375,
+          "maximum": 0.4625,
+          "spread": 0.025
+        },
+        "passed_count": {
+          "average": 10.0,
+          "minimum": 9.0,
+          "maximum": 11.0,
+          "spread": 2.0
+        },
+        "failed_count": {
+          "average": 6.0,
+          "minimum": 5.0,
+          "maximum": 7.0,
+          "spread": 2.0
+        },
+        "avg_selected_context_chars": {
+          "average": 2892.8958,
+          "minimum": 2864.0,
+          "maximum": 2929.125,
+          "spread": 65.125
+        },
+        "avg_selected_context_tokens": {
+          "average": 723.5417,
+          "minimum": 716.3125,
+          "maximum": 732.625,
+          "spread": 16.3125
+        }
+      },
+      "candidate_metrics": {
+        "cutoff": 5,
+        "hit_rate": 0.625,
+        "recall": 0.4167,
+        "precision": 0.1875,
+        "ndcg": 0.4307,
+        "mrr": 0.5781,
+        "passed_count": 10,
+        "failed_count": 6,
+        "avg_selected_context_chars": 4040.375,
+        "avg_selected_context_tokens": 1010.375
+      },
+      "baseline_gated_metrics": {
+        "cutoff": 5,
+        "hit_rate": {
+          "average": 0.6429,
+          "minimum": 0.6429,
+          "maximum": 0.6429,
+          "spread": 0.0
+        },
+        "recall": {
+          "average": 0.3929,
+          "minimum": 0.3929,
+          "maximum": 0.3929,
+          "spread": 0.0
+        },
+        "precision": {
+          "average": 0.1714,
+          "minimum": 0.1714,
+          "maximum": 0.1714,
+          "spread": 0.0
+        },
+        "ndcg": {
+          "average": 0.3847,
+          "minimum": 0.3839,
+          "maximum": 0.3862,
+          "spread": 0.0023
+        },
+        "mrr": {
+          "average": 0.5,
+          "minimum": 0.5,
+          "maximum": 0.5,
+          "spread": 0.0
+        },
+        "passed_count": {
+          "average": 9.0,
+          "minimum": 9.0,
+          "maximum": 9.0,
+          "spread": 0.0
+        },
+        "failed_count": {
+          "average": 5.0,
+          "minimum": 5.0,
+          "maximum": 5.0,
+          "spread": 0.0
+        },
+        "avg_selected_context_chars": {
+          "average": 2898.8334,
+          "minimum": 2868.2143,
+          "maximum": 2914.1429,
+          "spread": 45.9286
+        },
+        "avg_selected_context_tokens": {
+          "average": 725.0238,
+          "minimum": 717.3571,
+          "maximum": 728.8571,
+          "spread": 11.5
+        }
+      },
+      "candidate_gated_metrics": {
+        "cutoff": 5,
+        "hit_rate": 0.6429,
+        "recall": 0.4405,
+        "precision": 0.2,
+        "ndcg": 0.4484,
+        "mrr": 0.5893,
+        "passed_count": 9,
+        "failed_count": 5,
+        "avg_selected_context_chars": 3969.2143,
+        "avg_selected_context_tokens": 992.5714
+      },
+      "cache_reuse_valid": true,
+      "query_cache_hits": 16,
+      "query_cache_misses": 0,
+      "cases": [
+        {
+          "case_id": "v0-2-baseline-000001",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000019",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000013",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000022",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000016",
+          "group": "semantic-opportunity",
+          "role": "semantic_opportunity",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000041",
+          "group": "semantic-opportunity",
+          "role": "semantic_opportunity",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 4,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000003",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000031",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000017",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000046",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000005",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000006",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000036",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000040",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000014",
+          "group": "boundary-canary",
+          "role": "boundary_canary",
+          "baseline": {
+            "hit_count": 2,
+            "ranks": [
+              5,
+              null,
+              5
+            ],
+            "failure_types": [
+              null,
+              "wrong_section",
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "boundary"
+        },
+        {
+          "case_id": "v0-2-baseline-000033",
+          "group": "boundary-canary",
+          "role": "boundary_canary",
+          "baseline": {
+            "hit_count": 1,
+            "ranks": [
+              5,
+              null,
+              null
+            ],
+            "failure_types": [
+              null,
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "boundary"
+        }
+      ]
+    },
+    {
+      "retrieval_mode": "hybrid",
+      "limit": 20,
+      "artifact_path": "runs/hybrid-k20.json",
+      "result_fingerprint_sha256": "c1b47b8e75b672b42462a66db04c59d717ce2bb9c3651c0b75103cdebbb63784",
+      "baseline_metrics": {
+        "cutoff": 20,
+        "hit_rate": {
+          "average": 0.75,
+          "minimum": 0.75,
+          "maximum": 0.75,
+          "spread": 0.0
+        },
+        "recall": {
+          "average": 0.5,
+          "minimum": 0.5,
+          "maximum": 0.5,
+          "spread": 0.0
+        },
+        "precision": {
+          "average": 0.0562,
+          "minimum": 0.0562,
+          "maximum": 0.0562,
+          "spread": 0.0
+        },
+        "ndcg": {
+          "average": 0.3852,
+          "minimum": 0.3833,
+          "maximum": 0.3881,
+          "spread": 0.0048
+        },
+        "mrr": {
+          "average": 0.4561,
+          "minimum": 0.4516,
+          "maximum": 0.4635,
+          "spread": 0.0119
+        },
+        "passed_count": {
+          "average": 12.0,
+          "minimum": 12.0,
+          "maximum": 12.0,
+          "spread": 0.0
+        },
+        "failed_count": {
+          "average": 4.0,
+          "minimum": 4.0,
+          "maximum": 4.0,
+          "spread": 0.0
+        },
+        "avg_selected_context_chars": {
+          "average": 12084.0208,
+          "minimum": 12057.125,
+          "maximum": 12122.1875,
+          "spread": 65.0625
+        },
+        "avg_selected_context_tokens": {
+          "average": 3021.5208,
+          "minimum": 3014.8125,
+          "maximum": 3031.0625,
+          "spread": 16.25
+        }
+      },
+      "candidate_metrics": {
+        "cutoff": 20,
+        "hit_rate": 0.875,
+        "recall": 0.6146,
+        "precision": 0.0688,
+        "ndcg": 0.5043,
+        "mrr": 0.6146,
+        "passed_count": 14,
+        "failed_count": 2,
+        "avg_selected_context_chars": 16612.5,
+        "avg_selected_context_tokens": 4153.5
+      },
+      "baseline_gated_metrics": {
+        "cutoff": 20,
+        "hit_rate": {
+          "average": 0.7143,
+          "minimum": 0.7143,
+          "maximum": 0.7143,
+          "spread": 0.0
+        },
+        "recall": {
+          "average": 0.4762,
+          "minimum": 0.4762,
+          "maximum": 0.4762,
+          "spread": 0.0
+        },
+        "precision": {
+          "average": 0.0536,
+          "minimum": 0.0536,
+          "maximum": 0.0536,
+          "spread": 0.0
+        },
+        "ndcg": {
+          "average": 0.4014,
+          "minimum": 0.3992,
+          "maximum": 0.4047,
+          "spread": 0.0055
+        },
+        "mrr": {
+          "average": 0.5004,
+          "minimum": 0.4952,
+          "maximum": 0.5089,
+          "spread": 0.0137
+        },
+        "passed_count": {
+          "average": 10.0,
+          "minimum": 10.0,
+          "maximum": 10.0,
+          "spread": 0.0
+        },
+        "failed_count": {
+          "average": 4.0,
+          "minimum": 4.0,
+          "maximum": 4.0,
+          "spread": 0.0
+        },
+        "avg_selected_context_chars": {
+          "average": 12323.881,
+          "minimum": 12293.1429,
+          "maximum": 12367.5,
+          "spread": 74.3571
+        },
+        "avg_selected_context_tokens": {
+          "average": 3081.4524,
+          "minimum": 3073.7857,
+          "maximum": 3092.3571,
+          "spread": 18.5714
+        }
+      },
+      "candidate_gated_metrics": {
+        "cutoff": 20,
+        "hit_rate": 0.8571,
+        "recall": 0.6071,
+        "precision": 0.0679,
+        "ndcg": 0.5134,
+        "mrr": 0.6265,
+        "passed_count": 12,
+        "failed_count": 2,
+        "avg_selected_context_chars": 16476.5714,
+        "avg_selected_context_tokens": 4119.5
+      },
+      "cache_reuse_valid": true,
+      "query_cache_hits": 16,
+      "query_cache_misses": 0,
+      "cases": [
+        {
+          "case_id": "v0-2-baseline-000001",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000019",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000013",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000022",
+          "group": "stable-control",
+          "role": "stable_control",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000016",
+          "group": "semantic-opportunity",
+          "role": "semantic_opportunity",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              10,
+              8,
+              8
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 9,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000041",
+          "group": "semantic-opportunity",
+          "role": "semantic_opportunity",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              3,
+              2,
+              3
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 4,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000003",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000031",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000017",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000046",
+          "group": "wrong-section-challenge",
+          "role": "wrong_section_challenge",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "retained"
+        },
+        {
+          "case_id": "v0-2-baseline-000005",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 13,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "gained"
+        },
+        {
+          "case_id": "v0-2-baseline-000006",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000036",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 3,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "gained"
+        },
+        {
+          "case_id": "v0-2-baseline-000040",
+          "group": "hard-miss",
+          "role": "hard_miss",
+          "baseline": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "candidate_mapping_coverage": 1.0,
+          "transition": "unchanged_miss"
+        },
+        {
+          "case_id": "v0-2-baseline-000014",
+          "group": "boundary-canary",
+          "role": "boundary_canary",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              6,
+              6,
+              6
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "boundary"
+        },
+        {
+          "case_id": "v0-2-baseline-000033",
+          "group": "boundary-canary",
+          "role": "boundary_canary",
+          "baseline": {
+            "hit_count": 3,
+            "ranks": [
+              8,
+              8,
+              8
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 16,
+          "candidate_failure_type": null,
+          "candidate_mapping_coverage": 1.0,
+          "transition": "boundary"
+        }
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "name": "semantic_stable_hits_retained",
+      "passed": true,
+      "observed": "losses=0",
+      "requirement": "losses<=0",
+      "case_ids": []
+    },
+    {
+      "name": "no_new_missed_source",
+      "passed": true,
+      "observed": "new_results=0",
+      "requirement": "new_results<=0",
+      "case_ids": []
+    },
+    {
+      "name": "semantic_challenge_gain",
+      "passed": true,
+      "observed": "new_top5=4,new_top20=3",
+      "requirement": "new_top5>=1 or new_top20>=2",
+      "case_ids": [
+        "v0-2-baseline-000003",
+        "v0-2-baseline-000005",
+        "v0-2-baseline-000017",
+        "v0-2-baseline-000031",
+        "v0-2-baseline-000046"
+      ]
+    },
+    {
+      "name": "hybrid_top5_net_nonnegative",
+      "passed": true,
+      "observed": "hit_delta=0",
+      "requirement": "hit_delta>=0",
+      "case_ids": []
+    },
+    {
+      "name": "hybrid_top5_context_tokens",
+      "passed": false,
+      "observed": "ratio=1.3690",
+      "requirement": "ratio<=1.1000",
+      "case_ids": []
+    },
+    {
+      "name": "complete_evidence_mapping",
+      "passed": true,
+      "observed": "incomplete_results=0",
+      "requirement": "incomplete_results=0",
+      "case_ids": []
+    }
+  ],
+  "valid": true,
+  "promotion_applicable": true,
+  "promoted": false
+}

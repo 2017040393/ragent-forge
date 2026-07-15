@@ -221,6 +221,46 @@ PDF section cues 是当前最有方向性的改进。
 为 `1.4185`，超过 `1.10`。因此 E3a 不能晋级；E3b 继续完整复用 E3a，只增加
 高置信度 formula evidence。
 
+## E3b Candidate Result
+
+E3b 完整复用 E3a 的 PDF cleaning、section cues 和 E2 的
+`instructed_query_v1`，只增加从当前 chunk `possible_formula_lines` 生成的确定性
+`Formula evidence`。结果 artifacts：
+[`E3b-pdf-formula-d21c91b`](../benchmarks/results/screens/E3b-pdf-formula-d21c91b)，
+candidate manifest：
+[`retrieval_screen_manifest_e3b.json`](../benchmarks/retrieval_screen_manifest_e3b.json)。
+
+| Item | Value |
+|---|---|
+| Evaluation commit | `d21c91b` |
+| Workspace build commit | `3e5758c` |
+| Workspace snapshot | `snapshot-20260715T070507Z-e2ed57b0` |
+| Document representation | `cleaned_pdf_formula_text_v1` |
+| Query representation | `instructed_query_v1` |
+| Chunk content fingerprint | unchanged: `a99c38a3...3278a` |
+| Index input fingerprint | `48b5f9be...ab9e4` |
+| Query cache | 16 entries, 64 hits, 0 misses |
+| Structural result | `valid: true` |
+| Promotion | rejected |
+
+Quality comparison 以 manifest 冻结的三轮 parent baseline mean 为 E0 reference；
+E3a 仅作方向对照：
+
+| Configuration | E0 parent hit | E3a hit | E3b hit | E0 parent gated | E3b gated |
+|---|---:|---:|---:|---:|---:|
+| Semantic@5 | 0.4375 | 0.6250 | 0.6875 | 0.4286 | 0.7143 |
+| Semantic@20 | 0.5625 | 0.8125 | 0.8125 | 0.5714 | 0.7857 |
+| Hybrid@5 | 0.6250 | 0.6875 | 0.6250 | 0.6429 | 0.6429 |
+| Hybrid@20 | 0.7500 | 0.8125 | 0.8750 | 0.7143 | 0.8571 |
+
+E3b 保留全部 stable Semantic@5 hits，并在 challenge/hard cases 相对 E0 parent
+新增 4 个 Semantic@5 hit 和 3 个 Semantic@20 hit；没有新增 `missed_source`，
+Hybrid@5 gated hit 与 parent 持平，evidence mapping coverage 保持完整。相对 E3a，
+它恢复了 `000016` 并提高 Hybrid@20，但不再保留 `000036` 的 Hybrid@5 增益。
+
+唯一失败 gate 是 `hybrid_top5_context_tokens`：ratio 从 E3a 的 `1.4185` 改善到
+`1.3690`，仍高于 `1.10`。因此 E3b 不进入 50-case direction confirmation。
+
 ## Reproduction
 
 ```powershell
@@ -236,7 +276,8 @@ snapshot、variant、mode、limit、case set 和已有 run artifact。
 
 ## 下一步
 
-E3a 已证明 PDF section representation 有明显方向性价值，但尚未通过全部 gates。
-下一轮 E3b 保留 E3a cleaning、section cues、`instructed_query_v1` 和同一 screen，
-只增加高置信度 formula evidence。不调 Hybrid 权重，也不运行 50-case，直到候选通过
-全部 promotion gates。
+E3a/E3b 已完成。结果支持 PDF section 和 formula representation 的方向，但 E3b
+仍未通过 context-token gate，因此不运行 50-case，也不把任何 E3 variant 设为默认。
+后续实验应单独隔离 context selection：在保持 E3b ranking 和全部冻结输入不变时，
+验证 token-budgeted selection 是否能把 ratio 压到 `1.10` 内。该实验需要新的 variant
+和 manifest，不能改写 E3b artifacts。
