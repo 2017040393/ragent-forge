@@ -18,7 +18,7 @@ from ragent_forge.core.retrieval.contracts import ChunkRecord
 from ragent_forge.core.retrieval.representations import (
     EMBEDDING_REPRESENTATIONS,
     EmbeddingRepresentation,
-    build_embedding_text,
+    build_embedding_texts,
     embedding_input_fingerprint,
 )
 
@@ -70,8 +70,7 @@ class IndexBuildService:
             raise ValueError("embedding.batch_size must be greater than 0")
         if embedding_representation not in EMBEDDING_REPRESENTATIONS:
             raise ValueError(
-                "Unsupported embedding representation: "
-                f"{embedding_representation!r}"
+                f"Unsupported embedding representation: {embedding_representation!r}"
             )
 
         chunks = self.workspace.read_chunks()
@@ -81,12 +80,14 @@ class IndexBuildService:
             and self.workspace.uses_generation_layout()
         ):
             snapshot_id = self.workspace.new_snapshot_id()
+        all_embedding_texts = build_embedding_texts(
+            chunks,
+            embedding_representation,
+        )
         records: list[VectorIndexRecord] = []
-        for batch in _batched(chunks, batch_size):
-            embedding_texts = [
-                build_embedding_text(chunk, embedding_representation)
-                for chunk in batch
-            ]
+        for start in range(0, len(chunks), batch_size):
+            batch = chunks[start : start + batch_size]
+            embedding_texts = all_embedding_texts[start : start + batch_size]
             embedding_result = self.embedding_service.embed_texts(embedding_texts)
             if len(embedding_result.embeddings) != len(batch):
                 raise ValueError(
@@ -95,9 +96,10 @@ class IndexBuildService:
             paired_embeddings = zip(
                 batch,
                 embedding_result.embeddings,
+                embedding_texts,
                 strict=True,
             )
-            for chunk, embedding in paired_embeddings:
+            for chunk, embedding, embedding_text in paired_embeddings:
                 index_chunk: ChunkRecord = {
                     **chunk,
                     "snapshot_id": snapshot_id,
@@ -108,18 +110,13 @@ class IndexBuildService:
                         embedding_provider=embedding_result.provider_name,
                         embedding_model=embedding_result.model,
                         embedding=embedding,
-                        embedding_text=build_embedding_text(
-                            index_chunk, embedding_representation
-                        ),
+                        embedding_text=embedding_text,
                         embedding_representation=embedding_representation,
                     )
                 )
 
         index_input_sha256 = embedding_input_fingerprint(
-            [
-                (record.chunk_id, record.text_hash)
-                for record in records
-            ]
+            [(record.chunk_id, record.text_hash) for record in records]
         )
         write_result = self.vector_index_service.write_index(
             records,
@@ -143,13 +140,3 @@ class IndexBuildService:
             embedding_representation=embedding_representation,
             index_input_sha256=index_input_sha256,
         )
-
-
-def _batched(
-    chunks: list[ChunkRecord],
-    batch_size: int,
-) -> list[list[ChunkRecord]]:
-    return [
-        chunks[start : start + batch_size]
-        for start in range(0, len(chunks), batch_size)
-    ]

@@ -1,6 +1,9 @@
+from typing import cast
+
 from ragent_forge.core.retrieval.contracts import ChunkRecord
 from ragent_forge.core.retrieval.representations import (
     build_embedding_text,
+    build_embedding_texts,
     build_query_embedding_text,
     build_structured_document_text_v1,
 )
@@ -88,3 +91,85 @@ def test_raw_query_representation_is_exactly_the_original_query() -> None:
     query = "  preserve surrounding whitespace  "
 
     assert build_query_embedding_text(query, "raw_query_v1") == query
+
+
+def test_cleaned_pdf_section_v1_cleans_and_propagates_section() -> None:
+    first = cast(
+        ChunkRecord,
+        {
+            **make_chunk(
+                {
+                    "media_type": "application/pdf",
+                    "page_start": 53,
+                    "page_end": 53,
+                    "block_types": ["paragraph"],
+                }
+            ),
+            "chunk_id": "docs/book.pdf::chunk-0000",
+            "document_id": "docs/book.pdf",
+            "source_path": "docs/book.pdf",
+            "text": (
+                "3\nRandom Vectors in High Dimensions\nProb-\nability (cid:30)tools."
+            ),
+        },
+    )
+    second = cast(
+        ChunkRecord,
+        {
+            **first,
+            "chunk_id": "docs/book.pdf::chunk-0001",
+            "text": "54\nFurther results in this chapter.",
+        },
+    )
+    other_document = cast(
+        ChunkRecord,
+        {
+            **first,
+            "chunk_id": "docs/other.pdf::chunk-0000",
+            "document_id": "docs/other.pdf",
+            "source_path": "docs/other.pdf",
+            "text": "54\nplain continuation without a heading.",
+        },
+    )
+
+    texts = build_embedding_texts(
+        [first, second, other_document],
+        "cleaned_pdf_section_text_v1",
+    )
+
+    assert "Section: Random Vectors in High Dimensions" in texts[0]
+    assert "Content:\nRandom Vectors in High Dimensions Probability tools." in texts[0]
+    assert "Section: Random Vectors in High Dimensions" in texts[1]
+    assert "Content:\nFurther results in this chapter." in texts[1]
+    assert "Section: unknown" in texts[2]
+
+
+def test_cleaned_pdf_section_v1_prefers_local_numbered_heading() -> None:
+    chunk = cast(
+        ChunkRecord,
+        {
+            **make_chunk(
+                {
+                    "media_type": "application/pdf",
+                    "page_start": 63,
+                    "block_types": ["paragraph"],
+                }
+            ),
+            "chunk_id": "docs/book.pdf::chunk-0002",
+            "document_id": "docs/book.pdf",
+            "source_path": "docs/book.pdf",
+            "text": "3.3.2 Multivariate Normal\nThe standard normal distribution...",
+        },
+    )
+
+    text = build_embedding_text(chunk, "cleaned_pdf_section_text_v1")
+
+    assert "Section: 3.3.2 Multivariate Normal" in text
+
+
+def test_cleaned_pdf_section_v1_keeps_markdown_representation_unchanged() -> None:
+    chunk = make_chunk({"heading_path": ["Retrieval", "Hybrid"]})
+
+    assert build_embedding_text(
+        chunk, "cleaned_pdf_section_text_v1"
+    ) == build_structured_document_text_v1(chunk)

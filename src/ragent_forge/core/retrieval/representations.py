@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Literal
 
@@ -11,11 +13,13 @@ from ragent_forge.core.retrieval.contracts import ChunkRecord
 EmbeddingRepresentation = Literal[
     "raw_chunk_text_v1",
     "structured_document_text_v1",
+    "cleaned_pdf_section_text_v1",
 ]
 
 EMBEDDING_REPRESENTATIONS: tuple[EmbeddingRepresentation, ...] = (
     "raw_chunk_text_v1",
     "structured_document_text_v1",
+    "cleaned_pdf_section_text_v1",
 )
 
 QueryEmbeddingRepresentation = Literal[
@@ -34,6 +38,70 @@ INSTRUCTED_QUERY_V1_PREFIX = (
     "document.\nQuery: "
 )
 
+_CID_MARKER_PATTERN = re.compile(r"\(cid:\d+\)", re.IGNORECASE)
+_ISOLATED_PAGE_NUMBER_PATTERN = re.compile(r"^\d{1,4}$")
+_ASCII_LINE_BREAK_HYPHEN_PATTERN = re.compile(r"([A-Za-z])-\s*\n\s*([a-z])")
+_NUMBERED_HEADING_PATTERN = re.compile(r"^(\d+(?:\.\d+){1,4})\s+(.{3,160})$")
+_STRUCTURAL_HEADING_PATTERN = re.compile(
+    r"^(?:chapter|part|section)\b.{2,160}$",
+    re.IGNORECASE,
+)
+_LOCAL_LABEL_PATTERN = re.compile(
+    r"^(?:definition|example|theorem|lemma|proposition|corollary|exercise)"
+    r"\b.{2,160}$",
+    re.IGNORECASE,
+)
+_PAGE_PREFIX_PATTERN = re.compile(r"^\d{1,4}\s+(.{3,120})$")
+_MATH_HEADING_NOISE = frozenset("=<>\u2264\u2265\u2248\u2211\u222b\u221a^{}[]")
+_TITLE_SMALL_WORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "as",
+        "at",
+        "by",
+        "for",
+        "from",
+        "in",
+        "of",
+        "on",
+        "or",
+        "over",
+        "the",
+        "to",
+        "with",
+    }
+)
+_BIBLIOGRAPHIC_NOISE_WORDS = frozenset(
+    {
+        "cambridge",
+        "copyright",
+        "discrete",
+        "geometry",
+        "institute",
+        "isbn",
+        "library",
+        "longman",
+        "monographs",
+        "north-holland",
+        "press",
+        "series",
+        "university",
+        "volume",
+        "vol",
+        "wiley",
+        "springer",
+        "surveys",
+    }
+)
+
+
+@dataclass(frozen=True)
+class _PdfHeadingScan:
+    local_headings: tuple[str, ...]
+    propagated_heading: str | None
+
 
 def build_embedding_text(
     chunk: ChunkRecord,
@@ -41,10 +109,21 @@ def build_embedding_text(
 ) -> str:
     """Build the deterministic document-side input for an embedding provider."""
 
+    return build_embedding_texts([chunk], representation)[0]
+
+
+def build_embedding_texts(
+    chunks: Sequence[ChunkRecord],
+    representation: EmbeddingRepresentation = "raw_chunk_text_v1",
+) -> list[str]:
+    """Build document inputs while preserving cross-chunk representation state."""
+
     if representation == "raw_chunk_text_v1":
-        return chunk["text"]
+        return [chunk["text"] for chunk in chunks]
     if representation == "structured_document_text_v1":
-        return build_structured_document_text_v1(chunk)
+        return [build_structured_document_text_v1(chunk) for chunk in chunks]
+    if representation == "cleaned_pdf_section_text_v1":
+        return _build_cleaned_pdf_section_texts_v1(chunks)
     raise ValueError(f"Unsupported embedding representation: {representation!r}")
 
 
@@ -58,9 +137,7 @@ def build_query_embedding_text(
         return query
     if representation == "instructed_query_v1":
         return f"{INSTRUCTED_QUERY_V1_PREFIX}{query}"
-    raise ValueError(
-        f"Unsupported query embedding representation: {representation!r}"
-    )
+    raise ValueError(f"Unsupported query embedding representation: {representation!r}")
 
 
 def build_structured_document_text_v1(chunk: ChunkRecord) -> str:
@@ -96,6 +173,221 @@ def build_structured_document_text_v1(chunk: ChunkRecord) -> str:
             chunk["text"],
         )
     )
+
+
+def _build_cleaned_pdf_section_texts_v1(
+    chunks: Sequence[ChunkRecord],
+) -> list[str]:
+    current_section_by_document: dict[str, str] = {}
+    inputs: list[str] = []
+    for chunk in chunks:
+        if not _is_pdf_chunk(chunk):
+            inputs.append(build_structured_document_text_v1(chunk))
+            continue
+
+        document_id = chunk["document_id"]
+        metadata = chunk.get("metadata", {})
+        heading_scan = _pdf_heading_scan(chunk["text"], metadata)
+        local_headings = heading_scan.local_headings
+        metadata_section = _metadata_section(metadata)
+        if metadata_section:
+            section = metadata_section
+            current_section_by_document[document_id] = metadata_section
+        elif local_headings:
+            section = " | ".join(local_headings)
+        else:
+            section = current_section_by_document.get(document_id, "unknown")
+        if heading_scan.propagated_heading is not None:
+            current_section_by_document[document_id] = (
+                heading_scan.propagated_heading
+            )
+        inputs.append(_build_cleaned_pdf_section_text_v1(chunk, section))
+    return inputs
+
+
+def _build_cleaned_pdf_section_text_v1(
+    chunk: ChunkRecord,
+    section: str,
+) -> str:
+    metadata = chunk.get("metadata", {})
+    cleaned_content = _clean_pdf_embedding_text(chunk["text"], metadata)
+    if not cleaned_content:
+        raise ValueError(
+            "PDF embedding cleanup produced empty content for chunk "
+            f"{chunk['chunk_id']!r}"
+        )
+    block_types = _sorted_metadata_strings(
+        metadata.get("block_types"), metadata.get("block_type")
+    )
+    heading_path = _metadata_strings(metadata.get("heading_path"))
+    title = (
+        _metadata_string(metadata.get("document_title"))
+        or _metadata_string(metadata.get("title"))
+        or (heading_path[0] if heading_path else "")
+        or _source_stem(chunk)
+        or "unknown"
+    )
+    block_label = ", ".join(block_types) if block_types else "unknown"
+    return "\n".join(
+        (
+            f"Document title: {title}",
+            f"Source: {_stable_source(chunk)}",
+            f"Section: {section}",
+            f"Page: {_page_label(metadata)}",
+            f"Block types: {block_label}",
+            f"Signals: {_signals(metadata, block_types)}",
+            "Content:",
+            cleaned_content,
+        )
+    )
+
+
+def _clean_pdf_embedding_text(
+    text: str,
+    metadata: dict[str, object],
+) -> str:
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    normalized = normalized.replace("\u00ad", "")
+    header_footer_candidates = {
+        " ".join(candidate.split()).casefold()
+        for candidate in _metadata_strings(metadata.get("header_footer_candidates"))
+    }
+    kept_lines: list[str] = []
+    for raw_line in normalized.splitlines():
+        line = " ".join(raw_line.strip().split())
+        if not line:
+            kept_lines.append("")
+            continue
+        if line.casefold() in header_footer_candidates:
+            continue
+        if _ISOLATED_PAGE_NUMBER_PATTERN.fullmatch(line):
+            continue
+        kept_lines.append(line)
+    cleaned = "\n".join(kept_lines)
+    cleaned = _CID_MARKER_PATTERN.sub("", cleaned)
+    cleaned = _ASCII_LINE_BREAK_HYPHEN_PATTERN.sub(r"\1\2", cleaned)
+    return " ".join(cleaned.split())
+
+
+def _metadata_section(metadata: dict[str, object]) -> str | None:
+    heading_path = _metadata_strings(metadata.get("heading_path"))
+    if heading_path:
+        return " > ".join(heading_path)
+    return _metadata_string(metadata.get("section_title"))
+
+
+def _pdf_heading_scan(
+    text: str,
+    metadata: dict[str, object],
+) -> _PdfHeadingScan:
+    header_footer_candidates = {
+        " ".join(candidate.split()).casefold()
+        for candidate in _metadata_strings(
+            metadata.get("header_footer_candidates")
+        )
+    }
+    lines = [
+        " ".join(_CID_MARKER_PATTERN.sub("", line).strip().split())
+        for line in text.replace("\r\n", "\n").replace("\r", "\n").splitlines()
+    ]
+    lines = [
+        line
+        for line in lines
+        if line and line.casefold() not in header_footer_candidates
+    ]
+    headings: list[str] = []
+    propagated_heading: str | None = None
+    for index, line in enumerate(lines[:40]):
+        candidate, propagates = _pdf_heading_candidate(
+            line,
+            lines[index + 1] if index + 1 < len(lines) else None,
+            page_lead=index < 3,
+        )
+        if candidate and candidate.casefold() not in {
+            heading.casefold() for heading in headings
+        }:
+            headings.append(candidate)
+        if candidate and propagates:
+            propagated_heading = candidate
+        if len(headings) == 3:
+            break
+    return _PdfHeadingScan(
+        local_headings=tuple(headings),
+        propagated_heading=propagated_heading,
+    )
+
+
+def _pdf_heading_candidate(
+    line: str,
+    next_line: str | None,
+    *,
+    page_lead: bool,
+) -> tuple[str | None, bool]:
+    if _ISOLATED_PAGE_NUMBER_PATTERN.fullmatch(line):
+        if page_lead and next_line is not None and _looks_title_heading(next_line):
+            return next_line, True
+        return None, False
+    if _STRUCTURAL_HEADING_PATTERN.fullmatch(line):
+        return line, True
+    if _LOCAL_LABEL_PATTERN.fullmatch(line):
+        return line, False
+
+    page_prefix = _PAGE_PREFIX_PATTERN.fullmatch(line)
+    if page_lead and page_prefix is not None:
+        value = page_prefix.group(1).strip()
+        if _STRUCTURAL_HEADING_PATTERN.fullmatch(value) or _looks_title_heading(value):
+            return value, True
+
+    numbered = _NUMBERED_HEADING_PATTERN.fullmatch(line)
+    if numbered is None:
+        if page_lead and _looks_title_heading(line):
+            return line, True
+        return None, False
+    label = numbered.group(1)
+    value = numbered.group(2).strip()
+    if any(character in _MATH_HEADING_NOISE for character in value):
+        return None, False
+    if _LOCAL_LABEL_PATTERN.fullmatch(value):
+        return f"{label} {value}", False
+    if _looks_title_heading(value):
+        return f"{label} {value}", True
+    words = re.findall(r"[A-Za-z]+", value)
+    if len(words) >= 2 and not value.endswith((".", "?", "!")):
+        return f"{label} {value}", False
+    return None, False
+
+
+def _looks_title_heading(value: str) -> bool:
+    if (
+        len(value) > 120
+        or "," in value
+        or value.endswith((".", "?", "!", ":", ";"))
+    ):
+        return False
+    if any(character in _MATH_HEADING_NOISE for character in value):
+        return False
+    words = re.findall(r"[A-Za-z]+", value)
+    if not 3 <= len(words) <= 14:
+        return False
+    significant = [word for word in words if word.casefold() not in _TITLE_SMALL_WORDS]
+    if len(significant) < 2:
+        return False
+    if any(
+        word.casefold().rstrip(".") in _BIBLIOGRAPHIC_NOISE_WORDS
+        for word in significant
+    ):
+        return False
+    title_words = sum(word[0].isupper() for word in significant if word)
+    return title_words / len(significant) >= 0.6
+
+
+def _is_pdf_chunk(chunk: ChunkRecord) -> bool:
+    metadata = chunk.get("metadata", {})
+    media_type = _metadata_string(metadata.get("media_type"))
+    if media_type == "application/pdf":
+        return True
+    source_path = _metadata_string(chunk.get("source_path"))
+    return bool(source_path and source_path.casefold().endswith(".pdf"))
 
 
 def embedding_input_fingerprint(
@@ -170,9 +462,7 @@ def _metadata_strings(value: object) -> list[str]:
         return [value.strip()] if value.strip() else []
     if isinstance(value, list | tuple):
         return [
-            item.strip()
-            for item in value
-            if isinstance(item, str) and item.strip()
+            item.strip() for item in value if isinstance(item, str) and item.strip()
         ]
     return []
 
