@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import math
 from time import perf_counter
-from typing import Literal, Protocol
+from typing import Literal, Protocol, runtime_checkable
 
+from ragent_forge.core.retrieval.context_selection import (
+    select_ranked_prefix_with_token_budget,
+)
 from ragent_forge.core.retrieval.contracts import (
     RetrievalCandidate,
     RetrievalRun,
@@ -52,6 +56,13 @@ class ContextSelector(Protocol):
         ...
 
 
+@runtime_checkable
+class ContextSelectionTraceProvider(Protocol):
+    def estimate_tokens(self, context_chars: int) -> int: ...
+
+    def trace_metadata(self) -> dict[str, object]: ...
+
+
 class DefaultQueryProcessor:
     def normalize(self, query: str) -> str:
         return query.strip()
@@ -73,12 +84,71 @@ class ChunkIdDeduplicator:
 
 
 class TopKContextSelector:
+    selection_policy: Literal["top_k_v1"] = "top_k_v1"
+    characters_per_token = 4
+
     def select(
         self,
         candidates: list[RetrievalCandidate],
         limit: int,
     ) -> list[RetrievalCandidate]:
         return candidates[:limit]
+
+    def trace_metadata(self) -> dict[str, object]:
+        return {
+            "selection_policy": self.selection_policy,
+            "characters_per_token": self.characters_per_token,
+        }
+
+    def estimate_tokens(self, context_chars: int) -> int:
+        return math.ceil(context_chars / self.characters_per_token)
+
+
+class RankedPrefixTokenBudgetContextSelector:
+    selection_policy: Literal["ranked_prefix_token_budget_v1"] = (
+        "ranked_prefix_token_budget_v1"
+    )
+
+    def __init__(
+        self,
+        *,
+        max_context_tokens: int,
+        characters_per_token: int = 4,
+    ) -> None:
+        if max_context_tokens <= 0:
+            raise ValueError("max_context_tokens must be greater than 0")
+        if characters_per_token <= 0:
+            raise ValueError("characters_per_token must be greater than 0")
+        self.max_context_tokens = max_context_tokens
+        self.characters_per_token = characters_per_token
+
+    @property
+    def max_context_chars(self) -> int:
+        return self.max_context_tokens * self.characters_per_token
+
+    def select(
+        self,
+        candidates: list[RetrievalCandidate],
+        limit: int,
+    ) -> list[RetrievalCandidate]:
+        return select_ranked_prefix_with_token_budget(
+            candidates,
+            limit=limit,
+            max_context_tokens=self.max_context_tokens,
+            characters_per_token=self.characters_per_token,
+            text_length=lambda candidate: len(candidate.text),
+        )
+
+    def trace_metadata(self) -> dict[str, object]:
+        return {
+            "selection_policy": self.selection_policy,
+            "max_context_tokens": self.max_context_tokens,
+            "characters_per_token": self.characters_per_token,
+            "max_context_chars": self.max_context_chars,
+        }
+
+    def estimate_tokens(self, context_chars: int) -> int:
+        return math.ceil(context_chars / self.characters_per_token)
 
 
 class RetrievalEngine:
@@ -191,15 +261,26 @@ class RetrievalEngine:
 
         context_started = perf_counter()
         results = self.context_selector.select(ranked, limit)
+        selected_context_chars = sum(len(result.text) for result in results)
+        estimated_context_tokens = math.ceil(selected_context_chars / 4)
+        if isinstance(self.context_selector, ContextSelectionTraceProvider):
+            estimated_context_tokens = self.context_selector.estimate_tokens(
+                selected_context_chars
+            )
+        context_outputs: dict[str, object] = {
+            "selected_count": len(results),
+            "selected_chunk_ids": [result.chunk_id for result in results],
+            "selected_context_chars": selected_context_chars,
+            "estimated_context_tokens": estimated_context_tokens,
+        }
+        if isinstance(self.context_selector, ContextSelectionTraceProvider):
+            context_outputs.update(self.context_selector.trace_metadata())
         stages.append(
             RetrievalStageRecord(
                 name="context_selection",
                 status="completed",
                 inputs={"requested_limit": limit},
-                outputs={
-                    "selected_count": len(results),
-                    "selected_chunk_ids": [result.chunk_id for result in results],
-                },
+                outputs=context_outputs,
                 latency_ms=_elapsed_ms(context_started),
             )
         )

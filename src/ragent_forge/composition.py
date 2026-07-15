@@ -18,6 +18,7 @@ from ragent_forge.app.services.hybrid_search_service import (
 )
 from ragent_forge.app.services.prepared_retrieval import PreparedStateCache
 from ragent_forge.app.services.retrieval_pipeline_service import (
+    ContextSelector,
     RetrievalEngine,
 )
 from ragent_forge.app.services.search_service import (
@@ -86,6 +87,7 @@ def build_retrieval_runtime(
     config: AppConfig | None = None,
     prepared_state_cache: PreparedStateCache | None = None,
     embedding_service: EmbeddingServicePort | None = None,
+    context_selector: ContextSelector | None = None,
 ) -> RetrievalRuntime:
     resolved_prepared_state_cache = (
         prepared_state_cache or _prepared_state_cache_for(workspace)
@@ -102,6 +104,7 @@ def build_retrieval_runtime(
                 mode,
                 "lexical_token_overlap",
                 _snapshot_id(workspace),
+                context_selector=context_selector,
             ),
             retrieval_mode=mode,
             retrieval_method="lexical_token_overlap",
@@ -119,6 +122,7 @@ def build_retrieval_runtime(
                 mode,
                 "bm25",
                 _snapshot_id(workspace),
+                context_selector=context_selector,
             ),
             retrieval_mode=mode,
             retrieval_method="bm25",
@@ -139,6 +143,7 @@ def build_retrieval_runtime(
                 mode,
                 "semantic_cosine_similarity",
                 _snapshot_id(workspace),
+                context_selector=context_selector,
             ),
             retrieval_mode=mode,
             retrieval_method="semantic_cosine_similarity",
@@ -164,6 +169,7 @@ def build_retrieval_runtime(
             mode,
             "hybrid_rrf",
             _snapshot_id(workspace),
+            context_selector=context_selector,
         ),
         retrieval_mode=mode,
         retrieval_method="hybrid_rrf",
