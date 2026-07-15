@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "name": "pre-v0.3-context-selection-screen",
+  "description": "Fixed replay screen for token-budgeted context selection over the frozen E3b ranking.",
+  "parent_screen": {
+    "path": "benchmarks/results/screens/E3b-pdf-formula-d21c91b/summary.json",
+    "sha256": "c4292a1f5aafb0151dac0bba2bd5d3d5336d0371f6629b422c5763d3b28ffa0c",
+    "hash_mode": "text_lf",
+    "variant_id": "E3b-pdf-formula",
+    "evaluation_git_commit": "d21c91be55f7fdc4a4f4e860b7b5bb4a2c2c2e59",
+    "workspace_snapshot_id": "snapshot-20260715T070507Z-e2ed57b0",
+    "hybrid_top5_gated_avg_tokens": 725.0238,
+    "runs": [
+      {
+        "path": "benchmarks/results/screens/E3b-pdf-formula-d21c91b/runs/semantic-k5.json",
+        "sha256": "7f96980400ba717388411c0b925863c42a45408a7ec3cce2dba4be9e4b8b850f",
+        "hash_mode": "text_lf",
+        "retrieval_mode": "semantic",
+        "limit": 5,
+        "result_fingerprint_sha256": "b248d3e1e734762995ee02e56d3af2d00f39b5961bf5a46235f5bfc3e1a8dcc9"
+      },
+      {
+        "path": "benchmarks/results/screens/E3b-pdf-formula-d21c91b/runs/hybrid-k5.json",
+        "sha256": "5975b3ab10e20f17f92e75a618110b896c65517dfc922d922e1d6d9f2c0fc875",
+        "hash_mode": "text_lf",
+        "retrieval_mode": "hybrid",
+        "limit": 5,
+        "result_fingerprint_sha256": "53d22ff8dd3ff99c6e526a7c183d6870c7338f3cec5859b5d60c1dd56b142b47"
+      }
+    ]
+  },
+  "variant": {
+    "id": "E4a-ranked-prefix-token-budget",
+    "role": "candidate",
+    "description": "Replay E3b Semantic@5 and Hybrid@5 rankings with an ordered whole-chunk 768-token context budget.",
+    "selection_policy": "ranked_prefix_token_budget_v1",
+    "candidate_limit": 5,
+    "max_context_tokens": 768,
+    "characters_per_token": 4
+  },
+  "case_groups": [
+    {
+      "name": "stable-control",
+      "role": "stable_control",
+      "case_ids": [
+        "v0-2-baseline-000001",
+        "v0-2-baseline-000019",
+        "v0-2-baseline-000013",
+        "v0-2-baseline-000022"
+      ]
+    },
+    {
+      "name": "semantic-opportunity",
+      "role": "semantic_opportunity",
+      "case_ids": [
+        "v0-2-baseline-000016",
+        "v0-2-baseline-000041"
+      ]
+    },
+    {
+      "name": "wrong-section-challenge",
+      "role": "wrong_section_challenge",
+      "case_ids": [
+        "v0-2-baseline-000003",
+        "v0-2-baseline-000031",
+        "v0-2-baseline-000017",
+        "v0-2-baseline-000046"
+      ]
+    },
+    {
+      "name": "hard-miss",
+      "role": "hard_miss",
+      "case_ids": [
+        "v0-2-baseline-000005",
+        "v0-2-baseline-000006",
+        "v0-2-baseline-000036",
+        "v0-2-baseline-000040"
+      ]
+    },
+    {
+      "name": "boundary-canary",
+      "role": "boundary_canary",
+      "case_ids": [
+        "v0-2-baseline-000014",
+        "v0-2-baseline-000033"
+      ]
+    }
+  ],
+  "promotion": {
+    "max_semantic_top5_hit_losses": 0,
+    "max_hybrid_top5_hit_losses": 0,
+    "max_hybrid_top5_token_ratio": 1.1,
+    "min_selected_chunks_per_case": 1
+  }
+}

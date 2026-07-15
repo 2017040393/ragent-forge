@@ -261,6 +261,34 @@ Hybrid@5 gated hit 与 parent 持平，evidence mapping coverage 保持完整。
 唯一失败 gate 是 `hybrid_top5_context_tokens`：ratio 从 E3a 的 `1.4185` 改善到
 `1.3690`，仍高于 `1.10`。因此 E3b 不进入 50-case direction confirmation。
 
+## E4a Context Selection Result
+
+E4a 不重新生成 E3b vectors，而是重放 E3b 已保存的 Semantic@5 和 Hybrid@5
+ranking，只应用 `ranked_prefix_token_budget_v1`：按原 rank 取完整 chunk 前缀，
+不截断、不跳过、不回填，最大 `768` estimated tokens（`3072` characters）。
+结果 artifacts：
+[`E4a-ranked-prefix-token-budget-ed8d609`](../benchmarks/results/context-screens/E4a-ranked-prefix-token-budget-ed8d609)，
+manifest：
+[`context_selection_screen_manifest_e4a.json`](../benchmarks/context_selection_screen_manifest_e4a.json)。
+
+| Item | Value |
+|---|---|
+| Evaluation commit | `ed8d609` |
+| Parent variant | `E3b-pdf-formula` |
+| Selection policy | `ranked_prefix_token_budget_v1` |
+| Max context | `768` estimated tokens / `3072` characters |
+| Semantic@5 parent hits retained | `11/11` |
+| Hybrid@5 parent hits retained | `10/10` |
+| Hybrid@5 gated average | `702.0714` tokens |
+| Hybrid@5 gated token ratio | `0.9683` |
+| Structural result | `valid: true` |
+| Promotion | `promoted: true` |
+
+E4a 通过全部六个 context-selection gates：没有丢失 E3b 的 Semantic/Hybrid Top-5
+相关命中，所有 case 至少保留一个完整 chunk，所有上下文在预算内，且 selected IDs
+始终是 parent ranking 的严格前缀。它修复了 E3b 唯一失败的 context-token gate，
+但只证明固定 16-case screen 上的 context packing 行为，不等于完整 v0.3 release 结论。
+
 ## Reproduction
 
 ```powershell
@@ -276,8 +304,7 @@ snapshot、variant、mode、limit、case set 和已有 run artifact。
 
 ## 下一步
 
-E3a/E3b 已完成。结果支持 PDF section 和 formula representation 的方向，但 E3b
-仍未通过 context-token gate，因此不运行 50-case，也不把任何 E3 variant 设为默认。
-后续实验应单独隔离 context selection：在保持 E3b ranking 和全部冻结输入不变时，
-验证 token-budgeted selection 是否能把 ratio 压到 `1.10` 内。该实验需要新的 variant
-和 manifest，不能改写 E3b artifacts。
+E3a/E3b/E4a screen 已完成。E3b ranking 加 E4a context selection 通过了当前固定
+screen，可以进入 50-case direction confirmation；在此之前不把它设为默认，也不作
+release quality claim。50-case 阶段必须继续固定 E3b workspace、query representation、
+ranking 和 E4a 的 `768`-token prefix policy，并单独记录 full-dataset context retention。
