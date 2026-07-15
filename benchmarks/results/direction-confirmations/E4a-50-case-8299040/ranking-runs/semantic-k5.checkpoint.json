@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4a-direction-confirmation",
+  "candidate_id": "E4a-ranked-prefix-token-budget",
+  "git_commit": "8299040a04ae32f5d5d632713d45f14d6759e9c8",
+  "workspace_snapshot_id": "snapshot-20260715T070507Z-e2ed57b0",
+  "retrieval_mode": "semantic",
+  "ranking_artifact_sha256": "29c32e676d07d76b63013a61b217b70395ca760a9ea1ee37614d1db0e8b1cdd3",
+  "result_fingerprint_sha256": "998a1759fdb7d473f53623ba7de338eb5da6322d87645408c32dae47894d4597",
+  "query_cache_sha256": "c21ac56ab31230f7139fe82a2425b3e92bed10105d7d4642b52cd817bdbb06f9"
+}

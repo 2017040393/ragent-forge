@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "candidate_id": "E4a-ranked-prefix-token-budget",
+  "retrieval_mode": "hybrid",
+  "source_ranking_path": "ranking-runs/hybrid-k5.json",
+  "source_ranking_sha256": "329741e62b5daa9642d7209af48c53551baceef934c737276a10f9d80014812c",
+  "parent_average_context_tokens": 724.5,
+  "maximum_context_token_ratio": 1.1,
+  "characters_per_token": 4,
+  "analyzed_budget_range": {
+    "minimum": 768,
+    "maximum": 1400
+  },
+  "loss_frontier": [
+    {
+      "budget_tokens": 768,
+      "average_selected_context_tokens": 692.34,
+      "context_token_ratio": 0.9556,
+      "ranking_hit_losses": 4
+    },
+    {
+      "budget_tokens": 846,
+      "average_selected_context_tokens": 736.3,
+      "context_token_ratio": 1.0163,
+      "ranking_hit_losses": 3
+    },
+    {
+      "budget_tokens": 922,
+      "average_selected_context_tokens": 804.42,
+      "context_token_ratio": 1.1103,
+      "ranking_hit_losses": 2
+    },
+    {
+      "budget_tokens": 1079,
+      "average_selected_context_tokens": 934.36,
+      "context_token_ratio": 1.2897,
+      "ranking_hit_losses": 1
+    },
+    {
+      "budget_tokens": 1207,
+      "average_selected_context_tokens": 1007.32,
+      "context_token_ratio": 1.3904,
+      "ranking_hit_losses": 0
+    }
+  ],
+  "largest_budget_passing_token_gate": {
+    "budget_tokens": 921,
+    "average_selected_context_tokens": 796.44,
+    "context_token_ratio": 1.0993,
+    "ranking_hit_losses": 3
+  },
+  "minimum_zero_loss_budget": {
+    "budget_tokens": 1207,
+    "average_selected_context_tokens": 1007.32,
+    "context_token_ratio": 1.3904,
+    "ranking_hit_losses": 0
+  },
+  "joint_solution_exists": false
+}

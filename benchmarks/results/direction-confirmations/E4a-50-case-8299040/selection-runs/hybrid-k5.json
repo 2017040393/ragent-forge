@@ -1,0 +1,1697 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4a-direction-confirmation",
+  "candidate_id": "E4a-ranked-prefix-token-budget",
+  "git_commit": "8299040a04ae32f5d5d632713d45f14d6759e9c8",
+  "workspace_snapshot_id": "snapshot-20260715T070507Z-e2ed57b0",
+  "retrieval_mode": "hybrid",
+  "limit": 5,
+  "parent_ranking_fingerprint_sha256": "bbfa18f886f73b3843c1483883a538ee4e4ec8a1f6b2b0bfa1252ddb84bc3d57",
+  "selection_fingerprint_sha256": "bd487f5897916a15873bd4b041d637bc010b478594b1086414b322c57e9f451e",
+  "metrics": {
+    "case_count": 50,
+    "parent_ranking_hits": 35,
+    "selected_hits": 31,
+    "lost_hit_case_ids": [
+      "v0-2-baseline-000009",
+      "v0-2-baseline-000021",
+      "v0-2-baseline-000039",
+      "v0-2-baseline-000042"
+    ],
+    "average_selected_chunks": 3.32,
+    "average_selected_context_chars": 2768.34,
+    "average_estimated_context_tokens": 692.34,
+    "maximum_estimated_context_tokens": 750,
+    "below_minimum_case_ids": [],
+    "over_budget_case_ids": [],
+    "invalid_prefix_case_ids": [],
+    "incomplete_mapping_case_ids": []
+  },
+  "cases": [
+    {
+      "case_id": "v0-2-baseline-000001",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\agentic_rag.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\rag_basics.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0256",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0946",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0676"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\agentic_rag.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\rag_basics.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0256",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0946"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2718,
+      "estimated_context_tokens": 680,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000002",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\agentic_rag.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\rag_basics.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0399",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0178",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0844"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\agentic_rag.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\rag_basics.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0399",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0178",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0844"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "selected_count": 5,
+      "selected_context_chars": 2821,
+      "estimated_context_tokens": 706,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000003",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        3,
+        4
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0083",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0080",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0082",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0081",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0079"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0083",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0080",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0082",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0081"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2867,
+      "estimated_context_tokens": 717,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000004",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        2,
+        4
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0081",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0083",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0080",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0082",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0307"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0081",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0083",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0080",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0082"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2867,
+      "estimated_context_tokens": 717,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000005",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0355",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0626",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0359",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0361",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0281"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0355",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0626",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0359"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000006",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0139",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0163",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0438",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0412",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0755"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0139",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0163",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0438",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0412"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2766,
+      "estimated_context_tokens": 692,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000007",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0576",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0733",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0412",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0510",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0844"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0576",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0733",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0412"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2772,
+      "estimated_context_tokens": 693,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000008",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0234",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0451",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0507",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0182",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0412"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0234",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0451",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0507"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2085,
+      "estimated_context_tokens": 522,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000009",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        4
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0325",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0480",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0723",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0705",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0478"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0325",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0480",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0723"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2381,
+      "estimated_context_tokens": 596,
+      "selected_hit": false,
+      "hit_retained": false,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000010",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        2
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0708",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0706",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0714",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0463",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0646"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0708",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0706",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0714"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2920,
+      "estimated_context_tokens": 730,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000011",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0209",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0081",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0441",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0412",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0682"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0209",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0081",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0441"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2980,
+      "estimated_context_tokens": 745,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000012",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        2
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0080",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0087",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0079",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0518",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0070"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0080",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0087",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0079"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2809,
+      "estimated_context_tokens": 703,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000013",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0321",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0370",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0316",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0323",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0591"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0321",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0370",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0316"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2353,
+      "estimated_context_tokens": 589,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000014",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0322",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0324",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0591",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0396",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0330"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0322",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0324",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0591"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2733,
+      "estimated_context_tokens": 684,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000015",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0826",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0606",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0637",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0599",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0502"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0826",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0606",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0637"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2380,
+      "estimated_context_tokens": 595,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000016",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0467",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0525",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0316",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0526",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0452"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0467",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0525",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0316"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2727,
+      "estimated_context_tokens": 682,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000017",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        5
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0848",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0846",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0851",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0847",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0850"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0848",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0846",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0851"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000018",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        3
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0848",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0851",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0850",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0847",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0846"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0848",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0851",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0850",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0847"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2588,
+      "estimated_context_tokens": 647,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000019",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\rag_basics.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\agentic_rag.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0024",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0256",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0263"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\rag_basics.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\agentic_rag.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0024",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0256"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2718,
+      "estimated_context_tokens": 680,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000020",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\rag_basics.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\agentic_rag.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0505",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0256",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0263"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\rag_basics.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\agentic_rag.md::chunk-0000",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0505",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0256"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2718,
+      "estimated_context_tokens": 680,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000021",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        5
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0710",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0475",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0476",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0130",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0132"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0710",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0475",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0476"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2468,
+      "estimated_context_tokens": 617,
+      "selected_hit": false,
+      "hit_retained": false,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000022",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0130",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0148",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0660",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0164",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0191"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0130",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0148",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0660"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000023",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        2
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0709",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0181",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0441",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0273",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0471"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0709",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0181",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0441"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000024",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        3
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0181",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0709",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0182",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0111",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0254"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0181",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0709",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0182"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000025",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0229",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0230",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0231",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0239",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0242"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0229",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0230",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0231"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2945,
+      "estimated_context_tokens": 737,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000026",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0229",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0230",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0231",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0505",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0241"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0229",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0230",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0231"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2945,
+      "estimated_context_tokens": 737,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000027",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        2
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0105",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0338",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0289",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0333",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0058"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0105",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0338",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0289"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000028",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        3
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0368",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0347",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0338",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0349",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0334"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0368",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0347",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0338"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000029",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        5
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0404",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0426",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0125",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0823",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0403"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0404",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0426",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0125"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000030",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        3
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0212",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0844",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0404",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0412",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0426"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0212",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0844",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0404"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2903,
+      "estimated_context_tokens": 726,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000031",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        2
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0459",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0460",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0437",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0463",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0593"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0459",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0460",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0437"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000032",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0459",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0429",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0437",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0463",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0162"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0459",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0429",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0437"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000033",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0146",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0469",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0725",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0709",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0712"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0146",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0469",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0725"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2576,
+      "estimated_context_tokens": 644,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000034",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0709",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0466",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0618",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0220",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0226"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0709",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0466",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0618"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000035",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0147",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0412",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0021",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0844",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0385"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0147",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0412",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0021"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2772,
+      "estimated_context_tokens": 693,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000036",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0035",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0079",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0072",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0865",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0578"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0035",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0079",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0072",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0865"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2652,
+      "estimated_context_tokens": 663,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000037",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0186",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0250",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0739",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0039",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0337"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0186",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0250",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0739",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0039"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2588,
+      "estimated_context_tokens": 647,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000038",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        2
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0204",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0203",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0639",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0394",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0198"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0204",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0203",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0639"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000039",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        5
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0209",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0081",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0210",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0260",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0264"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0209",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0081",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0210"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2980,
+      "estimated_context_tokens": 745,
+      "selected_hit": false,
+      "hit_retained": false,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000040",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0184",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0079",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0208",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0146",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0204"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0184",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0079",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0208",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0146"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2843,
+      "estimated_context_tokens": 711,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000041",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        4
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0435",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0367",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0440",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0394",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0452"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0435",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0367",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0440",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0394"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2832,
+      "estimated_context_tokens": 708,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000042",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        5
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0801",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0369",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0401",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0367",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0393"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0801",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0369",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0401"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": false,
+      "hit_retained": false,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000043",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0210",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0262",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0204",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0685",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0203"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0210",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0262",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0204",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0685"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2599,
+      "estimated_context_tokens": 650,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000044",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0709",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0614",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0613",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0316",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0526"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0709",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0614",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0613"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2397,
+      "estimated_context_tokens": 600,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000045",
+      "parent_ranking_hit": false,
+      "relevant_ranks": [],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0201",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0534",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0181",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0146",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0267"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0201",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0534",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0181",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0146"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2493,
+      "estimated_context_tokens": 624,
+      "selected_hit": false,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000046",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        4
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0536",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0463",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0510",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0537",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0571"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0536",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0463",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0510",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0537"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selected_count": 4,
+      "selected_context_chars": 2825,
+      "estimated_context_tokens": 707,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000047",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0667",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0684",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0690",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0670",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0682"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0667",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0684",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0690"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2676,
+      "estimated_context_tokens": 669,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000048",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0667",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0016",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0217",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0029",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0029"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0667",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0016",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\High-Dimensional Probability_ An Introduction wit.pdf::chunk-0217"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 3000,
+      "estimated_context_tokens": 750,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000049",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        2
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0726",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0727",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0942",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0011",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0412"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0726",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0727",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0942"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2178,
+      "estimated_context_tokens": 545,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    },
+    {
+      "case_id": "v0-2-baseline-000050",
+      "parent_ranking_hit": true,
+      "relevant_ranks": [
+        1,
+        2
+      ],
+      "ranked_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0726",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0727",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0169",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0728",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0266"
+      ],
+      "selected_chunk_ids": [
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0726",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0727",
+        "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge\\linear_algebra_done_right_4e.pdf::chunk-0169"
+      ],
+      "selected_ranks": [
+        1,
+        2,
+        3
+      ],
+      "selected_count": 3,
+      "selected_context_chars": 2542,
+      "estimated_context_tokens": 636,
+      "selected_hit": true,
+      "hit_retained": true,
+      "context_nonempty": true,
+      "budget_respected": true,
+      "ranked_prefix_preserved": true,
+      "mapping_coverage": 1.0
+    }
+  ]
+}

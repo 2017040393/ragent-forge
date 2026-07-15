@@ -1,10 +1,12 @@
 # E4a 50-case Direction Confirmation
 
 - 日期：2026-07-15
-- 状态：accepted-protocol
+- 状态：completed-not-confirmed
 - Candidate：`E3b-pdf-formula + E4a-ranked-prefix-token-budget`
 - Parent：[Post-architecture baseline](2026-07-14-pre-v0-3-post-architecture-baseline.md)
 - Screen result：[E4a screening conclusion](2026-07-15-e4a-screening-conclusion.md)
+- Result：[E4a 50-case conclusion](2026-07-15-e4a-50-case-direction-confirmation-conclusion.md)
+- Artifacts：[E4a-50-case-8299040](../benchmarks/results/direction-confirmations/E4a-50-case-8299040)
 
 ## 目的
 
@@ -101,3 +103,11 @@ consensus hit。Gains、losses、failure-type transitions 和 selection count di
 - 两种 mode 的 E4a selection artifacts；
 - parent consensus transitions、aggregate metrics、七个 gates 和 summary；
 - 独立结论文档与 reproduction command。
+
+## Recorded Result
+
+本协议已在 commit `8299040a04ae32f5d5d632713d45f14d6759e9c8` 上执行。
+运行 `valid: true`、`confirmed: false`：Semantic/Hybrid ranking gates 通过，但 768-token
+E4a prefix 丢失 4 个 Hybrid Top-5 hits，未通过 `hybrid_context_hits_retained`。
+完整指标、失败 cases 和 budget frontier 见结论文档；不得将先前 16-case promotion 解释为
+full-dataset confirmation。

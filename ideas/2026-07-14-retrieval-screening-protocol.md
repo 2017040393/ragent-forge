@@ -304,7 +304,12 @@ snapshot、variant、mode、limit、case set 和已有 run artifact。
 
 ## 下一步
 
-E3a/E3b/E4a screen 已完成。E3b ranking 加 E4a context selection 通过了当前固定
-screen，可以进入 50-case direction confirmation；在此之前不把它设为默认，也不作
-release quality claim。50-case 阶段必须继续固定 E3b workspace、query representation、
-ranking 和 E4a 的 `768`-token prefix policy，并单独记录 full-dataset context retention。
+E3a/E3b/E4a screen 和后续 50-case direction confirmation 均已完成。完整集上 E3b+E2
+ranking 达到 Semantic@5 `0.62`、Hybrid@5 `0.70`，但 E4a 768-token prefix 丢失 4 个
+Hybrid ranking hits，因此结果为 `valid: true`、`confirmed: false`。详见
+[50-case conclusion](2026-07-15-e4a-50-case-direction-confirmation-conclusion.md)。
+
+下一步不继续微调 whole-chunk fixed budget；离线 frontier 已证明零丢失至少需要 1207
+tokens，此时 Hybrid token ratio 为 `1.3904`。应冻结本轮 ranking artifacts，设计带
+evidence-preservation 检查的 E4b 多候选片段 packing，再离线重放；当前组合不设为默认，
+也不进入正式 release baseline。

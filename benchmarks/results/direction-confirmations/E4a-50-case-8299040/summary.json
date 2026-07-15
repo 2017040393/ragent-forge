@@ -1,0 +1,2544 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4a-direction-confirmation",
+  "description": "Full 50-case direction confirmation for E3b ranking with E2 instructed queries and E4a ranked-prefix context selection.",
+  "measured_at": "2026-07-15T09:25:40.125378+00:00",
+  "manifest_path": "benchmarks/direction_confirmation_manifest_e4a.json",
+  "manifest_sha256": "7d97ec891c5198eac7f452cbbe3c4a4100544b3e338851ca52069a8867384503",
+  "git": {
+    "commit": "8299040a04ae32f5d5d632713d45f14d6759e9c8",
+    "branch": "main",
+    "dirty": false
+  },
+  "runtime": {
+    "python": "3.12.11",
+    "implementation": "CPython",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+    "packages": {
+      "ragent_forge": "0.2.0",
+      "pydantic": "2.13.4",
+      "httpx": "0.28.1",
+      "pdfplumber": "0.11.10"
+    }
+  },
+  "parent_baseline": {
+    "summary": {
+      "path": "benchmarks/results/pre-v0.3-20260714-c410e2e/summary.json",
+      "sha256": "edf040291c4afac293e448c7ed2c1b452a4df425953149c120b9c428880ef094",
+      "hash_mode": "text_lf"
+    },
+    "git_commit": "ca3900619573498b2cc5bff627c36092787f398a",
+    "workspace_snapshot_id": "snapshot-20260714T024249Z-60c124c1",
+    "runs": [
+      {
+        "retrieval_mode": "semantic",
+        "repetition": 1,
+        "file": {
+          "path": "benchmarks/results/pre-v0.3-20260714-c410e2e/runs/semantic-k5-trial-01.json",
+          "sha256": "8f3872c543eb3300b25706e417d6da64cc813ae214baf7725d3bbc2476471a16",
+          "hash_mode": "text_lf"
+        },
+        "result_fingerprint_sha256": "18404dcf24fe145cc4242fb5b6ea138c8aa0bf06aefa20239265b0898f69e2bc"
+      },
+      {
+        "retrieval_mode": "semantic",
+        "repetition": 2,
+        "file": {
+          "path": "benchmarks/results/pre-v0.3-20260714-c410e2e/runs/semantic-k5-trial-02.json",
+          "sha256": "a27145d79725181d54df5a4d054dc4c91fbb9bb0a8b80798eed9fb8e9f80b674",
+          "hash_mode": "text_lf"
+        },
+        "result_fingerprint_sha256": "a23294ab31800a5f17d8e259c1dc957086d7ed8af0799c683501a8690d4c208e"
+      },
+      {
+        "retrieval_mode": "semantic",
+        "repetition": 3,
+        "file": {
+          "path": "benchmarks/results/pre-v0.3-20260714-c410e2e/runs/semantic-k5-trial-03.json",
+          "sha256": "2a82772de108abe617173317b1343ef9ec7a0a7570138275ab00cd1b20aad28a",
+          "hash_mode": "text_lf"
+        },
+        "result_fingerprint_sha256": "97e77b5418abc3d96b3bcfb819cb28da9a0236a350412422847544d07025e0c3"
+      },
+      {
+        "retrieval_mode": "hybrid",
+        "repetition": 1,
+        "file": {
+          "path": "benchmarks/results/pre-v0.3-20260714-c410e2e/runs/hybrid-k5-trial-01.json",
+          "sha256": "545a571b7c13bd7f3c1b581e4287e897ab99a739969a1e391bdfae35142bacad",
+          "hash_mode": "text_lf"
+        },
+        "result_fingerprint_sha256": "45a98e5bc7de1ab21915f84aa65d020590978ad33e7b0e11d7279dbc55d75bb3"
+      },
+      {
+        "retrieval_mode": "hybrid",
+        "repetition": 2,
+        "file": {
+          "path": "benchmarks/results/pre-v0.3-20260714-c410e2e/runs/hybrid-k5-trial-02.json",
+          "sha256": "ca148c7a6e147878f1b20f48c3fadfc7dbfd1092f53e08bc65b1e26840b4666b",
+          "hash_mode": "text_lf"
+        },
+        "result_fingerprint_sha256": "c204e7f6ffb01642fc2432d01858b6d8ffa95bd3e3fdba6615d7f0a43295b88a"
+      },
+      {
+        "retrieval_mode": "hybrid",
+        "repetition": 3,
+        "file": {
+          "path": "benchmarks/results/pre-v0.3-20260714-c410e2e/runs/hybrid-k5-trial-03.json",
+          "sha256": "17f263e97062b835783ae28f61d611a9d1fb4b744480a5fa7edd93f1bed4f96f",
+          "hash_mode": "text_lf"
+        },
+        "result_fingerprint_sha256": "3c2971af54357c1c488880488bcb482ced7ac8e2332e7f687dbfc55428dc95ca"
+      }
+    ]
+  },
+  "dataset": {
+    "cases": {
+      "path": "examples/eval/v0_2_retrieval_baseline.generated.jsonl",
+      "sha256": "b92b9b0c7fc57c45f1ef09d8c9132c2606261734c536db2ba18bb247333ae525",
+      "hash_mode": "text_lf"
+    },
+    "manifest": {
+      "path": "examples/eval/v0_2_retrieval_baseline.generated.manifest.json",
+      "sha256": "ba5018520c1ddb6c76c0d89f73603ff78d135aaef97a9b04b912c01a44397ea5",
+      "hash_mode": "text_lf"
+    },
+    "case_count": 50
+  },
+  "corpus": [
+    {
+      "path": "examples/knowledge/agentic_rag.md",
+      "sha256": "f005c66151c5aeaab0460024c2db81809f6e1bb2e813b3e9ea9177b5a4b34b43",
+      "hash_mode": "text_lf"
+    },
+    {
+      "path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+      "sha256": "76cd30d85f11abae269ec4865ea1802f68366085763f1bc37786f11f4efc6ae1",
+      "hash_mode": "binary"
+    },
+    {
+      "path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+      "sha256": "0cbc06df32a0d54964a53e6c6c8640f47b41cf6ce9834fdb6c81d538f9de6e9b",
+      "hash_mode": "binary"
+    },
+    {
+      "path": "examples/knowledge/rag_basics.md",
+      "sha256": "0959b471eba8b4171ac6a8199225e8388369ab9c45c0ad11bca78c4218684470",
+      "hash_mode": "text_lf"
+    }
+  ],
+  "workspace": {
+    "root": "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\.ragent\\baselines\\E3b-pdf-formula-3e5758c",
+    "layout": "generation",
+    "schema_version": 2,
+    "build_git_commit": "3e5758c7818590f3e7b22044358b2097a5e2f6f2",
+    "snapshot_id": "snapshot-20260715T070507Z-e2ed57b0",
+    "source_path": "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\examples\\knowledge",
+    "document_count": 4,
+    "chunk_count": 1744,
+    "chunk_size": 1000,
+    "chunk_overlap": 0,
+    "embedding_provider": "openai_embeddings",
+    "embedding_model": "Qwen/Qwen3-VL-Embedding-8B",
+    "embedding_batch_size": 8,
+    "embedding_timeout_seconds": 60,
+    "index": {
+      "embedding_provider": "openai_embeddings",
+      "embedding_model": "Qwen/Qwen3-VL-Embedding-8B",
+      "embedding_dim": 4096,
+      "chunk_count": 1744,
+      "snapshot_id": "snapshot-20260715T070507Z-e2ed57b0"
+    }
+  },
+  "workspace_fingerprints": {
+    "chunk_content_sha256": "a99c38a36cf061c7406044cb33de4e9517a29c76a077b237e5639c825133278a",
+    "index_input_sha256": "48b5f9be6c27854a155dbfa93cc78aaf7a67b695092953bea91389648edab9e4"
+  },
+  "candidate": {
+    "id": "E4a-ranked-prefix-token-budget",
+    "description": "E3b cleaned PDF and formula ranking with E2 instructed queries, followed by E4a whole-chunk ranked-prefix selection.",
+    "document_embedding_representation": "cleaned_pdf_formula_text_v1",
+    "query_embedding_representation": "instructed_query_v1",
+    "workspace_build_git_commit": "3e5758c7818590f3e7b22044358b2097a5e2f6f2",
+    "expected_chunk_content_sha256": "a99c38a36cf061c7406044cb33de4e9517a29c76a077b237e5639c825133278a",
+    "expected_index_input_sha256": "48b5f9be6c27854a155dbfa93cc78aaf7a67b695092953bea91389648edab9e4",
+    "selection_policy": "ranked_prefix_token_budget_v1",
+    "candidate_limit": 5,
+    "max_context_tokens": 768,
+    "characters_per_token": 4
+  },
+  "query_cache": {
+    "artifact_path": "query_embeddings.json",
+    "source_path": "C:\\Users\\MKS\\Desktop\\code\\python\\ragent-forge\\benchmarks\\results\\screens\\E2-instructed-query-6c453bb\\query_embeddings.json",
+    "source_sha256": "d72419da9252c33adae8f178c1da3196b8234b194e1b20ed3f46fda4e0774324",
+    "sha256": "c21ac56ab31230f7139fe82a2425b3e92bed10105d7d4642b52cd817bdbb06f9",
+    "provider": "openai_embeddings",
+    "model": "Qwen/Qwen3-VL-Embedding-8B",
+    "query_representation": "instructed_query_v1",
+    "embedding_dim": 4096,
+    "entry_count": 50,
+    "hits": 66,
+    "misses": 34
+  },
+  "configurations": [
+    {
+      "retrieval_mode": "semantic",
+      "limit": 5,
+      "ranking_artifact_path": "ranking-runs/semantic-k5.json",
+      "ranking_checkpoint_path": "ranking-runs/semantic-k5.checkpoint.json",
+      "selection_artifact_path": "selection-runs/semantic-k5.json",
+      "result_fingerprint_sha256": "998a1759fdb7d473f53623ba7de338eb5da6322d87645408c32dae47894d4597",
+      "parent_metrics": {
+        "cutoff": 5,
+        "hit_rate": {
+          "average": 0.26,
+          "minimum": 0.26,
+          "maximum": 0.26,
+          "spread": 0.0
+        },
+        "recall": {
+          "average": 0.1567,
+          "minimum": 0.1567,
+          "maximum": 0.1567,
+          "spread": 0.0
+        },
+        "precision": {
+          "average": 0.052,
+          "minimum": 0.052,
+          "maximum": 0.052,
+          "spread": 0.0
+        },
+        "ndcg": {
+          "average": 0.1533,
+          "minimum": 0.1506,
+          "maximum": 0.1565,
+          "spread": 0.0059
+        },
+        "mrr": {
+          "average": 0.1987,
+          "minimum": 0.193,
+          "maximum": 0.2057,
+          "spread": 0.0127
+        },
+        "passed_count": {
+          "average": 13.0,
+          "minimum": 13.0,
+          "maximum": 13.0,
+          "spread": 0.0
+        },
+        "failed_count": {
+          "average": 37.0,
+          "minimum": 37.0,
+          "maximum": 37.0,
+          "spread": 0.0
+        },
+        "avg_selected_context_chars": {
+          "average": 1267.2733,
+          "minimum": 1259.78,
+          "maximum": 1282.1,
+          "spread": 22.32
+        },
+        "avg_selected_context_tokens": {
+          "average": 317.22,
+          "minimum": 315.34,
+          "maximum": 320.92,
+          "spread": 5.58
+        }
+      },
+      "candidate_ranking_metrics": {
+        "cutoff": 5,
+        "hit_rate": 0.62,
+        "recall": 0.3767,
+        "precision": 0.164,
+        "ndcg": 0.3699,
+        "mrr": 0.495,
+        "passed_count": 31,
+        "failed_count": 19,
+        "avg_selected_context_chars": 3702.56,
+        "avg_selected_context_tokens": 925.92
+      },
+      "hit_rate_delta": 0.36,
+      "selection_metrics": {
+        "case_count": 50,
+        "parent_ranking_hits": 31,
+        "selected_hits": 31,
+        "lost_hit_case_ids": [],
+        "average_selected_chunks": 3.84,
+        "average_selected_context_chars": 2684.6,
+        "average_estimated_context_tokens": 671.38,
+        "maximum_estimated_context_tokens": 768,
+        "below_minimum_case_ids": [],
+        "over_budget_case_ids": [],
+        "invalid_prefix_case_ids": [],
+        "incomplete_mapping_case_ids": []
+      },
+      "query_cache_hits": 16,
+      "query_cache_misses": 34,
+      "cache_reuse_valid": true,
+      "cases": [
+        {
+          "case_id": "v0-2-baseline-000001",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000002",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000003",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000004",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000005",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000006",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000007",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000008",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000009",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000010",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000011",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000012",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000013",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000014",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              3,
+              4,
+              4
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000015",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "missed_source",
+              "missed_source",
+              "missed_source"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000016",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              3,
+              5,
+              3
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 3,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000017",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000018",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              5,
+              5,
+              5
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000019",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000020",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000021",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000022",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000023",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 4,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000024",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000025",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000026",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000027",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000028",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000029",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000030",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000031",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000032",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000033",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000034",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000035",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000036",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000037",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 4,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000038",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000039",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 3,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000040",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000041",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000042",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000043",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 3,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000044",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 4,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000045",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000046",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000047",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000048",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000049",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000050",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        }
+      ]
+    },
+    {
+      "retrieval_mode": "hybrid",
+      "limit": 5,
+      "ranking_artifact_path": "ranking-runs/hybrid-k5.json",
+      "ranking_checkpoint_path": "ranking-runs/hybrid-k5.checkpoint.json",
+      "selection_artifact_path": "selection-runs/hybrid-k5.json",
+      "result_fingerprint_sha256": "bbfa18f886f73b3843c1483883a538ee4e4ec8a1f6b2b0bfa1252ddb84bc3d57",
+      "parent_metrics": {
+        "cutoff": 5,
+        "hit_rate": {
+          "average": 0.64,
+          "minimum": 0.62,
+          "maximum": 0.66,
+          "spread": 0.04
+        },
+        "recall": {
+          "average": 0.3589,
+          "minimum": 0.35,
+          "maximum": 0.3667,
+          "spread": 0.0167
+        },
+        "precision": {
+          "average": 0.152,
+          "minimum": 0.148,
+          "maximum": 0.156,
+          "spread": 0.008
+        },
+        "ndcg": {
+          "average": 0.3292,
+          "minimum": 0.3253,
+          "maximum": 0.3343,
+          "spread": 0.009
+        },
+        "mrr": {
+          "average": 0.4348,
+          "minimum": 0.4287,
+          "maximum": 0.4427,
+          "spread": 0.014
+        },
+        "passed_count": {
+          "average": 32.0,
+          "minimum": 31.0,
+          "maximum": 33.0,
+          "spread": 2.0
+        },
+        "failed_count": {
+          "average": 18.0,
+          "minimum": 17.0,
+          "maximum": 19.0,
+          "spread": 2.0
+        },
+        "avg_selected_context_chars": {
+          "average": 2896.7533,
+          "minimum": 2862.38,
+          "maximum": 2924.14,
+          "spread": 61.76
+        },
+        "avg_selected_context_tokens": {
+          "average": 724.5,
+          "minimum": 715.9,
+          "maximum": 731.36,
+          "spread": 15.46
+        }
+      },
+      "candidate_ranking_metrics": {
+        "cutoff": 5,
+        "hit_rate": 0.7,
+        "recall": 0.43,
+        "precision": 0.192,
+        "ndcg": 0.4216,
+        "mrr": 0.5553,
+        "passed_count": 35,
+        "failed_count": 15,
+        "avg_selected_context_chars": 4188.02,
+        "avg_selected_context_tokens": 1047.32
+      },
+      "hit_rate_delta": 0.06,
+      "selection_metrics": {
+        "case_count": 50,
+        "parent_ranking_hits": 35,
+        "selected_hits": 31,
+        "lost_hit_case_ids": [
+          "v0-2-baseline-000009",
+          "v0-2-baseline-000021",
+          "v0-2-baseline-000039",
+          "v0-2-baseline-000042"
+        ],
+        "average_selected_chunks": 3.32,
+        "average_selected_context_chars": 2768.34,
+        "average_estimated_context_tokens": 692.34,
+        "maximum_estimated_context_tokens": 750,
+        "below_minimum_case_ids": [],
+        "over_budget_case_ids": [],
+        "invalid_prefix_case_ids": [],
+        "incomplete_mapping_case_ids": []
+      },
+      "query_cache_hits": 50,
+      "query_cache_misses": 0,
+      "cache_reuse_valid": true,
+      "cases": [
+        {
+          "case_id": "v0-2-baseline-000001",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000002",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000003",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000004",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000005",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000006",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000007",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              5,
+              5,
+              5
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "lost",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000008",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              5,
+              5,
+              5
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "lost",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000009",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 4,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": false
+        },
+        {
+          "case_id": "v0-2-baseline-000010",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              4,
+              4,
+              3
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000011",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000012",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000013",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000014",
+          "parent": {
+            "hit_count": 2,
+            "ranks": [
+              5,
+              null,
+              5
+            ],
+            "failure_types": [
+              null,
+              "wrong_section",
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000015",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "lost",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000016",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000017",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000018",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000019",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000020",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000021",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 5,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": false
+        },
+        {
+          "case_id": "v0-2-baseline-000022",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000023",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000024",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000025",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              3,
+              3,
+              4
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000026",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              3,
+              3,
+              3
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000027",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 2,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000028",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 3,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000029",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000030",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              3,
+              3,
+              3
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 3,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000031",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000032",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000033",
+          "parent": {
+            "hit_count": 1,
+            "ranks": [
+              5,
+              null,
+              null
+            ],
+            "failure_types": [
+              null,
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000034",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              4,
+              4,
+              4
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "lost",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000035",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000036",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000037",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000038",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000039",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 5,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": false
+        },
+        {
+          "case_id": "v0-2-baseline-000040",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000041",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 4,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000042",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              3,
+              4,
+              3
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 5,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": false
+        },
+        {
+          "case_id": "v0-2-baseline-000043",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000044",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000045",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": false,
+          "candidate_rank": null,
+          "candidate_failure_type": "wrong_section",
+          "transition": "unchanged_miss",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000046",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              2,
+              2,
+              2
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000047",
+          "parent": {
+            "hit_count": 0,
+            "ranks": [
+              null,
+              null,
+              null
+            ],
+            "failure_types": [
+              "wrong_section",
+              "wrong_section",
+              "wrong_section"
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "gained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000048",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000049",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        },
+        {
+          "case_id": "v0-2-baseline-000050",
+          "parent": {
+            "hit_count": 3,
+            "ranks": [
+              1,
+              1,
+              1
+            ],
+            "failure_types": [
+              null,
+              null,
+              null
+            ]
+          },
+          "candidate_hit": true,
+          "candidate_rank": 1,
+          "candidate_failure_type": null,
+          "transition": "retained",
+          "context_hit_retained": true
+        }
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "name": "semantic_hit_direction",
+      "passed": true,
+      "observed": "delta=0.3600",
+      "requirement": "delta>=0.0400",
+      "case_ids": []
+    },
+    {
+      "name": "hybrid_hit_nonnegative",
+      "passed": true,
+      "observed": "delta=0.0600",
+      "requirement": "delta>=0.0000",
+      "case_ids": []
+    },
+    {
+      "name": "no_new_missed_source",
+      "passed": true,
+      "observed": "new_results=0",
+      "requirement": "new_results<=0",
+      "case_ids": []
+    },
+    {
+      "name": "semantic_context_hits_retained",
+      "passed": true,
+      "observed": "losses=0",
+      "requirement": "losses<=0",
+      "case_ids": []
+    },
+    {
+      "name": "hybrid_context_hits_retained",
+      "passed": false,
+      "observed": "losses=4",
+      "requirement": "losses<=0",
+      "case_ids": [
+        "v0-2-baseline-000009",
+        "v0-2-baseline-000021",
+        "v0-2-baseline-000039",
+        "v0-2-baseline-000042"
+      ]
+    },
+    {
+      "name": "hybrid_context_tokens",
+      "passed": true,
+      "observed": "ratio=0.9556",
+      "requirement": "ratio<=1.1000",
+      "case_ids": []
+    },
+    {
+      "name": "context_selection_invariants",
+      "passed": true,
+      "observed": "violations=0",
+      "requirement": "violations=0",
+      "case_ids": []
+    }
+  ],
+  "valid": true,
+  "confirmed": false
+}
