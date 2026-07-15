@@ -96,7 +96,8 @@ consensus hit。Gains、losses、failure-type transitions 和 selection count di
 
 - resolved manifest；
 - 50-entry instructed-query cache；
-- Semantic@5、Hybrid@5 ranking artifacts；
+- Semantic@5、Hybrid@5 ranking artifacts，以及绑定 ranking、query cache SHA 的
+  resume checkpoints；
 - 两种 mode 的 E4a selection artifacts；
 - parent consensus transitions、aggregate metrics、七个 gates 和 summary；
 - 独立结论文档与 reproduction command。
