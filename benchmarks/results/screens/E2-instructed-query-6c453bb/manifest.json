@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "name": "pre-v0.3-representation-screen",
+  "description": "Fixed diagnostic screen for retrieval representation variants before full 50-case and formal baseline evaluation.",
+  "parent_baseline": {
+    "path": "benchmarks/results/pre-v0.3-20260714-c410e2e/summary.json",
+    "sha256": "edf040291c4afac293e448c7ed2c1b452a4df425953149c120b9c428880ef094",
+    "hash_mode": "text_lf",
+    "required_repetitions": 3
+  },
+  "dataset": {
+    "path": "examples/eval/v0_2_retrieval_baseline.generated.jsonl",
+    "sha256": "b92b9b0c7fc57c45f1ef09d8c9132c2606261734c536db2ba18bb247333ae525",
+    "hash_mode": "text_lf",
+    "case_count": 50,
+    "manifest": {
+      "path": "examples/eval/v0_2_retrieval_baseline.generated.manifest.json",
+      "sha256": "ba5018520c1ddb6c76c0d89f73603ff78d135aaef97a9b04b912c01a44397ea5",
+      "hash_mode": "text_lf"
+    }
+  },
+  "corpus": {
+    "root": "examples/knowledge",
+    "files": [
+      {
+        "path": "examples/knowledge/agentic_rag.md",
+        "sha256": "f005c66151c5aeaab0460024c2db81809f6e1bb2e813b3e9ea9177b5a4b34b43",
+        "hash_mode": "text_lf"
+      },
+      {
+        "path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+        "sha256": "76cd30d85f11abae269ec4865ea1802f68366085763f1bc37786f11f4efc6ae1",
+        "hash_mode": "binary"
+      },
+      {
+        "path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+        "sha256": "0cbc06df32a0d54964a53e6c6c8640f47b41cf6ce9834fdb6c81d538f9de6e9b",
+        "hash_mode": "binary"
+      },
+      {
+        "path": "examples/knowledge/rag_basics.md",
+        "sha256": "0959b471eba8b4171ac6a8199225e8388369ab9c45c0ad11bca78c4218684470",
+        "hash_mode": "text_lf"
+      }
+    ]
+  },
+  "ingest": {
+    "chunk_size": 1000,
+    "chunk_overlap": 0,
+    "expected_document_count": 4,
+    "expected_chunk_count": 1744
+  },
+  "embedding": {
+    "provider": "openai_embeddings",
+    "model": "Qwen/Qwen3-VL-Embedding-8B",
+    "dimensions": 4096,
+    "batch_size": 8,
+    "timeout_seconds": 60
+  },
+  "variant": {
+    "id": "E2-instructed-query",
+    "role": "candidate",
+    "description": "Structured document text embedded against an instructed retrieval query.",
+    "document_embedding_representation": "structured_document_text_v1",
+    "query_embedding_representation": "instructed_query_v1",
+    "workspace_build_git_commit": "a43695bef994e587b2011267885d73886f4f541b",
+    "expected_chunk_content_sha256": "a99c38a36cf061c7406044cb33de4e9517a29c76a077b237e5639c825133278a",
+    "expected_index_input_sha256": "46d8a7b0b52aea0c12b31a38acf8ebe42f585ed0438b35850ef8e221adc24bff"
+  },
+  "workload": {
+    "retrieval_modes": [
+      "semantic",
+      "hybrid"
+    ],
+    "limits": [
+      5,
+      20
+    ],
+    "repetitions": 1
+  },
+  "case_groups": [
+    {
+      "name": "stable-control",
+      "role": "stable_control",
+      "case_ids": [
+        "v0-2-baseline-000001",
+        "v0-2-baseline-000019",
+        "v0-2-baseline-000013",
+        "v0-2-baseline-000022"
+      ]
+    },
+    {
+      "name": "semantic-opportunity",
+      "role": "semantic_opportunity",
+      "case_ids": [
+        "v0-2-baseline-000016",
+        "v0-2-baseline-000041"
+      ]
+    },
+    {
+      "name": "wrong-section-challenge",
+      "role": "wrong_section_challenge",
+      "case_ids": [
+        "v0-2-baseline-000003",
+        "v0-2-baseline-000031",
+        "v0-2-baseline-000017",
+        "v0-2-baseline-000046"
+      ]
+    },
+    {
+      "name": "hard-miss",
+      "role": "hard_miss",
+      "case_ids": [
+        "v0-2-baseline-000005",
+        "v0-2-baseline-000006",
+        "v0-2-baseline-000036",
+        "v0-2-baseline-000040"
+      ]
+    },
+    {
+      "name": "boundary-canary",
+      "role": "boundary_canary",
+      "case_ids": [
+        "v0-2-baseline-000014",
+        "v0-2-baseline-000033"
+      ]
+    }
+  ],
+  "promotion": {
+    "max_stable_semantic_losses": 0,
+    "max_new_missed_source_results": 0,
+    "min_new_semantic_top5_hits": 1,
+    "min_new_semantic_top20_hits": 2,
+    "min_hybrid_top5_hit_delta": 0,
+    "max_hybrid_top5_token_ratio": 1.1
+  }
+}

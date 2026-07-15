@@ -1,7 +1,7 @@
 # E2 Instructed Query Embedding Representation
 
 - 日期：2026-07-15
-- 状态：accepted-direction
+- 状态：implemented
 - 实验阶段：pre-v0.3 representation experiments
 - Parent：[E1 screening conclusion](2026-07-15-e1-screening-conclusion.md)
 - Protocol：[Retrieval representation screening protocol](2026-07-14-retrieval-screening-protocol.md)
@@ -67,3 +67,5 @@ E2 必须相对冻结的 E0 parent 通过全部 promotion gates。仅仅高于 E
   36-trial matrix；后续先重新设计 document representation 或 PDF section semantics。
 
 Screen latency 仍是 diagnostic data，不能用来形成 release latency claim。
+
+最终结果见 [E2 screening conclusion](2026-07-15-e2-screening-conclusion.md)。

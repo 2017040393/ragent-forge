@@ -148,6 +148,41 @@ Hybrid@5 相对 parent 减少 1 个 hit，selected context tokens ratio 为 `1.3
 （上限 `1.10`）。因此 E1 不能进入 50-case direction confirmation，也不能作为
 v0.3 的候选 representation 晋级。
 
+## E2 Candidate Result
+
+E2 复用 E1 的 `structured_document_text_v1` index，只把 query-side input 改为
+`instructed_query_v1`。结果 artifacts：
+[`E2-instructed-query-6c453bb`](../benchmarks/results/screens/E2-instructed-query-6c453bb)，
+candidate manifest：
+[`retrieval_screen_manifest_e2.json`](../benchmarks/retrieval_screen_manifest_e2.json)。
+
+| Item | Value |
+|---|---|
+| Evaluation commit | `6c453bb` |
+| Workspace build commit | `a43695b` |
+| Workspace snapshot | `snapshot-20260715T033549Z-a1f9077f` |
+| Query representation | `instructed_query_v1` |
+| Query cache | 16 entries, 16 misses, 48 hits |
+| Structural result | `valid: true` |
+| Promotion | rejected |
+
+Quality comparison：
+
+| Configuration | E0 full hit | E2 full hit | E0 gated hit | E2 gated hit |
+|---|---:|---:|---:|---:|
+| Semantic@5 | 0.4375 | 0.5000 | 0.4286 | 0.5000 |
+| Semantic@20 | 0.5625 | 0.6250 | 0.5714 | 0.5714 |
+| Hybrid@5 | 0.5625 | 0.5625 | 0.6429 | 0.5714 |
+| Hybrid@20 | 0.7500 | 0.6875 | 0.7143 | 0.6429 |
+
+Query instruction 相对 E1 改善了 semantic ranking：新增 3 个 Semantic@5 challenge
+hits 和 2 个 Semantic@20 challenge hits，并恢复了 E1 丢失的 `000013`。这说明
+document/query embedding input 不对称确实是 E1 下降的一部分原因。
+
+但 E2 仍丢失 `000016` 和 `000022` 两个 stable Semantic@5 cases；gated Hybrid@5
+相对 parent 减少 1 个 hit，selected context tokens ratio 为 `1.3378`。因此 E2 不能
+进入 50-case direction confirmation，也不能作为当前 v0.3 representation 晋级。
+
 ## Reproduction
 
 ```powershell
@@ -163,8 +198,8 @@ snapshot、variant、mode、limit、case set 和已有 run artifact。
 
 ## 下一步
 
-E1 未通过 promotion gates，E2 不应直接沿用 E1 结果进入正式评估。后续若继续研究，
-应保持同一 screen protocol，明确记录 E2 相对 E1 的唯一变量（query instruction），
-并继续复用 raw query cache boundary 之外的固定 corpus、chunk 和 gates；只有通过
-screening 的候选才进入 50-case direction confirmation，最终候选再运行正式 36-trial
-matrix。
+E2 已证明 query instruction 有方向性价值，但不足以修复当前 structured document
+representation。后续不调整 Hybrid 权重，也不运行 50-case；下一轮应转到 E3，保持
+`instructed_query_v1`，只改变 PDF/formula document representation，并继续使用同一
+screen protocol。只有通过 screening 的候选才进入 50-case direction confirmation，
+最终候选再运行正式 36-trial matrix。
