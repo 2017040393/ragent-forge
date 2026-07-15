@@ -148,6 +148,64 @@ def test_query_embedding_cache_reuses_frozen_vectors(tmp_path: Path) -> None:
     assert second_client.calls == []
 
 
+def test_query_embedding_cache_embeds_and_keys_instructed_query(tmp_path: Path) -> None:
+    client = FakeEmbeddingClient()
+    cache_path = tmp_path / "instructed-cache.json"
+    service = CachedQueryEmbeddingService(
+        client,
+        cache_path=cache_path,
+        provider="openai_embeddings",
+        model="test-model",
+        query_representation="instructed_query_v1",
+        embedding_dim=2,
+    )
+
+    first = service.embed_texts(["alpha"])
+    repeated = service.embed_texts(["alpha"])
+
+    assert repeated.embeddings == first.embeddings
+    assert service.stats().hits == 1
+    assert service.stats().misses == 1
+    assert client.calls == [
+        [
+            "Instruct: Retrieve the document passage that best answers the query. "
+            "Distinguish the correct section from other passages in the same source "
+            "document.\nQuery: alpha"
+        ]
+    ]
+    cache = QueryEmbeddingCacheFile.model_validate_json(
+        cache_path.read_text(encoding="utf-8")
+    )
+    assert cache.query_representation == "instructed_query_v1"
+    assert len(cache.entries) == 1
+
+
+def test_query_embedding_cache_rejects_source_with_different_representation(
+    tmp_path: Path,
+) -> None:
+    source_path = tmp_path / "raw-cache.json"
+    raw = CachedQueryEmbeddingService(
+        FakeEmbeddingClient(),
+        cache_path=source_path,
+        provider="openai_embeddings",
+        model="test-model",
+        query_representation="raw_query_v1",
+        embedding_dim=2,
+    )
+    raw.embed_texts(["alpha"])
+
+    with pytest.raises(ValueError, match="configuration mismatch"):
+        CachedQueryEmbeddingService(
+            FakeEmbeddingClient(),
+            cache_path=tmp_path / "instructed-cache.json",
+            source_path=source_path,
+            provider="openai_embeddings",
+            model="test-model",
+            query_representation="instructed_query_v1",
+            embedding_dim=2,
+        )
+
+
 def test_workspace_fingerprints_are_path_portable() -> None:
     corpus_paths = ["examples/knowledge/rag.md"]
     first_chunks: list[dict[str, object]] = [

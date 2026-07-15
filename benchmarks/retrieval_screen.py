@@ -62,6 +62,10 @@ from ragent_forge.composition import (
     build_retrieval_runtime,
 )
 from ragent_forge.core.retrieval.contracts import ChunkRecord
+from ragent_forge.core.retrieval.representations import (
+    QueryEmbeddingRepresentation,
+    build_query_embedding_text,
+)
 from ragent_forge.infrastructure.local_workspace import LocalWorkspace
 from ragent_forge.infrastructure.storage import atomic_write_text
 
@@ -75,7 +79,7 @@ class QueryEmbeddingCacheFile(BaseModel):
     schema_version: Literal[1] = 1
     provider: str = Field(min_length=1)
     model: str = Field(min_length=1)
-    query_representation: str = Field(min_length=1)
+    query_representation: QueryEmbeddingRepresentation
     embedding_dim: int = Field(gt=0)
     source_path: str | None = None
     source_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
@@ -100,7 +104,7 @@ class CachedQueryEmbeddingService:
         cache_path: str | Path,
         provider: str,
         model: str,
-        query_representation: str,
+        query_representation: QueryEmbeddingRepresentation,
         embedding_dim: int,
         source_path: str | Path | None = None,
         resume: bool = False,
@@ -148,9 +152,13 @@ class CachedQueryEmbeddingService:
         self._persist()
 
     def embed_texts(self, texts: list[str]) -> EmbeddingResult:
-        keys = [_query_key(text) for text in texts]
+        represented_texts = [
+            build_query_embedding_text(text, self.cache.query_representation)
+            for text in texts
+        ]
+        keys = [_query_key(text) for text in represented_texts]
         missing_by_key: dict[str, str] = {}
-        for key, text in zip(keys, texts, strict=True):
+        for key, text in zip(keys, represented_texts, strict=True):
             if key in self.cache.entries:
                 self._hits += 1
             else:

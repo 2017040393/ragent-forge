@@ -1,6 +1,7 @@
 from ragent_forge.core.retrieval.contracts import ChunkRecord
 from ragent_forge.core.retrieval.representations import (
     build_embedding_text,
+    build_query_embedding_text,
     build_structured_document_text_v1,
 )
 
@@ -70,3 +71,20 @@ def test_raw_representation_is_exactly_chunk_text() -> None:
     chunk = make_chunk({"heading_path": ["Ignored for E0"]})
 
     assert build_embedding_text(chunk, "raw_chunk_text_v1") == chunk["text"]
+
+
+def test_instructed_query_v1_has_exact_template() -> None:
+    query = "What is reciprocal rank fusion?"
+
+    assert build_query_embedding_text(query, "instructed_query_v1") == (
+        "Instruct: Retrieve the document passage that best answers the query. "
+        "Distinguish the correct section from other passages in the same source "
+        "document.\n"
+        "Query: What is reciprocal rank fusion?"
+    )
+
+
+def test_raw_query_representation_is_exactly_the_original_query() -> None:
+    query = "  preserve surrounding whitespace  "
+
+    assert build_query_embedding_text(query, "raw_query_v1") == query

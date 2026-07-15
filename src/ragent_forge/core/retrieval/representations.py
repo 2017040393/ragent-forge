@@ -18,6 +18,22 @@ EMBEDDING_REPRESENTATIONS: tuple[EmbeddingRepresentation, ...] = (
     "structured_document_text_v1",
 )
 
+QueryEmbeddingRepresentation = Literal[
+    "raw_query_v1",
+    "instructed_query_v1",
+]
+
+QUERY_EMBEDDING_REPRESENTATIONS: tuple[QueryEmbeddingRepresentation, ...] = (
+    "raw_query_v1",
+    "instructed_query_v1",
+)
+
+INSTRUCTED_QUERY_V1_PREFIX = (
+    "Instruct: Retrieve the document passage that best answers the query. "
+    "Distinguish the correct section from other passages in the same source "
+    "document.\nQuery: "
+)
+
 
 def build_embedding_text(
     chunk: ChunkRecord,
@@ -30,6 +46,21 @@ def build_embedding_text(
     if representation == "structured_document_text_v1":
         return build_structured_document_text_v1(chunk)
     raise ValueError(f"Unsupported embedding representation: {representation!r}")
+
+
+def build_query_embedding_text(
+    query: str,
+    representation: QueryEmbeddingRepresentation = "raw_query_v1",
+) -> str:
+    """Build the deterministic query-side input for an embedding provider."""
+
+    if representation == "raw_query_v1":
+        return query
+    if representation == "instructed_query_v1":
+        return f"{INSTRUCTED_QUERY_V1_PREFIX}{query}"
+    raise ValueError(
+        f"Unsupported query embedding representation: {representation!r}"
+    )
 
 
 def build_structured_document_text_v1(chunk: ChunkRecord) -> str:

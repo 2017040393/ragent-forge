@@ -29,6 +29,10 @@ from ragent_forge.app.services.evaluation.contracts import (
     RetrievalEvalCaseResult,
     RetrievalEvalReport,
 )
+from ragent_forge.core.retrieval.representations import (
+    EmbeddingRepresentation,
+    QueryEmbeddingRepresentation,
+)
 
 ScreenMode = Literal["semantic", "hybrid"]
 ScreenLimit = Literal[5, 20]
@@ -65,8 +69,8 @@ class ScreenVariantSpec(BaseModel):
     id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
     role: ScreenVariantRole
     description: str = Field(min_length=1)
-    document_embedding_representation: str = Field(min_length=1)
-    query_embedding_representation: str = Field(min_length=1)
+    document_embedding_representation: EmbeddingRepresentation
+    query_embedding_representation: QueryEmbeddingRepresentation
     workspace_build_git_commit: GitCommit
     expected_chunk_content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     expected_index_input_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -183,7 +187,7 @@ class ScreenQueryCacheSummary(BaseModel):
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     provider: str
     model: str
-    query_representation: str
+    query_representation: QueryEmbeddingRepresentation
     embedding_dim: int = Field(gt=0)
     entry_count: int = Field(gt=0)
     hits: int = Field(ge=0)
