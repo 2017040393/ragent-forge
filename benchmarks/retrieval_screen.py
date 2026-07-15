@@ -389,12 +389,20 @@ def run_screen(
         query_cache_path.read_text(encoding="utf-8")
     )
     final_cache_stats = query_cache.stats()
+    required_query_keys = {
+        _query_key(
+            build_query_embedding_text(
+                case.query,
+                cache_data.query_representation,
+            )
+        )
+        for case in selected_cases
+    }
     valid = (
         validated.checks.passed
         and not git_state.dirty
         and all(configuration.cache_reuse_valid for configuration in configurations)
-        and set(cache_data.entries)
-        >= {_query_key(case.query) for case in selected_cases}
+        and set(cache_data.entries) >= required_query_keys
     )
     promotion_applicable = manifest.variant.role == "candidate"
     promoted = (
