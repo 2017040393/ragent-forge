@@ -6,6 +6,8 @@
 - Frozen implementation：`ccc930ae27740fca1da706c08487cc66cbb5493f`
 - Development result：[E4b development conclusion](2026-07-16-e4b-fragment-packing-development-conclusion.md)
 - Frozen dataset：[E4b held-out dataset review](2026-07-16-e4b-heldout-dataset-review.md)
+- Execution manifest：
+  [`fragment_packing_confirmation_manifest_e4b.json`](../benchmarks/fragment_packing_confirmation_manifest_e4b.json)
 
 ## 目的与隔离边界
 
@@ -128,3 +130,25 @@ Gate 5-7 使用新 held-out cases，只比较 query selector、oracle 和 parent
 5. ranking/fragment artifacts、结论与下一阶段 decision。
 
 每个边界分别 commit 并 push。
+
+## Runner
+
+Runner 先验证 frozen development、reviewed dataset、raw generation archive、canonical
+exclusion、workspace snapshot/fingerprints 和 selector allowlist，再创建一个无 seed 的独立
+query cache。Semantic@5 生成 20 个 instructed-query vectors；Hybrid@5 必须全部命中这
+20 个 cache entries。两种 ranking artifact 落盘后，离线复用 development 阶段的同一
+`build_fragment_run`，同时生成 E4b0 oracle 与 E4b1 selector fragments。
+
+正式运行命令：
+
+```powershell
+uv run --extra dev python -m benchmarks.fragment_packing_confirmation `
+  --workspace .ragent/baselines/E3b-pdf-formula-3e5758c `
+  --output-dir .ragent/eval/fragment-packing/E4b-heldout-<runner-commit>
+```
+
+网络或进程中断后使用同一个 output directory 加 `--resume`。Runner 只复用同时具有
+ranking artifact 和 hash-bound checkpoint 的完成 mode；query cache 必须仍满足独立
+lineage、20 entries 和 Hybrid 全量复用约束。输出包含 `ranking-runs/`、`fragment-runs/`、
+`query_embeddings.json`、manifest 和 summary；正式结果归档前不得修改 dataset、variant
+或 gates。

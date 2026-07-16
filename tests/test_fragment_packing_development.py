@@ -159,6 +159,12 @@ def test_fragment_evidence_requires_overlap_inside_relevant_fragment() -> None:
     assert evidence.selected_evidence_ngrams == 0
 
 
+def test_fragment_run_metrics_allow_heldout_case_count() -> None:
+    metrics = _metrics(case_count=20)
+
+    assert metrics.case_count == 20
+
+
 def test_each_development_gate_has_an_independent_failure_signal() -> None:
     semantic = _run("semantic", _metrics())
     hybrid = _run("hybrid", _metrics())

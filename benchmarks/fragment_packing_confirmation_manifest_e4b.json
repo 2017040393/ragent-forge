@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "name": "pre-v0.3-e4b-heldout-confirmation",
+  "description": "Independent 20-case held-out confirmation of frozen E4b query-guided multi-candidate fragment packing.",
+  "development": {
+    "manifest": {
+      "path": "benchmarks/fragment_packing_development_manifest_e4b.json",
+      "sha256": "639f7d44079ed632dbd31691905239d1b46d112af628afd2341c39a0be40b365",
+      "hash_mode": "text_lf"
+    },
+    "summary": {
+      "path": "benchmarks/results/fragment-packing/E4b1-50-case-ccc930a/summary.json",
+      "sha256": "451965817e4afdac8128e7c1e055edb30fc0f5e9103111d3be79982e258769c8",
+      "hash_mode": "text_lf"
+    },
+    "implementation_git_commit": "ccc930ae27740fca1da706c08487cc66cbb5493f",
+    "workspace_snapshot_id": "snapshot-20260715T070507Z-e2ed57b0"
+  },
+  "dataset": {
+    "path": "examples/eval/e4b_heldout_confirmation.jsonl",
+    "sha256": "b79bbd7d8dfdff5da36673d9df13d388be4774cf8a0f0fca0d8862955624bccb",
+    "hash_mode": "text_lf",
+    "case_count": 20,
+    "manifest": {
+      "path": "examples/eval/e4b_heldout_confirmation.manifest.json",
+      "sha256": "10eefca07e49ac5a39f12bc62b4984bc538fd58d0c38ae07a49c0eb425ff9609",
+      "hash_mode": "text_lf"
+    }
+  },
+  "canonical_dataset": {
+    "path": "examples/eval/v0_2_retrieval_baseline.generated.jsonl",
+    "sha256": "b92b9b0c7fc57c45f1ef09d8c9132c2606261734c536db2ba18bb247333ae525",
+    "hash_mode": "text_lf"
+  },
+  "corpus": {
+    "root": "examples/knowledge",
+    "files": [
+      {
+        "path": "examples/knowledge/agentic_rag.md",
+        "sha256": "f005c66151c5aeaab0460024c2db81809f6e1bb2e813b3e9ea9177b5a4b34b43",
+        "hash_mode": "text_lf"
+      },
+      {
+        "path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+        "sha256": "76cd30d85f11abae269ec4865ea1802f68366085763f1bc37786f11f4efc6ae1",
+        "hash_mode": "binary"
+      },
+      {
+        "path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+        "sha256": "0cbc06df32a0d54964a53e6c6c8640f47b41cf6ce9834fdb6c81d538f9de6e9b",
+        "hash_mode": "binary"
+      },
+      {
+        "path": "examples/knowledge/rag_basics.md",
+        "sha256": "0959b471eba8b4171ac6a8199225e8388369ab9c45c0ad11bca78c4218684470",
+        "hash_mode": "text_lf"
+      }
+    ]
+  },
+  "ingest": {
+    "chunk_size": 1000,
+    "chunk_overlap": 0,
+    "expected_document_count": 4,
+    "expected_chunk_count": 1744
+  },
+  "embedding": {
+    "provider": "openai_embeddings",
+    "model": "Qwen/Qwen3-VL-Embedding-8B",
+    "dimensions": 4096,
+    "batch_size": 8,
+    "timeout_seconds": 60
+  },
+  "ranking": {
+    "document_embedding_representation": "cleaned_pdf_formula_text_v1",
+    "query_embedding_representation": "instructed_query_v1",
+    "workspace_build_git_commit": "3e5758c7818590f3e7b22044358b2097a5e2f6f2",
+    "expected_chunk_content_sha256": "a99c38a36cf061c7406044cb33de4e9517a29c76a077b237e5639c825133278a",
+    "expected_index_input_sha256": "48b5f9be6c27854a155dbfa93cc78aaf7a67b695092953bea91389648edab9e4",
+    "candidate_limit": 5
+  },
+  "variant": {
+    "id": "E4b1-ranked-query-fragments",
+    "description": "Represent every frozen Top-5 candidate with one query-guided, traceable contiguous fragment under a rendered 768-token context budget.",
+    "selection_policy": "ranked_query_fragment_budget_v1",
+    "candidate_limit": 5,
+    "max_context_tokens": 768,
+    "characters_per_token": 4,
+    "max_fragment_chars": 640,
+    "stride_chars": 112,
+    "evidence_ngram_size": 3,
+    "selector_input_fields": [
+      "query",
+      "rank",
+      "chunk_id",
+      "source_path",
+      "source_label",
+      "page_label",
+      "text",
+      "metadata_signals"
+    ]
+  },
+  "e0_hybrid_top5_average_context_tokens": 724.5,
+  "confirmation": {
+    "minimum_parent_hits_per_mode": 8,
+    "maximum_oracle_hit_losses": 0,
+    "maximum_fragment_hit_losses": 0,
+    "minimum_average_evidence_coverage": 0.6,
+    "minimum_case_evidence_coverage": 0.25,
+    "minimum_average_oracle_efficiency": 0.8,
+    "required_candidates_per_case": 5,
+    "maximum_hybrid_context_token_ratio": 1.1
+  }
+}

@@ -240,7 +240,7 @@ class FragmentCaseResult(BaseModel):
 
 
 class FragmentRunMetrics(BaseModel):
-    case_count: Literal[50] = 50
+    case_count: int = Field(default=50, gt=0)
     parent_hits: int = Field(ge=0)
     scorable_parent_hits: int = Field(ge=0)
     unscorable_parent_hit_case_ids: list[str]
@@ -287,7 +287,7 @@ class FragmentRunArtifact(BaseModel):
     selector_input_fields: list[str]
     oracle: FragmentOracleMetadata
     metrics: FragmentRunMetrics
-    cases: list[FragmentCaseResult] = Field(min_length=50, max_length=50)
+    cases: list[FragmentCaseResult] = Field(min_length=1)
 
 
 class FragmentGateResult(BaseModel):
@@ -440,9 +440,10 @@ def build_fragment_run(
     chunk_by_id: Mapping[str, Mapping[str, object]],
     git_commit: str,
     workspace_snapshot_id: str,
+    benchmark: str | None = None,
 ) -> FragmentRunArtifact:
     results = ranking_artifact.evaluation.results
-    if len(results) != 50 or {result.id for result in results} != set(cases_by_id):
+    if not results or {result.id for result in results} != set(cases_by_id):
         raise ValueError("E4b parent ranking and dataset case sets differ")
     case_results = [
         _build_fragment_case(
@@ -455,7 +456,7 @@ def build_fragment_run(
     ]
     metrics = _aggregate_metrics(case_results)
     return FragmentRunArtifact(
-        benchmark=manifest.name,
+        benchmark=benchmark or manifest.name,
         variant_id=manifest.variant.id,
         git_commit=git_commit,
         workspace_snapshot_id=workspace_snapshot_id,
@@ -727,6 +728,8 @@ def _fragment_evidence(
 
 
 def _aggregate_metrics(cases: Sequence[FragmentCaseResult]) -> FragmentRunMetrics:
+    if not cases:
+        raise ValueError("E4b fragment aggregation requires at least one case")
     parent_hits = [case for case in cases if case.evidence.parent_hit]
     scorable = [case for case in parent_hits if case.evidence.scorable]
     coverages = [
@@ -740,6 +743,7 @@ def _aggregate_metrics(cases: Sequence[FragmentCaseResult]) -> FragmentRunMetric
         if case.evidence.oracle_efficiency is not None
     ]
     return FragmentRunMetrics(
+        case_count=len(cases),
         parent_hits=len(parent_hits),
         scorable_parent_hits=len(scorable),
         unscorable_parent_hit_case_ids=[
