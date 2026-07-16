@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "name": "pre-v0.3-e4b-fragment-packing-development",
+  "description": "Development replay of frozen E3b plus E2 Top-5 rankings through oracle and query-guided multi-candidate fragment packing.",
+  "parent": {
+    "path": "benchmarks/results/direction-confirmations/E4a-50-case-8299040/summary.json",
+    "sha256": "e51ba9cc3373da068f03711183362d9473d94b5181f82cb1d7f2173ba0a24074",
+    "hash_mode": "text_lf",
+    "direction_manifest": {
+      "path": "benchmarks/direction_confirmation_manifest_e4a.json",
+      "sha256": "7d97ec891c5198eac7f452cbbe3c4a4100544b3e338851ca52069a8867384503",
+      "hash_mode": "text_lf"
+    },
+    "evaluation_git_commit": "8299040a04ae32f5d5d632713d45f14d6759e9c8",
+    "workspace_snapshot_id": "snapshot-20260715T070507Z-e2ed57b0",
+    "runs": [
+      {
+        "path": "benchmarks/results/direction-confirmations/E4a-50-case-8299040/ranking-runs/semantic-k5.json",
+        "sha256": "29c32e676d07d76b63013a61b217b70395ca760a9ea1ee37614d1db0e8b1cdd3",
+        "hash_mode": "text_lf",
+        "retrieval_mode": "semantic",
+        "limit": 5,
+        "result_fingerprint_sha256": "998a1759fdb7d473f53623ba7de338eb5da6322d87645408c32dae47894d4597"
+      },
+      {
+        "path": "benchmarks/results/direction-confirmations/E4a-50-case-8299040/ranking-runs/hybrid-k5.json",
+        "sha256": "329741e62b5daa9642d7209af48c53551baceef934c737276a10f9d80014812c",
+        "hash_mode": "text_lf",
+        "retrieval_mode": "hybrid",
+        "limit": 5,
+        "result_fingerprint_sha256": "bbfa18f886f73b3843c1483883a538ee4e4ec8a1f6b2b0bfa1252ddb84bc3d57"
+      }
+    ]
+  },
+  "workspace": {
+    "build_git_commit": "3e5758c7818590f3e7b22044358b2097a5e2f6f2",
+    "expected_chunk_content_sha256": "a99c38a36cf061c7406044cb33de4e9517a29c76a077b237e5639c825133278a",
+    "expected_index_input_sha256": "48b5f9be6c27854a155dbfa93cc78aaf7a67b695092953bea91389648edab9e4"
+  },
+  "variant": {
+    "id": "E4b1-ranked-query-fragments",
+    "description": "Represent every frozen Top-5 candidate with one query-guided, traceable contiguous fragment under a rendered 768-token context budget.",
+    "selection_policy": "ranked_query_fragment_budget_v1",
+    "candidate_limit": 5,
+    "max_context_tokens": 768,
+    "characters_per_token": 4,
+    "max_fragment_chars": 640,
+    "stride_chars": 112,
+    "evidence_ngram_size": 3,
+    "selector_input_fields": [
+      "query",
+      "rank",
+      "chunk_id",
+      "source_path",
+      "source_label",
+      "page_label",
+      "text",
+      "metadata_signals"
+    ]
+  },
+  "e0_hybrid_top5_average_context_tokens": 724.5,
+  "promotion": {
+    "max_oracle_hit_losses": 0,
+    "max_unscorable_parent_hits": 0,
+    "max_semantic_fragment_hit_losses": 0,
+    "max_hybrid_fragment_hit_losses": 0,
+    "max_hybrid_context_token_ratio": 1.1,
+    "required_candidates_per_case": 5
+  }
+}

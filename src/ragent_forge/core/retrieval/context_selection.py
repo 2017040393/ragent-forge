@@ -6,6 +6,7 @@ from typing import Literal, TypeVar
 ContextSelectionPolicy = Literal[
     "top_k_v1",
     "ranked_prefix_token_budget_v1",
+    "ranked_query_fragment_budget_v1",
 ]
 
 _Item = TypeVar("_Item")
