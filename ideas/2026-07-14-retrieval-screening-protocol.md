@@ -314,6 +314,14 @@ packing 保留 Semantic 31/31、Hybrid 35/35 fragment evidence，Hybrid context-
 为 `1.0253`，九个 development gates 全部通过。详见
 [E4b conclusion](2026-07-16-e4b-fragment-packing-development-conclusion.md)。
 
-由于原 50 cases 已参与 E4b 设计，该结果不能再次作为 confirmation。下一步是冻结
-`ranked_query_fragment_budget_v1`，使用新的 held-out evidence spans/cases 做独立确认；
-当前组合仍不设为默认，也不进入正式 release baseline。
+由于原 50 cases 已参与 E4b 设计，该结果不能再次作为 confirmation。后续已冻结
+`ranked_query_fragment_budget_v1`，并使用 10 个未观察 spans 生成 20 个 held-out cases
+完成独立确认。正式结果为 `valid: true`、`confirmed: false`：Semantic/Hybrid parent hits
+为 7/12，所有 parent hits 都被 fragment 保留，但 average evidence coverage 只有
+`0.5091` / `0.5868`，未达到两种 mode 各 `>= 0.60`；Semantic 另有一个 case 低于
+per-case `0.25`。详见
+[held-out conclusion](2026-07-16-e4b-heldout-confirmation-conclusion.md)。
+
+因此 E4b1 不设为默认，也不进入 production integration 或 answer-quality evaluation。
+若继续 E4b2，当前 20 cases 只能作为 development/diagnosis 数据，独立 confirmation
+必须重新生成未观察 spans/cases。

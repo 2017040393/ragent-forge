@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from benchmarks.fragment_packing_confirmation import (
+    FragmentPackingConfirmationReport,
     HeldoutDatasetValidation,
     _query_cache_report,
     _query_key,
@@ -308,3 +309,28 @@ def test_query_cache_contract_requires_independence_and_hybrid_reuse(
     assert report.independent is True
     assert report.hybrid_reuse_complete is True
     assert report.valid is True
+
+
+def test_checked_in_heldout_result_is_valid_but_not_confirmed() -> None:
+    root = Path(__file__).parents[1]
+    path = (
+        root
+        / "benchmarks/results/fragment-packing/E4b-heldout-41cb038/summary.json"
+    )
+    report = FragmentPackingConfirmationReport.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+
+    assert sha256_file(path, "text_lf") == (
+        "236a889f201f65a2e4acfc072f44998a27141de86eabfc6081d30756ec421b0d"
+    )
+    assert report.git.commit == "41cb038e5d5c313e8c58d90930361ca7da74b92d"
+    assert report.valid is True
+    assert report.confirmed is False
+    assert {gate.name for gate in report.gates if not gate.passed} == {
+        "minimum_parent_hits",
+        "average_evidence_coverage",
+        "minimum_evidence_coverage",
+    }
+    assert report.query_cache.independent is True
+    assert report.query_cache.hybrid_reuse_complete is True

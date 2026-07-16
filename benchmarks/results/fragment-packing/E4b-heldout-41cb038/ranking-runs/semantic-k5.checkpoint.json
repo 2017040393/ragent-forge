@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4b-heldout-confirmation",
+  "variant_id": "E4b1-ranked-query-fragments",
+  "git_commit": "41cb038e5d5c313e8c58d90930361ca7da74b92d",
+  "workspace_snapshot_id": "snapshot-20260715T070507Z-e2ed57b0",
+  "retrieval_mode": "semantic",
+  "ranking_artifact_sha256": "8e6ae55f44db6652e786480ac014bc8d34e9029a3ec9bc7b679cc3c403ce10cb",
+  "result_fingerprint_sha256": "9a6e3d7af0814c026b6b12a67717a5acac82320b6e16eea2467509a308e9feaa",
+  "query_cache_sha256": "549fb6f5839c62edbfb3ca89128134aaf9d81562f76e84e7e849b20944f90970"
+}

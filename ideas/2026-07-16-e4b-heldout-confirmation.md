@@ -1,13 +1,14 @@
 # E4b Held-out Confirmation
 
 - 日期：2026-07-16
-- 状态：accepted-protocol
+- 状态：completed-not-confirmed
 - Candidate：`E4b1-ranked-query-fragments`
 - Frozen implementation：`ccc930ae27740fca1da706c08487cc66cbb5493f`
 - Development result：[E4b development conclusion](2026-07-16-e4b-fragment-packing-development-conclusion.md)
 - Frozen dataset：[E4b held-out dataset review](2026-07-16-e4b-heldout-dataset-review.md)
 - Execution manifest：
   [`fragment_packing_confirmation_manifest_e4b.json`](../benchmarks/fragment_packing_confirmation_manifest_e4b.json)
+- Result：[E4b held-out confirmation conclusion](2026-07-16-e4b-heldout-confirmation-conclusion.md)
 
 ## 目的与隔离边界
 
