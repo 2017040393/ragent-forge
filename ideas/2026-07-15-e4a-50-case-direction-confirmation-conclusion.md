@@ -65,6 +65,10 @@ windows，使后排候选仍能进入 context。E4b 必须增加 evidence-preser
 “selected chunk ID 存在”来把截断文本误判为命中。它可以完全离线重放本轮 50-case ranking
 artifacts，设计与初筛阶段不需要再次调用 embedding provider。
 
+该 development replay 已完成并通过九个预注册 gates，见
+[E4b development conclusion](2026-07-16-e4b-fragment-packing-development-conclusion.md)。
+因为本页的 50 cases 已被用于 E4b 设计，下一次 confirmation 必须换用新 held-out cases。
+
 ## Reproduction
 
 从 harness commit 的干净工作区运行：
