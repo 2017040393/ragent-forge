@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4b-heldout-dataset",
+  "git_commit": "66dea16a416848e1e0e69d1997ab23a6a9615a2f",
+  "source_path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+  "span_id": "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0341",
+  "span_index": 341,
+  "page": 343,
+  "text_chars": 1199,
+  "text_sha256": "bab783cd648d3940510c446faf06aa7b263cc14001249519e516019951377d72",
+  "generation": {
+    "provider": "openai_responses",
+    "base_url": "https://api.aijws.com",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "temperature": 0.2,
+    "questions_per_span": 2,
+    "case_count": 20,
+    "case_id_prefix": "e4b-heldout-"
+  },
+  "items": [
+    {
+      "query": "How is the complementary subspace W constructed in the proof, and what condition must a vector v satisfy to belong to it?",
+      "reference_answer": "Choose a linear functional phi such that phi(T^(m-1)u) is nonzero. Then W consists of the vectors v for which phi(T^k v) equals zero for every k from 0 through m-1.",
+      "question_type": "how_to",
+      "difficulty": "medium"
+    },
+    {
+      "query": "Why is the subspace W invariant under T?",
+      "reference_answer": "If v is in W, then for T v the required expressions are phi(T^k(Tv)) = phi(T^(k+1)v). These vanish for k through m-2 by the definition of W, and the final case follows from T^m = 0.",
+      "question_type": "reasoning",
+      "difficulty": "medium"
+    }
+  ]
+}

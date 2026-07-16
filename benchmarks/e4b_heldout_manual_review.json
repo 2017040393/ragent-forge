@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "name": "pre-v0.3-e4b-heldout-manual-review",
+  "reviewed_on": "2026-07-16",
+  "generation_summary": {
+    "path": "benchmarks/results/heldout-datasets/E4b-heldout-generation-66dea16/summary.json",
+    "sha256": "bf2358f8c310117e462fd2391b843efef2f6d4113a661a9f6e6ecbb5181a0a5f",
+    "hash_mode": "text_lf"
+  },
+  "raw_dataset": {
+    "path": "benchmarks/results/heldout-datasets/E4b-heldout-generation-66dea16/cases.jsonl",
+    "sha256": "c731717b616af1db3c5b91e39eb52a50584feca342a97fc38336455acabef168",
+    "hash_mode": "text_lf"
+  },
+  "canonical_dataset": {
+    "path": "examples/eval/v0_2_retrieval_baseline.generated.jsonl",
+    "sha256": "b92b9b0c7fc57c45f1ef09d8c9132c2606261734c536db2ba18bb247333ae525",
+    "hash_mode": "text_lf"
+  },
+  "criteria": [
+    "query is nonempty, natural, and answerable from the archived evidence span",
+    "reference answer is fully grounded in the archived evidence text",
+    "query does not disclose the complete reference answer",
+    "the two questions generated from one span are not near-duplicates"
+  ],
+  "decisions": [
+    {"case_id": "e4b-heldout-000001", "status": "passed", "original_query_sha256": "512a83658babac8e2df8b36214dcd0d58730b2c8a8c269f04d5370d06a23cc23", "original_reference_answer_sha256": "669b5c76a9f9336968e5d6371b282bcf7a3add1b94b0abacd8b601a6313b2760"},
+    {"case_id": "e4b-heldout-000002", "status": "passed", "original_query_sha256": "9491f5f0a2fedbb9f8fdacf3df701d79282bea2bc627760d19251d8ab4d54f04", "original_reference_answer_sha256": "7653934d00721c455dd15525785bbbf08bdd86a932b26de14bb51a6cece8828d"},
+    {"case_id": "e4b-heldout-000003", "status": "passed", "original_query_sha256": "fcd18775c9790e438f9abd65a26729bab4b2955da131fcb3d182ba0b901517be", "original_reference_answer_sha256": "e01054e8da4e33ed4feb63cf18cb1d0e23d4049f34d82bdd840d1dd1675c138c"},
+    {"case_id": "e4b-heldout-000004", "status": "passed", "original_query_sha256": "45522be0be2ea82db6083c6121d5118c21febfe1c68085cf7464388d3741fbc9", "original_reference_answer_sha256": "0ff3d34878f0a8c4f68bdabe8da70c441d8c0e68b20f774ec0f609f47cd639ef"},
+    {"case_id": "e4b-heldout-000005", "status": "passed", "original_query_sha256": "a1a66718925df1e9d50e6f205c60d33467ad88f63f24f224b56cc14dd472015e", "original_reference_answer_sha256": "c6aaa0693073e095ab0298648adf39af82beccecaf57be35841fb03bb09c5e47"},
+    {"case_id": "e4b-heldout-000006", "status": "passed", "original_query_sha256": "2987fc1715169930d95176510ea2f812e7abbd1641655cfc6e64199eec7f8b18", "original_reference_answer_sha256": "c3cec6ca8836aa52cd959a39d8e66d020b2610e95f065e164d232e210f76bd78"},
+    {"case_id": "e4b-heldout-000007", "status": "passed", "original_query_sha256": "811c1b025935a04f8ce4d87868534db60858c23100ddcea7bf351768b43dd346", "original_reference_answer_sha256": "6cae416169fae0cdc63827aee0a250c203ce0052d13c421f530800a44c78a6c3"},
+    {"case_id": "e4b-heldout-000008", "status": "passed", "original_query_sha256": "b5eea36fc48ead83d8cceffd200718deb3996b0b0314e01ce61f3d7350368ee1", "original_reference_answer_sha256": "acd5fa8b31d06407a9de56acaee0bee11754d4866106c2a23442efe5cb2909c5"},
+    {"case_id": "e4b-heldout-000009", "status": "passed", "original_query_sha256": "d41acd780ce85b770b8e6fa46207c7d96a0a82e19c689f5daac7e59c7c7f002e", "original_reference_answer_sha256": "ab83063ff57e7af18fcd76f4f4a5f447c095e5c63e2718d36a4e333b860e97ee"},
+    {"case_id": "e4b-heldout-000010", "status": "passed", "original_query_sha256": "8c5cb919fa515869cc621df48f38546944583820e5ae6c7344c23d0ebd711d6e", "original_reference_answer_sha256": "9285af34222a31c82a077fc354ea44265599443f2db7c7ddad11a77983755b31"},
+    {"case_id": "e4b-heldout-000011", "status": "passed", "original_query_sha256": "7fd0a52745aac8fad0046f171ccaa0bce5f2fd56630fe8565f617d414b25e161", "original_reference_answer_sha256": "8333504259acc3bfe723ace8c8ed2d3d64d96723aac5dbeaa640193bb03f352b"},
+    {"case_id": "e4b-heldout-000012", "status": "passed", "original_query_sha256": "c3bc7218ae5aa8638bf0d4a11a765d8c91d5622fbba1192d0d5e13cba49a0a12", "original_reference_answer_sha256": "e021f3b5ca53e7c1c7e1ab398a32cc7d87245b71c60e36360d3ef80341e57494"},
+    {"case_id": "e4b-heldout-000013", "status": "passed", "original_query_sha256": "63f113904857736fe65c477bc6f40f77d93738e12be63e355fd6d57daa1952b1", "original_reference_answer_sha256": "04813f9f9c478a176a578a6dfd72321f6d1ba13e97430711f5ec1bed42a6f2c3"},
+    {"case_id": "e4b-heldout-000014", "status": "passed", "original_query_sha256": "6769e7260eb1174310e406bf65ff1cf75a7fa4c6995dc3b9f18abf0e1340a539", "original_reference_answer_sha256": "29d8830a5ab3326a8465a2fa2fb4a101db0e2de8e593102ae27f01dd774b16df"},
+    {"case_id": "e4b-heldout-000015", "status": "passed", "original_query_sha256": "4499a993206e9d4a927bfde3859d96c612b023c7d11807d50a4a165c95cacc3d", "original_reference_answer_sha256": "6525a6ba6d0935748b21acccfd3929e666e2a69fd565cca827f2e46de8d48e38"},
+    {"case_id": "e4b-heldout-000016", "status": "passed", "original_query_sha256": "bfe86de2aa982f3912417c5f8bcd128ebf019983448354a501a24a169b11136e", "original_reference_answer_sha256": "4d0ec3075d37513a27f640d9e0d91c01a3a10547065e411e11df4f53c59bc802"},
+    {
+      "case_id": "e4b-heldout-000017",
+      "status": "corrected",
+      "original_query_sha256": "20eec2e43fa1575554985fb4aa9c4802c2d6e559fdbdd099c7fe1a6361b7b881",
+      "original_reference_answer_sha256": "f1f56490f536d193b2bfbe6fbf754441b3d720af5f4cf601adeb8ea86179fa5d",
+      "replacement_query": "For c = 1 and n = 100, how does the exercise's determinant estimate compare with the estimate from the determinant formula?",
+      "replacement_reference_answer": "The determinant-formula estimate is approximately 10^158, while the exercise gives the much smaller estimate 10^100.",
+      "reason_code": "ungrounded_generated_detail",
+      "note": "The generated answer supplied a general bound whose formula line is absent from the archived span text; the reviewed wording keeps only the explicit numerical comparison."
+    },
+    {"case_id": "e4b-heldout-000018", "status": "passed", "original_query_sha256": "42b8d6b6daa2e8c7fe7e1c0f15f62fd081fb1b0997fe1d98e861ac6efbc840b7", "original_reference_answer_sha256": "7f984d0b8c4714035e2098cf7b093a93f6b5a28d290ac955e2b5dd1b55ee01fe"},
+    {"case_id": "e4b-heldout-000019", "status": "passed", "original_query_sha256": "724971366604122b4f616aec5064d3e7ebe7425998806f79058a765b6ecd248c", "original_reference_answer_sha256": "10d4cb8d6ae24622675524858fad51421153960c0e95a401d58569260d8aa607"},
+    {"case_id": "e4b-heldout-000020", "status": "passed", "original_query_sha256": "efe6ce5f3a621ef830c77da8cf3bf19516c5aa5984fea3ebe66db4fb3a5ea6b2", "original_reference_answer_sha256": "cadb131f0b0812a2087f541ea8a6e17e1fb4323a82a3d025640534847082f6be"}
+  ]
+}

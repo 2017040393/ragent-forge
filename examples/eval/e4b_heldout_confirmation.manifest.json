@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "name": "pre-v0.3-e4b-heldout-confirmation-dataset",
+  "generation_commit": "66dea16a416848e1e0e69d1997ab23a6a9615a2f",
+  "generation_summary": {
+    "path": "benchmarks/results/heldout-datasets/E4b-heldout-generation-66dea16/summary.json",
+    "sha256": "bf2358f8c310117e462fd2391b843efef2f6d4113a661a9f6e6ecbb5181a0a5f",
+    "hash_mode": "text_lf"
+  },
+  "raw_dataset": {
+    "path": "benchmarks/results/heldout-datasets/E4b-heldout-generation-66dea16/cases.jsonl",
+    "sha256": "c731717b616af1db3c5b91e39eb52a50584feca342a97fc38336455acabef168",
+    "hash_mode": "text_lf"
+  },
+  "review_manifest": {
+    "path": "benchmarks/e4b_heldout_manual_review.json",
+    "sha256": "030e7a696e3c2be76523d84260cd8485d701edc40fdccc419c02592326f03731",
+    "hash_mode": "text_lf"
+  },
+  "canonical_dataset": {
+    "path": "examples/eval/v0_2_retrieval_baseline.generated.jsonl",
+    "sha256": "b92b9b0c7fc57c45f1ef09d8c9132c2606261734c536db2ba18bb247333ae525",
+    "hash_mode": "text_lf"
+  },
+  "dataset_path": "examples/eval/e4b_heldout_confirmation.jsonl",
+  "dataset_sha256": "b79bbd7d8dfdff5da36673d9df13d388be4774cf8a0f0fca0d8862955624bccb",
+  "case_count": 20,
+  "unique_query_count": 20,
+  "canonical_query_duplicates": [],
+  "manual_pass_count": 19,
+  "manual_correction_count": 1,
+  "corrected_case_ids": [
+    "e4b-heldout-000017"
+  ],
+  "valid": true
+}

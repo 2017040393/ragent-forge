@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "name": "pre-v0.3-e4b-heldout-dataset",
+  "description": "Frozen generation plan for 20 held-out PDF retrieval cases used to confirm E4b fragment packing.",
+  "canonical_dataset": {
+    "path": "examples/eval/v0_2_retrieval_baseline.generated.jsonl",
+    "sha256": "b92b9b0c7fc57c45f1ef09d8c9132c2606261734c536db2ba18bb247333ae525",
+    "hash_mode": "text_lf"
+  },
+  "canonical_manifest": {
+    "path": "examples/eval/v0_2_retrieval_baseline.generated.manifest.json",
+    "sha256": "ba5018520c1ddb6c76c0d89f73603ff78d135aaef97a9b04b912c01a44397ea5",
+    "hash_mode": "text_lf"
+  },
+  "source_root": "examples/knowledge",
+  "minimum_eligible_span_chars": 1000,
+  "sources": [
+    {
+      "path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+      "sha256": "76cd30d85f11abae269ec4865ea1802f68366085763f1bc37786f11f4efc6ae1",
+      "hash_mode": "binary",
+      "canonical_selected_span_indexes": [
+        30,
+        48,
+        67,
+        85,
+        104,
+        126,
+        148,
+        170,
+        193,
+        230,
+        267
+      ],
+      "selected_spans": [
+        {
+          "index": 0,
+          "page": 2,
+          "text_chars": 1200,
+          "text_sha256": "0237992663ad6b58b8e8dafe4d91a17aebfd2f6ed6144e67af4a16fed9bf9457"
+        },
+        {
+          "index": 296,
+          "page": 298,
+          "text_chars": 1188,
+          "text_sha256": "426526402b17bf2c884dd2568735711f379757a2c4a3a73159cd1bc8c065d47c"
+        },
+        {
+          "index": 211,
+          "page": 215,
+          "text_chars": 1197,
+          "text_sha256": "b20f417dc01a329a2fe02c8f97443be9a6eaeea10202a31634b1ab72f315c27a"
+        },
+        {
+          "index": 248,
+          "page": 251,
+          "text_chars": 1194,
+          "text_sha256": "6577c2cf7807f0005a0970442c8821af1e84f2ab2e20a4ae8c57562375092fa4"
+        },
+        {
+          "index": 15,
+          "page": 20,
+          "text_chars": 1196,
+          "text_sha256": "88f6dd6ea8b42503b206ce50359b60ef0963c440426668ab27f824f9f6bef492"
+        }
+      ]
+    },
+    {
+      "path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+      "sha256": "0cbc06df32a0d54964a53e6c6c8640f47b41cf6ce9834fdb6c81d538f9de6e9b",
+      "hash_mode": "binary",
+      "canonical_selected_span_indexes": [
+        41,
+        66,
+        92,
+        117,
+        143,
+        173,
+        204,
+        234,
+        265,
+        290,
+        316,
+        367
+      ],
+      "selected_spans": [
+        {
+          "index": 408,
+          "page": 410,
+          "text_chars": 1196,
+          "text_sha256": "44d7920dd18508be5ef80108ebdd41bc1ddfde1d959af15504484540f7764ca2"
+        },
+        {
+          "index": 2,
+          "page": 6,
+          "text_chars": 1196,
+          "text_sha256": "c1bbf4abec2fd94151fbfeefe9615fc78599183d91362456ef08466af519bbc1"
+        },
+        {
+          "index": 341,
+          "page": 343,
+          "text_chars": 1199,
+          "text_sha256": "bab783cd648d3940510c446faf06aa7b263cc14001249519e516019951377d72"
+        },
+        {
+          "index": 387,
+          "page": 389,
+          "text_chars": 1198,
+          "text_sha256": "a16266a5ff75faa211df7020d24ae613dbfc50a8e155c218075a423d9919e89f"
+        },
+        {
+          "index": 21,
+          "page": 26,
+          "text_chars": 1199,
+          "text_sha256": "5a0151541a55a26517e768840b81bf993ecaf56a2b0dc663c7ce3799ff0268e0"
+        }
+      ]
+    }
+  ],
+  "generation": {
+    "provider": "openai_responses",
+    "base_url": "https://api.aijws.com",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "temperature": 0.2,
+    "questions_per_span": 2,
+    "case_count": 20,
+    "case_id_prefix": "e4b-heldout-"
+  }
+}

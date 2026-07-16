@@ -5,6 +5,7 @@
 - Candidate：`E4b1-ranked-query-fragments`
 - Frozen implementation：`ccc930ae27740fca1da706c08487cc66cbb5493f`
 - Development result：[E4b development conclusion](2026-07-16-e4b-fragment-packing-development-conclusion.md)
+- Frozen dataset：[E4b held-out dataset review](2026-07-16-e4b-heldout-dataset-review.md)
 
 ## 目的与隔离边界
 
@@ -61,6 +62,13 @@ exclusion。任何 mismatch 都中止生成，禁止按当前位置选择替代 
 生成后只做结构与人工质量检查：JSONL 可加载、20 unique nonempty queries、reference
 answer 被 evidence 支持、无明显答案泄漏、无 canonical query duplication。不得根据 E4b
 retrieval 结果删除或替换困难 case。
+
+冻结 reviewed dataset 为
+[`e4b_heldout_confirmation.jsonl`](../examples/eval/e4b_heldout_confirmation.jsonl)，
+SHA-256 `b79bbd7d8dfdff5da36673d9df13d388be4774cf8a0f0fca0d8862955624bccb`。
+20 cases 中 19 个原样通过人工审查；`e4b-heldout-000017` 因 PDF 提取后的 evidence text
+缺少生成答案引用的一般公式，在任何 retrieval 运行前改为同一 evidence 中明确存在的
+数值比较。原始生成输出和修正记录均保留，case 和 evidence span 没有删除或替换。
 
 ## Frozen Retrieval And Packing
 

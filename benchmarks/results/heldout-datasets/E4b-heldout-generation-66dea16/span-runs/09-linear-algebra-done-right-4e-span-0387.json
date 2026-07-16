@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4b-heldout-dataset",
+  "git_commit": "66dea16a416848e1e0e69d1997ab23a6a9615a2f",
+  "source_path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+  "span_id": "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0387",
+  "span_index": 387,
+  "page": 389,
+  "text_chars": 1198,
+  "text_sha256": "a16266a5ff75faa211df7020d24ae613dbfc50a8e155c218075a423d9919e89f",
+  "generation": {
+    "provider": "openai_responses",
+    "base_url": "https://api.aijws.com",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "temperature": 0.2,
+    "questions_per_span": 2,
+    "case_count": 20,
+    "case_id_prefix": "e4b-heldout-"
+  },
+  "items": [
+    {
+      "query": "What determinant bound does the exercise give for an n-by-n matrix whose entries all have absolute value at most c, and how does it compare with the bound from the determinant formula?",
+      "reference_answer": "The exercise gives the sharper bound |det A| ≤ c^n n^{n/2}, compared with the estimate c^n n! obtained directly from the determinant formula. For c = 1 and n = 100, these are approximately 10^100 and 10^158, respectively.",
+      "question_type": "comparison",
+      "difficulty": "medium"
+    },
+    {
+      "query": "What uniqueness property of the determinant is established by Exercise 21?",
+      "reference_answer": "It establishes that the determinant is the unique function on complex square matrices that is multiplicative and agrees with the product of the diagonal entries on every diagonal matrix.",
+      "question_type": "factual",
+      "difficulty": "easy"
+    }
+  ]
+}

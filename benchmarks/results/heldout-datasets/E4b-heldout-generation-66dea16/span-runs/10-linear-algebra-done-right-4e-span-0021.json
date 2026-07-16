@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4b-heldout-dataset",
+  "git_commit": "66dea16a416848e1e0e69d1997ab23a6a9615a2f",
+  "source_path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+  "span_id": "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0021",
+  "span_index": 21,
+  "page": 26,
+  "text_chars": 1199,
+  "text_sha256": "5a0151541a55a26517e768840b81bf993ecaf56a2b0dc663c7ce3799ff0268e0",
+  "generation": {
+    "provider": "openai_responses",
+    "base_url": "https://api.aijws.com",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "temperature": 0.2,
+    "questions_per_span": 2,
+    "case_count": 20,
+    "case_id_prefix": "e4b-heldout-"
+  },
+  "items": [
+    {
+      "query": "What does the notation F^n represent when F is either R or C?",
+      "reference_answer": "It represents the set of all ordered lists with n entries, where every entry belongs to F.",
+      "question_type": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "query": "How would you describe an element of C^4 and identify one of its coordinates?",
+      "reference_answer": "An element of C^4 is an ordered list of four complex numbers, such as (z1, z2, z3, z4). The value z_k is the kth coordinate for k from 1 through 4; for example, z3 is the third coordinate.",
+      "question_type": "how_to",
+      "difficulty": "easy"
+    }
+  ]
+}

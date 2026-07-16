@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4b-heldout-dataset",
+  "git_commit": "66dea16a416848e1e0e69d1997ab23a6a9615a2f",
+  "source_path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+  "span_id": "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0002",
+  "span_index": 2,
+  "page": 6,
+  "text_chars": 1196,
+  "text_sha256": "c1bbf4abec2fd94151fbfeefe9615fc78599183d91362456ef08466af519bbc1",
+  "generation": {
+    "provider": "openai_responses",
+    "base_url": "https://api.aijws.com",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "temperature": 0.2,
+    "questions_per_span": 2,
+    "case_count": 20,
+    "case_id_prefix": "e4b-heldout-"
+  },
+  "items": [
+    {
+      "query": "Who is credited as the author of this mathematics book, and what year is included in the copyright notice?",
+      "reference_answer": "Sheldon Axler is credited as the author, and the copyright notice includes 2024.",
+      "question_type": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "query": "What license governs the book, and what must someone do when sharing or adapting it under that license?",
+      "reference_answer": "The book is available under the Creative Commons Attribution-NonCommercial 4.0 International License. Users must credit the original author and source, provide a link to the license, and indicate whether changes were made.",
+      "question_type": "how_to",
+      "difficulty": "medium"
+    }
+  ]
+}

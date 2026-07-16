@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4b-heldout-dataset",
+  "description": "Frozen generation plan for 20 held-out PDF retrieval cases used to confirm E4b fragment packing.",
+  "generated_at": "2026-07-16T07:59:17.426041+00:00",
+  "manifest_path": "benchmarks/generate_e4b_heldout_manifest.json",
+  "manifest_sha256": "9b9223ba6d76ee37d6dfe399eaf9832689099402aa1b5e3c48878bd0b0c799b2",
+  "git": {
+    "commit": "66dea16a416848e1e0e69d1997ab23a6a9615a2f",
+    "branch": "main",
+    "dirty": false
+  },
+  "generation": {
+    "provider": "openai_responses",
+    "base_url": "https://api.aijws.com",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "temperature": 0.2,
+    "questions_per_span": 2,
+    "case_count": 20,
+    "case_id_prefix": "e4b-heldout-"
+  },
+  "resolved_spans": [
+    {
+      "source_path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+      "span_id": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0000",
+      "span_index": 0,
+      "page": 2,
+      "text_chars": 1200,
+      "text_sha256": "0237992663ad6b58b8e8dafe4d91a17aebfd2f6ed6144e67af4a16fed9bf9457",
+      "artifact_path": "span-runs/01-high-dimensional-probability--an-span-0000.json",
+      "artifact_sha256": "84a99226429a5ff02cecb47651ef897944b918ec410d164f37f7873711eea189"
+    },
+    {
+      "source_path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+      "span_id": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0296",
+      "span_index": 296,
+      "page": 298,
+      "text_chars": 1188,
+      "text_sha256": "426526402b17bf2c884dd2568735711f379757a2c4a3a73159cd1bc8c065d47c",
+      "artifact_path": "span-runs/02-high-dimensional-probability--an-span-0296.json",
+      "artifact_sha256": "6be38f97d30c650ca4f09617af11f085b69ec6ec93180e54a6bd8628e9bb11fc"
+    },
+    {
+      "source_path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+      "span_id": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0211",
+      "span_index": 211,
+      "page": 215,
+      "text_chars": 1197,
+      "text_sha256": "b20f417dc01a329a2fe02c8f97443be9a6eaeea10202a31634b1ab72f315c27a",
+      "artifact_path": "span-runs/03-high-dimensional-probability--an-span-0211.json",
+      "artifact_sha256": "dd1ce80f28a7ccbbbed3f2477900535ccf824d5ea96512b2135f9f537a958560"
+    },
+    {
+      "source_path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+      "span_id": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0248",
+      "span_index": 248,
+      "page": 251,
+      "text_chars": 1194,
+      "text_sha256": "6577c2cf7807f0005a0970442c8821af1e84f2ab2e20a4ae8c57562375092fa4",
+      "artifact_path": "span-runs/04-high-dimensional-probability--an-span-0248.json",
+      "artifact_sha256": "611b785e2dbea4ac877ff4ad38870d8ecb79568b87d21c798d6adb3ff16dbb1d"
+    },
+    {
+      "source_path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+      "span_id": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0015",
+      "span_index": 15,
+      "page": 20,
+      "text_chars": 1196,
+      "text_sha256": "88f6dd6ea8b42503b206ce50359b60ef0963c440426668ab27f824f9f6bef492",
+      "artifact_path": "span-runs/05-high-dimensional-probability--an-span-0015.json",
+      "artifact_sha256": "0400b28ae2a05d812e16ba9c7c062031180fc61c5cc3e19e3cced92563dd13c1"
+    },
+    {
+      "source_path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+      "span_id": "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0408",
+      "span_index": 408,
+      "page": 410,
+      "text_chars": 1196,
+      "text_sha256": "44d7920dd18508be5ef80108ebdd41bc1ddfde1d959af15504484540f7764ca2",
+      "artifact_path": "span-runs/06-linear-algebra-done-right-4e-span-0408.json",
+      "artifact_sha256": "4fac75cd33b6cb4ef72ad84b570b7af16f58aeb78eb71f627a9d34ff50385526"
+    },
+    {
+      "source_path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+      "span_id": "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0002",
+      "span_index": 2,
+      "page": 6,
+      "text_chars": 1196,
+      "text_sha256": "c1bbf4abec2fd94151fbfeefe9615fc78599183d91362456ef08466af519bbc1",
+      "artifact_path": "span-runs/07-linear-algebra-done-right-4e-span-0002.json",
+      "artifact_sha256": "a8de7b98a364ad1151e8a70a9e73ccf11124bb32eaf2b5b6bb1c23be4406bac0"
+    },
+    {
+      "source_path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+      "span_id": "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0341",
+      "span_index": 341,
+      "page": 343,
+      "text_chars": 1199,
+      "text_sha256": "bab783cd648d3940510c446faf06aa7b263cc14001249519e516019951377d72",
+      "artifact_path": "span-runs/08-linear-algebra-done-right-4e-span-0341.json",
+      "artifact_sha256": "8f31ccf581e0dc26f5deecb3d49eaabaccb4a8a03bf31e0060381a50befbaf18"
+    },
+    {
+      "source_path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+      "span_id": "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0387",
+      "span_index": 387,
+      "page": 389,
+      "text_chars": 1198,
+      "text_sha256": "a16266a5ff75faa211df7020d24ae613dbfc50a8e155c218075a423d9919e89f",
+      "artifact_path": "span-runs/09-linear-algebra-done-right-4e-span-0387.json",
+      "artifact_sha256": "85623aed06ec452a7be7bfd45f155ee19ac745c06c0f34b1715b3907d05da98a"
+    },
+    {
+      "source_path": "examples/knowledge/linear_algebra_done_right_4e.pdf",
+      "span_id": "examples/knowledge/linear_algebra_done_right_4e.pdf::span-0021",
+      "span_index": 21,
+      "page": 26,
+      "text_chars": 1199,
+      "text_sha256": "5a0151541a55a26517e768840b81bf993ecaf56a2b0dc663c7ce3799ff0268e0",
+      "artifact_path": "span-runs/10-linear-algebra-done-right-4e-span-0021.json",
+      "artifact_sha256": "9e62995c4008724ed2923e88db234b0588be3d7c42ac6c1797423faf0d072911"
+    }
+  ],
+  "dataset_path": "cases.jsonl",
+  "dataset_sha256": "c731717b616af1db3c5b91e39eb52a50584feca342a97fc38336455acabef168",
+  "case_count": 20,
+  "unique_query_count": 20,
+  "canonical_query_duplicates": [],
+  "valid": true
+}

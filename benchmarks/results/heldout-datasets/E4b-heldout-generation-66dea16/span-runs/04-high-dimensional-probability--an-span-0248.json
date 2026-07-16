@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4b-heldout-dataset",
+  "git_commit": "66dea16a416848e1e0e69d1997ab23a6a9615a2f",
+  "source_path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+  "span_id": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0248",
+  "span_index": 248,
+  "page": 251,
+  "text_chars": 1194,
+  "text_sha256": "6577c2cf7807f0005a0970442c8821af1e84f2ab2e20a4ae8c57562375092fa4",
+  "generation": {
+    "provider": "openai_responses",
+    "base_url": "https://api.aijws.com",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "temperature": 0.2,
+    "questions_per_span": 2,
+    "case_count": 20,
+    "case_id_prefix": "e4b-heldout-"
+  },
+  "items": [
+    {
+      "query": "How is the exact sparsity of a vector in R^n measured?",
+      "reference_answer": "It is measured by the size of the vector's support, meaning the number of indices whose coefficients are nonzero. This quantity is denoted by ||x||_0.",
+      "question_type": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "query": "Why might an audio signal be considered sparse even when the signal itself is not sparse in the time domain?",
+      "reference_answer": "An audio signal may become sparse after changing to the frequency basis: although its time-domain values are generally nonzero, its Fourier transform can have significant values concentrated in a relatively small set of frequencies.",
+      "question_type": "reasoning",
+      "difficulty": "medium"
+    }
+  ]
+}

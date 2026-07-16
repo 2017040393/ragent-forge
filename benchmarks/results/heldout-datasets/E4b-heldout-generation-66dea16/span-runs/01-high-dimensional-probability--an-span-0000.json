@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4b-heldout-dataset",
+  "git_commit": "66dea16a416848e1e0e69d1997ab23a6a9615a2f",
+  "source_path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+  "span_id": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0000",
+  "span_index": 0,
+  "page": 2,
+  "text_chars": 1200,
+  "text_sha256": "0237992663ad6b58b8e8dafe4d91a17aebfd2f6ed6144e67af4a16fed9bf9457",
+  "generation": {
+    "provider": "openai_responses",
+    "base_url": "https://api.aijws.com",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "temperature": 0.2,
+    "questions_per_span": 2,
+    "case_count": 20,
+    "case_id_prefix": "e4b-heldout-"
+  },
+  "items": [
+    {
+      "query": "What background does the book assume before introducing high-dimensional probability?",
+      "reference_answer": "It assumes only an introductory course in probability and linear algebra.",
+      "question_type": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "query": "Which areas are identified as benefiting from high-dimensional probability methods?",
+      "reference_answer": "The evidence names probability theory, mathematics, statistics, computer science, and electrical engineering as areas where these methods are useful.",
+      "question_type": "factual",
+      "difficulty": "easy"
+    }
+  ]
+}

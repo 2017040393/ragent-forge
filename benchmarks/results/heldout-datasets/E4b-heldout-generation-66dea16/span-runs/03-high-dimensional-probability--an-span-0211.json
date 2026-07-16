@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4b-heldout-dataset",
+  "git_commit": "66dea16a416848e1e0e69d1997ab23a6a9615a2f",
+  "source_path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+  "span_id": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0211",
+  "span_index": 211,
+  "page": 215,
+  "text_chars": 1197,
+  "text_sha256": "b20f417dc01a329a2fe02c8f97443be9a6eaeea10202a31634b1ab72f315c27a",
+  "generation": {
+    "provider": "openai_responses",
+    "base_url": "https://api.aijws.com",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "temperature": 0.2,
+    "questions_per_span": 2,
+    "case_count": 20,
+    "case_id_prefix": "e4b-heldout-"
+  },
+  "items": [
+    {
+      "query": "What property of a Boolean function class guarantees that it is uniform Glivenko–Cantelli according to the passage?",
+      "reference_answer": "Having finite VC dimension guarantees that the class is uniform Glivenko–Cantelli.",
+      "question_type": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "query": "What does the sharpness exercise imply about a Boolean function class with infinite VC dimension?",
+      "reference_answer": "It implies that such a class is not uniform Glivenko–Cantelli.",
+      "question_type": "reasoning",
+      "difficulty": "medium"
+    }
+  ]
+}

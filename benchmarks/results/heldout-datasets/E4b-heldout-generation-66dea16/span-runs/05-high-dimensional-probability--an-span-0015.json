@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "benchmark": "pre-v0.3-e4b-heldout-dataset",
+  "git_commit": "66dea16a416848e1e0e69d1997ab23a6a9615a2f",
+  "source_path": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf",
+  "span_id": "examples/knowledge/High-Dimensional Probability_ An Introduction wit.pdf::span-0015",
+  "span_index": 15,
+  "page": 20,
+  "text_chars": 1196,
+  "text_sha256": "88f6dd6ea8b42503b206ce50359b60ef0963c440426668ab27f824f9f6bef492",
+  "generation": {
+    "provider": "openai_responses",
+    "base_url": "https://api.aijws.com",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "temperature": 0.2,
+    "questions_per_span": 2,
+    "case_count": 20,
+    "case_id_prefix": "e4b-heldout-"
+  },
+  "items": [
+    {
+      "query": "How is the variance of a random variable X expressed in terms of its expectation?",
+      "reference_answer": "The variance is defined as Var(X) = E[(X - E[X])^2].",
+      "question_type": "factual",
+      "difficulty": "easy"
+    },
+    {
+      "query": "What function would you use to summarize the exponential moments of X, and how is it defined?",
+      "reference_answer": "Use the moment generating function, defined by M_X(t) = E[e^{tX}] for t in R.",
+      "question_type": "how_to",
+      "difficulty": "easy"
+    }
+  ]
+}
